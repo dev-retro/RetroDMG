@@ -1,33 +1,37 @@
 ﻿using System;
 using Cade.Common.Interfaces;
 
-namespace Cade.DMG
+namespace Cade.DMG;
+
+public class GbOutputManager : CadeOutputManager
 {
-	public class GbOutputManager : CadeOutputManager
+    private GraphicsView? graphicsView;
+    private DMGGraphicsCanvas graphicsCanvas;
+
+    public GbOutputManager()
 	{
-		public GbOutputManager()
-		{
-		}
+        graphicsCanvas = new();
+	}
 
-        public override void AddGraphicsView(GraphicsView graphicsView)
-        {
-            throw new NotImplementedException();
-        }
+    public override void AddGraphicsView(GraphicsView graphicsView)
+    {
+        this.graphicsView = graphicsView;
+        this.graphicsView.Drawable = graphicsCanvas;
+    }
 
-        public override void Dispose()
-        {
-            throw new NotImplementedException();
-        }
+    public override void Dispose()
+    {
+        
+    }
 
-        public override void Draw()
-        {
-            throw new NotImplementedException();
-        }
+    public override void Draw()
+    {
+        
+    }
 
-        public override void Setup()
-        {
-            throw new NotImplementedException();
-        }
+    public override void Setup()
+    {
+        
     }
 }
 
