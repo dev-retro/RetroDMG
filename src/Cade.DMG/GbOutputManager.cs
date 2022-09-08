@@ -26,7 +26,7 @@ public class GbOutputManager : CadeOutputManager
 
     public override void Draw()
     {
-        
+        graphicsView?.Invalidate();
     }
 
     public override void Setup()

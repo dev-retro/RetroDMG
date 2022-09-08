@@ -35,8 +35,8 @@ public class GbExtension : CadeExtension
 
     public override void Close()
     {
-        cpuTimer?.Stop();
-        graphicsTimer?.Stop();
+        //cpuTimer?.Stop();
+        //graphicsTimer?.Stop();
     }
 
     public override void Load(string path)
@@ -51,7 +51,7 @@ public class GbExtension : CadeExtension
 
     public override void Run(CancellationTokenSource cancellationTokenSource)
     {
-        if(coreManager is not null)
+        if (coreManager is not null)
         {
             var dispatcher = Application.Current!.Dispatcher; // if your context isn't a BindableObject (if your context is a BO then just this.Dispatcher...)
             cpuTimer = dispatcher.CreateTimer();
@@ -69,6 +69,7 @@ public class GbExtension : CadeExtension
             graphicsTimer.Tick += (s, e) =>
             {
                 //TODO: emulate the graphics update
+                OutputManager.Draw();
             };
             graphicsTimer.Start();
         }
