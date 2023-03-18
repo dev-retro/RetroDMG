@@ -8,9 +8,9 @@ using UIKit;
 
 namespace Cade.DMG
 {
-	public class GbInputManager : CadeInputManager
+	public class DmgInputManager : CadeInputManager
 	{
-		public GbInputManager()
+		public DmgInputManager()
 		{
 		}
 
@@ -23,9 +23,6 @@ namespace Cade.DMG
                 Number = 1,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardW
-#endif
             },
             new Input
             {
@@ -34,9 +31,6 @@ namespace Cade.DMG
                 Number = 2,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardS
-#endif
             },
             new Input
             {
@@ -45,9 +39,6 @@ namespace Cade.DMG
                 Number = 3,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardA
-#endif
             },
             new Input
             {
@@ -56,9 +47,6 @@ namespace Cade.DMG
                 Number = 4,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardD
-#endif
             },
             new Input
             {
@@ -67,9 +55,6 @@ namespace Cade.DMG
                 Number = 5,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardI
-#endif
             },
             new Input
             {
@@ -78,9 +63,6 @@ namespace Cade.DMG
                 Number = 6,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardJ
-#endif
             },
             new Input
             {
@@ -89,9 +71,6 @@ namespace Cade.DMG
                 Number = 7,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardB
-#endif
             },
             new Input
             {
@@ -100,9 +79,6 @@ namespace Cade.DMG
                 Number = 8,
                 Player = 1,
                 Type = InputType.Button,
-#if MACCATALYST
-                Key = UIKeyboardHidUsage.KeyboardV
-#endif
             },
         });
 

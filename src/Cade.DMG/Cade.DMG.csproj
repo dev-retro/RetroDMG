@@ -1,42 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net6.0;net6.0-android;net6.0-ios;net6.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
-		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
-		<!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
-		<UseMaui>true</UseMaui>
-		<SingleProject>true</SingleProject>
+		<TargetFrameworks>net7.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
-		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 	</PropertyGroup>
-
 	<ItemGroup>
-	  <ProjectReference Include="..\..\..\Common\src\Cade.Common\Cade.Common.csproj">
-	    <ReferenceSourceTarget></ReferenceSourceTarget>
-	  </ProjectReference>
-	</ItemGroup>
-	<ItemGroup>
-	  <None Remove="Platforms\Android\" />
-	  <None Remove="Platforms\iOS\" />
-	  <None Remove="Platforms\MacCatalyst\" />
-	  <None Remove="Platforms\Tizen\" />
-	  <None Remove="Platforms\Windows\" />
-	  <None Remove="Core\" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Platforms\Android\" />
-	  <Folder Include="Platforms\iOS\" />
-	  <Folder Include="Platforms\MacCatalyst\" />
-	  <Folder Include="Platforms\Tizen\" />
-	  <Folder Include="Platforms\Windows\" />
-	  <Folder Include="Core\" />
+	  <PackageReference Include="Cade.Common" Version="0.0.4-preview.1" />
 	</ItemGroup>
 </Project>
