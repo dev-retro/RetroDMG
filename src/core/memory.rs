@@ -34,5 +34,6 @@ impl Memory {
 
     pub fn write_bootrom(&mut self, bootrom: [u8; 0x100]) {
         self.bootrom = bootrom;
+        self.bootrom_loaded = true;
     }
 }
