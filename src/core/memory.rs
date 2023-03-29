@@ -1,4 +1,4 @@
-struct Memory {
+pub struct Memory {
     memory: [u8; 0xFFFF],
     bootrom: [u8; 0x100],
     bootrom_loaded: bool
@@ -13,14 +13,16 @@ impl Memory {
         }
     }
 
-    pub fn write(&mut self, location: usize, value: u8) {
+    pub fn write(&mut self, location: u16, value: u8) {
+        let location = location as usize;
         if location >= self.memory.len() { }
         else {
             self.memory[location] = value
         }
     }
 
-    pub fn read(&self, location: usize) -> u8 {
+    pub fn read(&self, location: u16) -> u8 {
+        let location = location as usize;
         if location >= self.memory.len() {
             return 0;
         }
