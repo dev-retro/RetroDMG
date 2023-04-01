@@ -1,4 +1,5 @@
 use rustils::parse::boolean::u8_to_bool;
+use crate::core::flag_type::FlagType;
 use crate::core::flag_type::FlagType::*;
 use crate::core::memory::Memory;
 use crate::core::register_type::RegisterType8::*;
@@ -716,5 +717,158 @@ impl CPU {
 
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(HalfCarry, true);
+    }
+
+
+    fn jp_nn(&mut self) {
+        let lsb = self.increment_pc();
+        let msb = self.increment_pc();
+
+        let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+        self.register.write_16(PC, value);
+
+        self.cycles += 16;
+    }
+
+    fn jp_hl(&mut self) {
+        self.register.write_16(PC, self.register.read_16(HL));
+
+        self.cycles += 4;
+    }
+
+    fn jp_cc_nn(&mut self, flag: FlagType) {
+        let lsb = self.increment_pc();
+        let msb = self.increment_pc();
+
+        let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+        if u8_to_bool(self.register.read_flag(flag)) {
+            self.register.write_16(PC, value);
+            self.cycles += 16;
+        } else {
+            self.cycles += 12;
+        }
+    }
+
+    fn jr_e(&mut self) {
+        let e = self.increment_pc() as u16;
+
+        self.register.write_16(PC, self.register.read_16(PC) + e);
+
+        self.cycles += 12;
+    }
+
+    fn jr_cc_e(&mut self, flag: FlagType) {
+        let e = self.increment_pc() as u16;
+
+        if u8_to_bool(self.register.read_flag(flag)) {
+            self.register.write_16(PC, self.register.read_16(PC) + e);
+            self.cycles += 12;
+        } else {
+            self.cycles += 8;
+        }
+    }
+
+    fn call_nn(&mut self) {
+        let lsb = self.increment_pc();
+        let msb = self.increment_pc();
+
+        let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+        self.decrement_sp();
+        self.memory.write(self.register.read_16(SP), msb);
+        self.decrement_sp();
+        self.memory.write(self.register.read_16(SP), lsb);
+
+        self.register.write_16(PC, value);
+
+        self.cycles += 24;
+    }
+
+    fn call_cc_nn(&mut self, flag: FlagType) {
+        let lsb = self.increment_pc();
+        let msb = self.increment_pc();
+
+        let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+        if u8_to_bool(self.register.read_flag(flag)) {
+            self.decrement_sp();
+            self.memory.write(self.register.read_16(SP), msb);
+            self.decrement_sp();
+            self.memory.write(self.register.read_16(SP), lsb);
+
+            self.register.write_16(PC, value);
+            self.cycles += 24;
+        } else {
+            self.cycles += 12;
+        }
+    }
+
+    fn ret(&mut self) {
+        let lsb = self.increment_sp();
+        let msb = self.increment_sp();
+
+        let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+        self.register.write_16(PC, value);
+
+        self.cycles += 16;
+    }
+
+    fn ret_cc(&mut self, flag: FlagType) {
+
+        if u8_to_bool(self.register.read_flag(flag)) {
+            let lsb = self.increment_sp();
+            let msb = self.increment_sp();
+
+            let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+            self.register.write_16(PC, value);
+
+            self.cycles += 20;
+        } else {
+            self.cycles += 8;
+        }
+    }
+
+    fn reti(&mut self) {
+        let lsb = self.increment_sp();
+        let msb = self.increment_sp();
+
+        let value: u16 = (lsb as u16) << 8 | msb as u16;
+
+        self.register.write_16(PC, value);
+        self.register.set_ime(true);
+
+        self.cycles += 16;
+    }
+
+    fn rst(&mut self, pc: u8) {
+        let lsb = (self.register.read_16(PC) >> 8) as u8;
+        let msb = (self.register.read_16(PC)) as u8;
+
+        self.decrement_sp();
+        self.memory.write(self.register.read_16(SP), msb);
+        self.decrement_sp();
+        self.memory.write(self.register.read_16(SP), lsb);
+
+        self.register.write_16(PC, (pc as u16) << 8 | 0x00 as u16);
+
+        self.cycles += 16;
+    }
+
+    fn di(&mut self) {
+        self.register.set_ime(false);
+        self.cycles += 4;
+    }
+
+    fn ei(&mut self) {
+        self.register.set_ime(true);
+        self.cycles += 4;
+    }
+
+    fn nop(&mut self) {
+        self.cycles += 4;
     }
 }

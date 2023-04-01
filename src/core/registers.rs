@@ -11,7 +11,8 @@ pub struct Registers {
     h: u8,
     l: u8,
     sp: u16,
-    pc: u16
+    pc: u16,
+    ime: bool
 }
 
 impl Registers {
@@ -26,7 +27,8 @@ impl Registers {
             h: 0x00,
             l: 0x00,
             sp: 0x0000,
-            pc: 0x0000
+            pc: 0x0000,
+            ime: false
         }
     }
 
@@ -192,5 +194,9 @@ impl Registers {
                 value
             }
         }
+    }
+
+    pub fn set_ime(&mut self, value: bool) {
+        self.ime = value;
     }
 }
