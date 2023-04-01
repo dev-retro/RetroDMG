@@ -26,7 +26,7 @@ impl CPU {
             0x04 => { self.inc_r8(B); }
             0x05 => { self.dec_r8(B); }
             0x06 => { self.ld_r8_n(B); }
-            0x07 => {  } //TODO: RLCA
+            0x07 => { panic!("RLCA not implemented"); } //TODO: RLCA
             0x08 => { self.ld_indirect_nn_sp(); }
             0x09 => { self.add_hl_r16(BC); }
             0x0A => { self.ld_a_indirect_bc(); }
@@ -34,15 +34,15 @@ impl CPU {
             0x0C => { self.inc_r8(C); }
             0x0D => { self.dec_r8(C); }
             0x0E => { self.ld_r8_n(C); }
-            0x0F => { } //TODO: RRCA
-            0x10 => { } //TODO: STOP
+            0x0F => { panic!("RRCA not implemented"); } //TODO: RRCA
+            0x10 => { panic!("STOP not implemented"); } //TODO: STOP
             0x11 => { self.ld_r16_nn(DE); }
             0x12 => { self.ld_indirect_de_a(); }
             0x13 => { self.inc_r16(DE); }
             0x14 => { self.inc_r8(D); }
             0x15 => { self.dec_r8(D); }
             0x16 => { self.ld_r8_n(D); }
-            0x17 => { } //TODO: RLA
+            0x17 => { panic!("RLA not implemented"); } //TODO: RLA
             0x18 => { self.jr_e(); }
             0x19 => { self.add_hl_r16(DE); }
             0x1A => { self.ld_a_indirect_de(); }
@@ -50,7 +50,7 @@ impl CPU {
             0x1C => { self.inc_r8(E); }
             0x1D => { self.dec_r8(E); }
             0x1E => { self.ld_r8_n(E); }
-            0x1F => { } //TODO: RRA
+            0x1F => { panic!("RRA Not implemented")} //TODO: RRA
             0x20 => { self.jr_nf_e(Zero); }
             0x21 => { self.ld_r16_nn(HL); }
             0x22 => { self.ld_indirect_hl_inc_a(); }
@@ -137,7 +137,7 @@ impl CPU {
             0x73 => { self.ld_indirect_hl_r8(E); }
             0x74 => { self.ld_indirect_hl_r8(H); }
             0x75 => { self.ld_indirect_hl_r8(L); }
-            0x76 => { } //TODO: HALT
+            0x76 => { panic!("HALT not implemented"); } //TODO: HALT
             0x77 => { self.ld_indirect_hl_r8(A); }
             0x78 => { self.ld_r8_r8(A, B); }
             0x79 => { self.ld_r8_r8(A, C); }
@@ -222,7 +222,7 @@ impl CPU {
             0xC8 => { self.ret_f(Z); }
             0xC9 => { self.ret(); }
             0xCA => { self.jp_f_nn(Zero); }
-            0xCB => { } //TODO: CB op
+            0xCB => { panic!("CB op not implemented"); } //TODO: CB op
             0xCC => { self.call_f_nn(Zero); }
             0xCD => { self.call_nn(); }
             0xCE => { self.adc_a_n(); }
@@ -251,7 +251,7 @@ impl CPU {
             0xE5 => { self.push(HL); }
             0xE6 => { self.and_a_n(); }
             0xE7 => { self.rst(0x20); }
-            0xE8 => { } //TODO: ADD SP, e
+            0xE8 => { panic!("SP, e not implemented"); } //TODO: ADD SP, e
             0xE9 => { self.jp_hl(); }
             0xEA => { self.ld_indirect_nn_a(); }
             0xEB => { } // NOT USED
@@ -267,7 +267,7 @@ impl CPU {
             0xF5 => { self.push(AF); }
             0xF6 => { self.or_a_n(); }
             0xF7 => { self.rst(0x30); }
-            0xF8 => { } //TODO: LD, SP+e
+            0xF8 => { panic!("LD, SP+e not implemented") } //TODO: LD, SP+e
             0xF9 => { self.ld_sp_hl(); }
             0xFA => { self.ld_a_indirect_nn(); }
             0xFB => { self.ei(); }
@@ -275,7 +275,7 @@ impl CPU {
             0xFD => { } // NOT USED
             0xFE => { self.cp_n(); }
             0xFF => { self.rst(0x38); }
-            _ => { } //TODO: Throw actual error
+            _ => { panic!(format!("opcode: {}, not implemented", opcode))}
         }
     }
 
