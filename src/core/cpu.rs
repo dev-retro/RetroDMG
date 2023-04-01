@@ -219,7 +219,7 @@ impl CPU {
             0xC5 => { self.push(BC); }
             0xC6 => { self.add_a_n(); }
             0xC7 => { self.rst(0x00); }
-            0xC8 => { self.ret_f(Z); }
+            0xC8 => { self.ret_f(Zero); }
             0xC9 => { self.ret(); }
             0xCA => { self.jp_f_nn(Zero); }
             0xCB => { panic!("CB op not implemented"); } //TODO: CB op
@@ -275,7 +275,10 @@ impl CPU {
             0xFD => { } // NOT USED
             0xFE => { self.cp_n(); }
             0xFF => { self.rst(0x38); }
-            _ => { panic!(format!("opcode: {}, not implemented", opcode))}
+            _ => {
+                let msg = format!("opcode: {}, not implemented", opcode);
+                panic!(r"{}", msg);
+            }
         }
     }
 
