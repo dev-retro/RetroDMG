@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub enum RegisterType8 {
     A,
     B,
@@ -8,6 +9,7 @@ pub enum RegisterType8 {
     L
 }
 
+#[derive(Copy, Clone)]
 pub enum RegisterType16 {
     AF,
     BC,
