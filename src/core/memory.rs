@@ -1,7 +1,8 @@
+#[derive(Copy, Clone)]
 pub struct Memory {
     memory: [u8; 0xFFFF],
     bootrom: [u8; 0x100],
-    bootrom_loaded: bool
+    pub bootrom_loaded: bool
 }
 
 impl Memory {
@@ -37,5 +38,14 @@ impl Memory {
     pub fn write_bootrom(&mut self, bootrom: [u8; 0x100]) {
         self.bootrom = bootrom;
         self.bootrom_loaded = true;
+    }
+
+    pub fn write_game(&mut self, game: &[u8]) {
+        let mut counter = 0;
+
+        for x in game {
+            self.memory[counter] = *x;
+            counter += 1;
+        }
     }
 }

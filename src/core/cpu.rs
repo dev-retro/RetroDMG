@@ -7,16 +7,33 @@ use crate::core::register_type::RegisterType16::*;
 use crate::core::register_type::{RegisterType16, RegisterType8};
 use crate::core::registers::Registers;
 
-struct CPU {
-    memory: Memory,
+pub struct CPU {
+    pub memory: Memory,
     register: Registers,
     cycles: i32
 }
 
 
 impl CPU {
-    fn op_codes(&mut self) {
+    pub fn new() -> Self {
+        let mut register = Registers::new();
+        let mut memory = Memory::new();
+
+        if memory.bootrom_loaded {
+            register.write_16(PC, 0x100);
+        }
+
+        Self {
+            memory,
+            register,
+            cycles: 0,
+        }
+    }
+
+    pub fn tick(&mut self) {
+        println!("PC: {}", self.register.read_16(PC));
         let opcode = self.increment_pc();
+
 
         match opcode {
             0x00 => { self.nop(); }

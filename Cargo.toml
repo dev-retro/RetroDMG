@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 rustils = "0.1.23"
+sdl2 = "0.35.2"
