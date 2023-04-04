@@ -1,6 +1,4 @@
 extern crate rustils;
-extern crate timer;
-extern crate chrono;
 
 use std::thread;
 use std::sync::{Arc, Mutex};
