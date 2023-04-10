@@ -31,7 +31,7 @@ impl CPU {
     }
 
     pub fn tick(&mut self) {
-        println!("PC: {}", self.register.read_16(PC));
+        println!("PC: {:#06x}", self.register.read_16(PC));
         let opcode = self.increment_pc();
 
 

@@ -9,6 +9,8 @@ use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use crate::core::Core;
 
+use game_loop::game_loop;
+
 fn main() {
     let mut core = Core::new();
 
@@ -18,9 +20,11 @@ fn main() {
 
     core.cpu.memory.write_game(&bytes[..]);
 
-    loop {
-        core.cpu.tick();
-    }
+    game_loop(core, 1 * 4194304, 1f64 / 4194304f64, |g| {
+        g.game.cpu.tick();
+    }, |g| {
+        println!("render");
+    });
 
     println!("Game Loaded");
 
