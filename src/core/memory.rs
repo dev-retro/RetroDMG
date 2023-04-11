@@ -2,6 +2,8 @@
 pub struct Memory {
     memory: [u8; 0xFFFF],
     bootrom: [u8; 0x100],
+    IF: u8,
+    IE: u8,
     pub bootrom_loaded: bool
 }
 
@@ -10,6 +12,8 @@ impl Memory {
         Self {
             memory: [0; 0xFFFF],
             bootrom: [0; 0x100],
+            IE: 0x00,
+            IF: 0x00,
             bootrom_loaded: false
         }
     }
@@ -17,6 +21,12 @@ impl Memory {
     pub fn write(&mut self, location: u16, value: u8) {
         let location = location as usize;
         if location >= self.memory.len() { }
+        else if location == 0xFFFF {
+            self.IE = value;
+        }
+        else if location == 0xFF0F {
+            self.IF = value;
+        }
         else {
             self.memory[location] = value
         }
@@ -30,6 +40,14 @@ impl Memory {
 
         if location < 0x100 && self.bootrom_loaded {
             return self.bootrom[location];
+        }
+
+        if location == 0xFFFF {
+            return self.IE;
+        }
+
+        if location == 0xFF0F {
+            return self.IF;
         }
 
         self.memory[location]

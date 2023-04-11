@@ -6,6 +6,7 @@ pub mod registers;
 pub mod register_type;
 pub mod flag_type;
 pub mod cpu;
+mod interrupts;
 
 pub struct Core {
     pub cpu: CPU

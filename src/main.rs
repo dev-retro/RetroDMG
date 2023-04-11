@@ -22,9 +22,9 @@ fn main() {
 
     game_loop(core, 1 * 4194304, 1f64 / 4194304f64, |g| {
         g.game.cpu.tick();
-    }, |g| {
-        println!("render");
-    });
+        let ff01 = g.game.cpu.memory.read(0xFF01);
+        println!("{}", g.game.cpu.memory.read(0xFF01));
+    }, |g| { });
 
     println!("Game Loaded");
 
