@@ -21,6 +21,9 @@ impl Memory {
     pub fn write(&mut self, location: u16, value: u8) {
         let location = location as usize;
         if location >= self.memory.len() { }
+        else if location == 0xFF01 || location == 0xFF02  {
+            println!("{}", value);
+        }
         else if location == 0xFFFF {
             self.IE = value;
         }

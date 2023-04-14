@@ -39,6 +39,7 @@ impl Registers {
             RegisterType8::C => { self.c = value }
             RegisterType8::D => { self.d = value }
             RegisterType8::E => { self.e = value }
+            RegisterType8::F => { self.f = value }
             RegisterType8::H => { self.h = value }
             RegisterType8::L => { self.l = value }
         }
@@ -74,6 +75,7 @@ impl Registers {
             RegisterType8::C => { self.c }
             RegisterType8::D => { self.d }
             RegisterType8::E => { self.e }
+            RegisterType8::F => { self.f }
             RegisterType8::H => { self.h }
             RegisterType8::L => { self.l }
         }
@@ -105,93 +107,65 @@ impl Registers {
     pub fn write_flag(&mut self, flag: FlagType, set: bool) {
         match flag {
             FlagType::Zero => {
-                let bit: i32 = 8 % 8;
-                let mask: u8 = 1 << bit;
-
-                let mut value = self.f;
+                let mask: u8 = 0x80;
 
                 if set {
-                    value |= mask;
-                    self.f = value;
+                    self.f |= mask;
                 } else {
-                    value &= !mask;
-                    self.f = value;
+                    self.f &= mask ^ 0xFF
                 }
             }
             FlagType::Subtraction => {
-                let bit: i32 = 7 % 8;
-                let mask: u8 = 1 << bit;
-
-                let mut value = self.f;
+                let mask: u8 = 0x40;
 
                 if set {
-                    value |= mask;
-                    self.f = value;
+                    self.f |= mask;
                 } else {
-                    value &= !mask;
-                    self.f = value;
+                    self.f &= mask ^ 0xFF
                 }
             }
             FlagType::HalfCarry => {
-                let bit: i32 = 6 % 8;
-                let mask: u8 = 1 << bit;
-
-                let mut value = self.f;
+                let mask: u8 = 0x20;
 
                 if set {
-                    value |= mask;
-                    self.f = value;
+                    self.f |= mask;
                 } else {
-                    value &= !mask;
-                    self.f = value;
+                    self.f &= mask ^ 0xFF
                 }
             }
             FlagType::Carry => {
-                let bit: i32 = 5 % 8;
-                let mask: u8 = 1 << bit;
-
-                let mut value = self.f;
+                let mask: u8 = 0x10;
 
                 if set {
-                    value |= mask;
-                    self.f = value;
+                    self.f |= mask;
                 } else {
-                    value &= !mask;
-                    self.f = value;
+                    self.f &= mask ^ 0xFF
                 }
             }
         }
     }
 
-    pub fn read_flag(&self, flag: FlagType) -> u8 {
+    pub fn read_flag(&self, flag: FlagType) -> bool {
         match flag {
             FlagType::Zero => {
-                let bit: i32 = 8 % 8;
-                let mask: u8 = 1 << bit;
-                let value: u8 = (self.f & mask) >> bit;
+                let mask: u8 = 0x80;
 
-                value
+                self.f & mask == mask as u8
             }
             FlagType::Subtraction => {
-                let bit: i32 = 7 % 8;
-                let mask: u8 = 1 << bit;
-                let value: u8 = (self.f & mask) >> bit;
+                let mask: u8 = 0x40;
 
-                value
+                self.f & mask == mask as u8
             }
             FlagType::HalfCarry => {
-                let bit: i32 = 6 % 8;
-                let mask: u8 = 1 << bit;
-                let value: u8 = (self.f & mask) >> bit;
+                let mask: u8 = 0x20;
 
-                value
+                self.f & mask == mask as u8
             }
             FlagType::Carry => {
-                let bit: i32 = 5 % 8;
-                let mask: u8 = 1 << bit;
-                let value: u8 = (self.f & mask) >> bit;
+                let mask: u8 = 0x10;
 
-                value
+                self.f & mask == mask as u8
             }
         }
     }
