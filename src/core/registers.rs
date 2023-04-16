@@ -18,16 +18,16 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Self {
         Self {
-            a: 0x01,
-            b: 0x00,
-            c: 0x13,
-            d: 0x00,
-            e: 0xD8,
-            f: 0x00,
-            h: 0x01,
-            l: 0x4D,
-            sp: 0xFFFE,
-            pc: 0x0100,
+            a: 0x00, // 0x01,
+            b: 0x00, // 0x00,
+            c: 0x00, // 0x13,
+            d: 0x00, // 0x00,
+            e: 0x00, // 0xD8,
+            f: 0x00, // 0x00,
+            h: 0x00, // 0x01,
+            l: 0x00, // 0x4D,
+            sp: 0x0000, // 0xFFFE,
+            pc: 0x0000,
             ime: false
         }
     }
@@ -107,7 +107,7 @@ impl Registers {
     pub fn write_flag(&mut self, flag: FlagType, set: bool) {
         match flag {
             FlagType::Zero => {
-                let mask: u8 = 0x80;
+                let mask: u8 =  0b_1000_0000;
 
                 if set {
                     self.f |= mask;
@@ -116,7 +116,7 @@ impl Registers {
                 }
             }
             FlagType::Subtraction => {
-                let mask: u8 = 0x40;
+                let mask: u8 = 0b_0100_0000;
 
                 if set {
                     self.f |= mask;
@@ -125,7 +125,7 @@ impl Registers {
                 }
             }
             FlagType::HalfCarry => {
-                let mask: u8 = 0x20;
+                let mask: u8 = 0b_0010_0000;
 
                 if set {
                     self.f |= mask;
@@ -134,7 +134,7 @@ impl Registers {
                 }
             }
             FlagType::Carry => {
-                let mask: u8 = 0x10;
+                let mask: u8 = 0b_0001_0000;
 
                 if set {
                     self.f |= mask;
@@ -148,22 +148,22 @@ impl Registers {
     pub fn read_flag(&self, flag: FlagType) -> bool {
         match flag {
             FlagType::Zero => {
-                let mask: u8 = 0x80;
+                let mask: u8 =  0b_1000_0000;
 
                 self.f & mask == mask as u8
             }
             FlagType::Subtraction => {
-                let mask: u8 = 0x40;
+                let mask: u8 =  0b_0100_0000;
 
                 self.f & mask == mask as u8
             }
             FlagType::HalfCarry => {
-                let mask: u8 = 0x20;
+                let mask: u8 =  0b_0010_0000;
 
                 self.f & mask == mask as u8
             }
             FlagType::Carry => {
-                let mask: u8 = 0x10;
+                let mask: u8 =  0b_0001_0000;
 
                 self.f & mask == mask as u8
             }

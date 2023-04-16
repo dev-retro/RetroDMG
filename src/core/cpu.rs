@@ -99,7 +99,7 @@ impl CPU {
             0x14 => { self.inc_r8(D); }
             0x15 => { self.dec_r8(D); }
             0x16 => { self.ld_r8_n(D); }
-            0x17 => { panic!("RLA not implemented"); } //TODO: RLA
+            0x17 => { self.rotate_left_a(); }
             0x18 => { self.jr_e(); }
             0x19 => { self.add_hl_r16(DE); }
             0x1A => { self.ld_a_indirect_de(); }
@@ -107,7 +107,7 @@ impl CPU {
             0x1C => { self.inc_r8(E); }
             0x1D => { self.dec_r8(E); }
             0x1E => { self.ld_r8_n(E); }
-            0x1F => { panic!("RRA Not implemented")} //TODO: RRA
+            0x1F => { self.rotate_right_r8(A); }
             0x20 => { self.jr_nf_e(Zero); }
             0x21 => { self.ld_r16_nn(HL); }
             0x22 => { self.ld_indirect_hl_inc_a(); }
@@ -279,7 +279,7 @@ impl CPU {
             0xC8 => { self.ret_f(Zero); }
             0xC9 => { self.ret(); }
             0xCA => { self.jp_f_nn(Zero); }
-            0xCB => { panic!("CB op not implemented"); } //TODO: CB op
+            0xCB => { self.extendedOpCodes(); }
             0xCC => { self.call_f_nn(Zero); }
             0xCD => { self.call_nn(); }
             0xCE => { self.adc_a_n(); }
@@ -339,6 +339,19 @@ impl CPU {
         }
     }
 
+    fn extendedOpCodes(&mut self) {
+        let opcode = self.increment_pc();
+
+        match opcode {
+            0x11 => { self.rotate_left_r8(C); }
+            0x19 => { self.rotate_right_r8(C); }
+            0x1A => { self.rotate_right_r8(D); }
+            0x38 => { self.shift_right_r8(B); }
+            0x7C => { self.bit_opcode(self.register.read_8(H), 7); }
+            _ => { panic!("{:02X} not implemented", opcode)}
+        }
+    }
+
     fn increment_pc(&mut self) -> u8 {
         let mut pc = self.register.read_16(PC);
         let value = self.memory.read(pc);
@@ -351,7 +364,7 @@ impl CPU {
     fn increment_hl(&mut self) -> u8 {
         let mut hl = self.register.read_16(HL);
         let value = self.memory.read(hl);
-        hl += 1;
+        hl = hl.wrapping_add(1);
         self.register.write_16(HL, hl);
 
         value
@@ -599,13 +612,14 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 4;
     }
 
     fn add_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
+        let hl = self.register.read_16(HL);
         let register = self.memory.read(self.register.read_16(HL));
         let result = a.wrapping_add(register);
 
@@ -614,22 +628,23 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
 
     fn add_a_n(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.increment_pc();
-        let result = register.wrapping_add(a);
+        let value = self.increment_pc();
+        let (result, carry) =  a.overflowing_add(value);
+        let half_carry = (a & 0x0f).checked_add(value | 0xf0).is_none();
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
-        self.register.write_flag(Carry, if result as u16 > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (result & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(Carry, carry);
+        self.register.write_flag(HalfCarry, half_carry);
 
         self.cycles += 8;
     }
@@ -644,7 +659,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 4;
     }
@@ -660,7 +675,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 4;
     }
@@ -676,7 +691,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
@@ -692,7 +707,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
@@ -704,10 +719,10 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, result & 0xf == 0xf);
 
         self.cycles += 4;
     }
@@ -722,22 +737,22 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
 
     fn sub_a_n(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.increment_pc();
-        let result = a.wrapping_sub(register);
+        let value = self.increment_pc();
+        let result = a.wrapping_sub(value);
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(Carry, (a as u16) < (value as u16));
+        self.register.write_flag(HalfCarry, a.wrapping_sub(value & 0xf) & (0xf + 1) != 0);
 
         self.cycles += 8;
     }
@@ -753,7 +768,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 4;
     }
@@ -769,7 +784,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
@@ -785,7 +800,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
@@ -798,7 +813,7 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 4;
     }
@@ -811,20 +826,20 @@ impl CPU {
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
         self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
 
         self.cycles += 8;
     }
 
     fn cp_n(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.increment_pc();
-        let result = a.wrapping_sub(register);
+        let value = self.increment_pc();
+        let result = a.wrapping_sub(value);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(Carry, if result > 0xFF { true } else { false });
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(Carry, (a as u16) < (value as u16));
+        self.register.write_flag(HalfCarry, (a & 0xf).wrapping_sub(value & 0xf) & (0xf + 1) != 0);
 
         self.cycles += 8;
     }
@@ -835,9 +850,9 @@ impl CPU {
 
         self.register.write_8(r, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
     }
 
     fn inc_r16(&mut self, r: RegisterType16) {
@@ -848,7 +863,7 @@ impl CPU {
 
         // self.register.write_flag(Zero, if result == 0 { true } else { false });
         // self.register.write_flag(Subtraction, false);
-        // self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        // self.register.write_flag(HalfCarry, register & 0xf == 0xf);
         // self.register.write_flag(Carry, if (register & 0xff) + (1 & 0xff) > 0xFF { true } else { false }); //TODO: confirm this is right
 
         self.cycles += 8;
@@ -862,12 +877,12 @@ impl CPU {
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
     }
 
     fn dec_r8(&mut self, r: RegisterType8) {
         let register = self.register.read_8(r);
-        let result = register - 1;
+        let result = register.wrapping_sub(1);
 
         self.register.write_8(r, result);
 
@@ -878,25 +893,25 @@ impl CPU {
 
     fn dec_r16(&mut self, r: RegisterType16) {
         let register = self.register.read_16(r);
-        let result = register - 1;
+        let result = register.wrapping_sub(1);
 
         self.register.write_16(r, result);
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
         //TODO: does Carry flag need to be set here?
     }
 
     fn dec_indirect_hl(&mut self) {
         let register = self.memory.read(self.register.read_16(HL));
-        let result = register - 1;
+        let result = register.wrapping_sub(1);
 
         self.memory.write(self.register.read_16(HL), result);
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(HalfCarry, if (register & 0xf) + (1 & 0xf) > 0xF { true } else { false });
+        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
     }
 
     fn and_a_r8(&mut self, r: RegisterType8) {
@@ -1309,5 +1324,101 @@ impl CPU {
 
     fn nop(&mut self) {
         self.cycles += 4;
+    }
+
+    fn set_bit(&mut self, mut data: u8, bit: u8, state: bool) -> u8 {
+        let mask = (1 << bit) as u8;
+
+        if state { (data |= mask); } else { data &= !mask; }
+
+        data
+    }
+
+    fn get_bit(&mut self, data: u8, bit: u8) -> bool {
+        let value = (data >> bit) & 1;
+
+        value != 0
+    }
+
+    fn shift_right_r8(&mut self, r: RegisterType8) {
+        let mut register = self.register.read_8(r);
+        let zero_bit = (register >> 0) & 1;
+
+        register >>= 1;
+
+        register = self.set_bit(register, 7, false);
+
+        self.register.write_8(r, register);
+
+        self.register.write_flag(Zero, register == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, zero_bit != 0);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_right_r8(&mut self, r: RegisterType8) {
+        let mut register = self.register.read_8(r);
+        let zero_bit = (register >> 0) & 1;
+        let carry = self.register.read_flag(Carry);
+
+        register >>= 1;
+
+        register = self.set_bit(register, 7, carry);
+
+        self.register.write_8(r, register);
+
+        self.register.write_flag(Zero, register == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, zero_bit != 0);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_left_r8(&mut self, r: RegisterType8) {
+        let carry = self.register.read_flag(Carry);
+        let mut register = self.register.read_8(r);
+        let seven_bit = self.get_bit(register, 7);
+
+        register <<= 1;
+        register = self.set_bit(register, 0, carry);
+
+        self.register.write_8(r, register);
+
+        self.register.write_flag(Zero, register == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, seven_bit);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_left_a(&mut self) {
+        let carry = self.register.read_flag(Carry);
+        let mut register = self.register.read_8(A);
+        let seven_bit = self.get_bit(register, 7);
+
+        register <<= 1;
+        register = self.set_bit(register, 0, carry);
+
+        self.register.write_8(A, register);
+
+        self.register.write_flag(Zero, false);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, seven_bit);
+
+        self.cycles += 8;
+    }
+
+    fn bit_opcode(&mut self, data: u8, bit: u8) {
+        let bit = !self.get_bit(data, bit);
+        self.register.write_flag(Zero, bit);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, true);
+
+        self.cycles += 8;
     }
 }

@@ -10,6 +10,7 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
 use crate::core::Core;
+use crate::core::register_type::RegisterType16::PC;
 use crate::core::register_type::RegisterType8;
 // use game_loop::game_loop;
 
@@ -18,13 +19,20 @@ mod core;
 fn main() {
     let mut core = Core::new();
 
-    let mut file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/06-ld r,r.gb").expect("No file found");
-    let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes).expect("Failed to open file");
+    let mut bootromfile = File::open("/Users/hevey/Development/PlayCade/debugging/[BIOS] Nintendo Game Boy Boot ROM (World) (Rev 1).gb").expect("No file found");
+    let mut bootrom_bytes :[u8; 0x100] = [0; 0x100];
+    bootromfile.read(&mut bootrom_bytes).expect("Failed to open file");
 
-    core.cpu.memory.write_game(&bytes[..]);
+
+    let mut game_file = File::open("/Users/hevey/Development/PlayCade/debugging/Tetris (W) (V1.0) [!].gb").expect("No file found");
+    // let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/source/06-ld r,r.s").expect("No file found");
+    let mut game_bytes = Vec::new();
+    game_file.read_to_end(&mut game_bytes).expect("Failed to open file");
+
+    core.cpu.memory.write_bootrom(&bootrom_bytes);
+    core.cpu.memory.write_game(&game_bytes[..]);
     core.cpu.memory.write(0xFF44, 0x90);
-    core.cpu.register.write_8(RegisterType8::F, 0xB0);
+    // core.cpu.register.write_16(PC, 0x100);
     //
     // let event_loop = EventLoop::new();
     // let window = WindowBuilder::new().build(&event_loop).unwrap();

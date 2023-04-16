@@ -56,8 +56,13 @@ impl Memory {
         self.memory[location]
     }
 
-    pub fn write_bootrom(&mut self, bootrom: [u8; 0x100]) {
-        self.bootrom = bootrom;
+    pub fn write_bootrom(&mut self, bootrom: &[u8; 0x100]) {
+        let mut counter = 0;
+
+        for x in bootrom {
+            self.bootrom[counter] = *x;
+            counter += 1;
+        }
         self.bootrom_loaded = true;
     }
 
