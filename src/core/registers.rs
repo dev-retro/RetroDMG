@@ -49,7 +49,7 @@ impl Registers {
         match register {
             RegisterType16::AF => {
                 self.a = (value >> 8) as u8;
-                self.f = value as u8;
+                self.f = (value & 0xF0) as u8;
             }
             RegisterType16::BC => {
                 self.b = (value >> 8) as u8;

@@ -32,32 +32,13 @@ impl CPU {
     }
 
     pub fn tick(&mut self) {
-        let mut file = OpenOptions::new()
-            .append(true)
-            .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
-            .unwrap();
-
-        if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
-                 self.register.read_8(A),
-                 self.register.read_8(F),
-                 self.register.read_8(B),
-                 self.register.read_8(C),
-                 self.register.read_8(D),
-                 self.register.read_8(E),
-                 self.register.read_8(H),
-                 self.register.read_8(L),
-                 self.register.read_16(SP),
-                 self.register.read_16(PC),
-                 self.memory.read(self.register.read_16(PC)),
-                 self.memory.read(self.register.read_16(PC)+1),
-                 self.memory.read(self.register.read_16(PC)+2),
-                 self.memory.read(self.register.read_16(PC)+3)
-            )
-        ) {
-            eprintln!("Couldn't write to file: {}", e);
-        }
-        // println!("PC: {:#06x}", self.register.read_16(PC));
-        // println!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
+        self.cycles = 0; //FIXME: remove once cycles are needed.
+        // let mut file = OpenOptions::new()
+        //     .append(true)
+        //     .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
+        //     .unwrap();
+        //
+        // if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
         //          self.register.read_8(A),
         //          self.register.read_8(F),
         //          self.register.read_8(B),
@@ -71,7 +52,11 @@ impl CPU {
         //          self.memory.read(self.register.read_16(PC)),
         //          self.memory.read(self.register.read_16(PC)+1),
         //          self.memory.read(self.register.read_16(PC)+2),
-        //          self.memory.read(self.register.read_16(PC)+3));
+        //          self.memory.read(self.register.read_16(PC)+3)
+        //     )
+        // ) {
+        //     eprintln!("Couldn't write to file: {}", e);
+        // }
         let opcode = self.increment_pc();
 
 
@@ -346,6 +331,7 @@ impl CPU {
             0x11 => { self.rotate_left_r8(C); }
             0x19 => { self.rotate_right_r8(C); }
             0x1A => { self.rotate_right_r8(D); }
+            0x1B => { self.rotate_right_r8(E); }
             0x38 => { self.shift_right_r8(B); }
             0x7C => { self.bit_opcode(self.register.read_8(H), 7); }
             _ => { panic!("{:02X} not implemented", opcode)}
@@ -391,7 +377,7 @@ impl CPU {
     fn decrement_sp(&mut self) -> u8 {
         let mut sp = self.register.read_16(SP);
         let value = self.memory.read(sp);
-        sp -= 1;
+        sp = sp.wrapping_sub(1);
         self.register.write_16(SP, sp);
 
         value
@@ -857,7 +843,7 @@ impl CPU {
 
     fn inc_r16(&mut self, r: RegisterType16) {
         let register = self.register.read_16(r);
-        let result = register + 1;
+        let result = register.wrapping_add(1);
 
         self.register.write_16(r, result);
 
@@ -1080,17 +1066,17 @@ impl CPU {
 
         if !neg_flag {
             if carry_flag || self.register.read_8(A) > 0x99 {
-                self.register.write_8(A, self.register.read_8(A) + 0x60);
+                self.register.write_8(A, self.register.read_8(A).wrapping_add(0x60));
                 carry = true;
             }
             if halfcarry_flag || self.register.read_8(A) & 0x0F > 0x09 {
-                self.register.write_8(A, self.register.read_8(A) + 0x06);
+                self.register.write_8(A, self.register.read_8(A).wrapping_add(0x06));
             }
         } else if carry_flag {
             carry = true;
-            self.register.write_8(A, if halfcarry_flag { self.register.read_8(A) + 0x9a } else { self.register.read_8(A) + 0xa0 });
+            self.register.write_8(A, if halfcarry_flag { self.register.read_8(A).wrapping_add(0x9a) } else { self.register.read_8(A).wrapping_add(0xa0) });
         } else if halfcarry_flag {
-            self.register.write_8(A, self.register.read_8(A) + 0xfa);
+            self.register.write_8(A, self.register.read_8(A).wrapping_add(0xfa));
         }
 
         self.register.write_flag(Zero, self.register.read_8(A) == 0);
