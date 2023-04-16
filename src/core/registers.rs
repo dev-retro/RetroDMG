@@ -18,16 +18,16 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Self {
         Self {
-            a: 0x00, // 0x01,
-            b: 0x00, // 0x00,
-            c: 0x00, // 0x13,
-            d: 0x00, // 0x00,
-            e: 0x00, // 0xD8,
-            f: 0x00, // 0x00,
-            h: 0x00, // 0x01,
-            l: 0x00, // 0x4D,
-            sp: 0x0000, // 0xFFFE,
-            pc: 0x0000,
+            a: 0x01,
+            b: 0x00,
+            c: 0x13,
+            d: 0x00,
+            e: 0xD8,
+            f: 0xB0,
+            h: 0x01,
+            l: 0x4D,
+            sp: 0xFFFE,
+            pc: 0x0100,
             ime: false
         }
     }

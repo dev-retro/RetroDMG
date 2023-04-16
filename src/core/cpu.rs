@@ -1231,10 +1231,12 @@ impl CPU {
         let value: u16 = (msb as u16) << 8 | lsb as u16;
 
         if !self.register.read_flag(flag) {
+            let pc = self.register.read_16(PC);
+
             self.decrement_sp();
-            self.memory.write(self.register.read_16(SP), msb);
+            self.memory.write(self.register.read_16(SP), (pc >> 8) as u8);
             self.decrement_sp();
-            self.memory.write(self.register.read_16(SP), lsb);
+            self.memory.write(self.register.read_16(SP), pc as u8);
 
             self.register.write_16(PC, value);
             self.cycles += 24;
