@@ -1,4 +1,4 @@
-# DMG
+# RetroDMG
 Gameboy extension for the Cade arcade platform
 
 
