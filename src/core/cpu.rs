@@ -33,30 +33,30 @@ impl CPU {
 
     pub fn tick(&mut self) {
         self.cycles = 0; //FIXME: remove once cycles are needed.
-        // let mut file = OpenOptions::new()
-        //     .append(true)
-        //     .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
-        //     .unwrap();
-        //
-        // if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
-        //          self.register.read_8(A),
-        //          self.register.read_8(F),
-        //          self.register.read_8(B),
-        //          self.register.read_8(C),
-        //          self.register.read_8(D),
-        //          self.register.read_8(E),
-        //          self.register.read_8(H),
-        //          self.register.read_8(L),
-        //          self.register.read_16(SP),
-        //          self.register.read_16(PC),
-        //          self.memory.read(self.register.read_16(PC)),
-        //          self.memory.read(self.register.read_16(PC)+1),
-        //          self.memory.read(self.register.read_16(PC)+2),
-        //          self.memory.read(self.register.read_16(PC)+3)
-        //     )
-        // ) {
-        //     eprintln!("Couldn't write to file: {}", e);
-        // }
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
+            .unwrap();
+
+        if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
+                 self.register.read_8(A),
+                 self.register.read_8(F),
+                 self.register.read_8(B),
+                 self.register.read_8(C),
+                 self.register.read_8(D),
+                 self.register.read_8(E),
+                 self.register.read_8(H),
+                 self.register.read_8(L),
+                 self.register.read_16(SP),
+                 self.register.read_16(PC),
+                 self.memory.read(self.register.read_16(PC)),
+                 self.memory.read(self.register.read_16(PC)+1),
+                 self.memory.read(self.register.read_16(PC)+2),
+                 self.memory.read(self.register.read_16(PC)+3)
+            )
+        ) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
         let opcode = self.increment_pc();
 
 
@@ -705,15 +705,15 @@ impl CPU {
         let a = self.register.read_8(A);
         let register = self.register.read_8(r);
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
-        let (result, _) = a.overflowing_add(carry);
-        let (result, did_overflow) = result.overflowing_add(register);
+        let (result, did_overflow_1) = a.overflowing_add((register));
+        let (result, did_overflow_2) = result.overflowing_add((carry));
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
-        self.register.write_flag(Carry, did_overflow);
-        self.register.write_flag(HalfCarry, (a & 0xf) + (register & 0xf) > 0xf);
+        self.register.write_flag(Carry, did_overflow_1 | did_overflow_2);
+        self.register.write_flag(HalfCarry, ((a & 0xf) + (register & 0xf) + (carry & 0xf) & 0x10) as u8 == 0x10);
 
         self.cycles += 4;
     }
@@ -802,15 +802,15 @@ impl CPU {
         let a = self.register.read_8(A);
         let register = self.register.read_8(r);
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
-        let (result, _) = a.overflowing_sub(carry);
-        let (result, did_overflow) = result.overflowing_sub(register);
+        let (result, did_overflow_1) = a.overflowing_sub(carry);
+        let (result, did_overflow_2) = result.overflowing_sub(register);
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(Carry, did_overflow);
-        self.register.write_flag(HalfCarry, ((a & 0xf) as i8 - (register & 0xf) as i8) < 0);
+        self.register.write_flag(Carry, did_overflow_1 | did_overflow_2);
+        self.register.write_flag(HalfCarry, ((a & 0xf) as i8 - (carry & 0xf) as i8 - (register & 0xf) as i8) < 0);
 
         self.cycles += 4;
     }
@@ -1593,10 +1593,8 @@ impl CPU {
 
     fn swap_r8(&mut self, r: RegisterType8) {
         let register = self.register.read_8(r);
-        let lower = (register & 0x0F) as u8;
-        let upper = (register & 0xF0) as u8;
 
-        let value = (lower << 4 as u8) | upper as u8;
+        let value = (register >> 4) | (register << 4);
 
         self.register.write_8(r, value);
 
