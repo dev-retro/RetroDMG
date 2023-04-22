@@ -5,7 +5,6 @@ pub enum RegisterType8 {
     C,
     D,
     E,
-    F,
     H,
     L
 }

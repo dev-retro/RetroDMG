@@ -1,5 +1,3 @@
-use std::fs::{OpenOptions};
-use std::io::Write;
 use crate::core::flag_type::FlagType;
 use crate::core::flag_type::FlagType::*;
 use crate::core::memory::Memory;

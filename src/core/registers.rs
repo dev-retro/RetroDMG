@@ -39,7 +39,6 @@ impl Registers {
             RegisterType8::C => { self.c = value }
             RegisterType8::D => { self.d = value }
             RegisterType8::E => { self.e = value }
-            RegisterType8::F => { self.f = value }
             RegisterType8::H => { self.h = value }
             RegisterType8::L => { self.l = value }
         }
@@ -75,7 +74,6 @@ impl Registers {
             RegisterType8::C => { self.c }
             RegisterType8::D => { self.d }
             RegisterType8::E => { self.e }
-            RegisterType8::F => { self.f }
             RegisterType8::H => { self.h }
             RegisterType8::L => { self.l }
         }

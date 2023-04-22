@@ -2,8 +2,8 @@
 pub struct Memory {
     memory: [u8; 0xFFFF],
     bootrom: [u8; 0x100],
-    IF: u8,
-    IE: u8,
+    r#if: u8,
+    ie: u8,
     pub bootrom_loaded: bool
 }
 
@@ -12,8 +12,8 @@ impl Memory {
         Self {
             memory: [0; 0xFFFF],
             bootrom: [0; 0x100],
-            IE: 0x00,
-            IF: 0x00,
+            ie: 0x00,
+            r#if: 0x00,
             bootrom_loaded: false
         }
     }
@@ -25,10 +25,10 @@ impl Memory {
             print!("{}", self.memory[0xFF01] as char);
         }
         else if location == 0xFFFF {
-            self.IE = value;
+            self.ie = value;
         }
         else if location == 0xFF0F {
-            self.IF = value;
+            self.r#if = value;
         }
         else {
             self.memory[location] = value
@@ -46,11 +46,11 @@ impl Memory {
         }
 
         if location == 0xFFFF {
-            return self.IE;
+            return self.ie;
         }
 
         if location == 0xFF0F {
-            return self.IF;
+            return self.r#if;
         }
 
         self.memory[location]
