@@ -1,13 +1,8 @@
 extern crate rustils;
 
-use std::thread;
-use std::sync::{Arc, Mutex};
-use std::fs;
 use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io::Read;
 use crate::core::Core;
-use crate::core::register_type::RegisterType16::PC;
-use crate::core::register_type::RegisterType8;
 
 mod core;
 
@@ -20,7 +15,7 @@ fn main() {
 
 
     // let mut game_file = File::open("/Users/hevey/Development/PlayCade/debugging/Tetris (W) (V1.0) [!].gb").expect("No file found");
-    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb").expect("No file found");
+    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/11-op a,(hl).gb").expect("No file found");
     let mut game_bytes = Vec::new();
     game_file.read_to_end(&mut game_bytes).expect("Failed to open file");
 

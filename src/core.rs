@@ -1,5 +1,4 @@
 use crate::core::cpu::CPU;
-use crate::core::memory::Memory;
 
 pub mod memory;
 pub mod registers;
@@ -19,7 +18,7 @@ impl Core {
         }
     }
 
-    pub fn loadGame(mut self, game: &[u8]) {
+    pub fn load_game(mut self, game: &[u8]) {
         self.cpu.memory.write_game(game);
     }
 

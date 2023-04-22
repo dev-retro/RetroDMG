@@ -1,6 +1,5 @@
 use std::fs::{OpenOptions};
 use std::io::Write;
-use winit::window::Theme::Dark;
 use crate::core::flag_type::FlagType;
 use crate::core::flag_type::FlagType::*;
 use crate::core::memory::Memory;
@@ -19,7 +18,7 @@ pub struct CPU {
 impl CPU {
     pub fn new() -> Self {
         let mut register = Registers::new();
-        let mut memory = Memory::new();
+        let memory = Memory::new();
 
         if memory.bootrom_loaded {
             register.write_16(PC, 0x100);
@@ -265,7 +264,7 @@ impl CPU {
             0xC8 => { self.ret_f(Zero); }
             0xC9 => { self.ret(); }
             0xCA => { self.jp_f_nn(Zero); }
-            0xCB => { self.extendedOpCodes(); }
+            0xCB => { self.extended_op_codes(); }
             0xCC => { self.call_f_nn(Zero); }
             0xCD => { self.call_nn(); }
             0xCE => { self.adc_a_n(); }
@@ -318,14 +317,10 @@ impl CPU {
             0xFD => { } // NOT USED
             0xFE => { self.cp_n(); }
             0xFF => { self.rst(0x38); }
-            _ => {
-                let msg = format!("opcode: {}, not implemented", opcode);
-                panic!(r"{}", msg);
-            }
         }
     }
 
-    fn extendedOpCodes(&mut self) {
+    fn extended_op_codes(&mut self) {
         let opcode = self.increment_pc();
 
         match opcode {
@@ -585,7 +580,6 @@ impl CPU {
             0xFD => { self.set_r(L, 7); }
             0xFE => { self.set_hl_n(7); }
             0xFF => { self.set_r(A, 7); }
-            _ => { panic!("{:02X} not implemented", opcode) }
         }
     }
 
@@ -856,16 +850,15 @@ impl CPU {
 
     fn add_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let hl = self.register.read_16(HL);
-        let register = self.memory.read(self.register.read_16(HL));
-        let (result, did_overflow) = a.overflowing_add(register);
+        let hl = self.memory.read(self.register.read_16(HL));
+        let (result, did_overflow) = a.overflowing_add(hl);
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(Carry, did_overflow);
-        self.register.write_flag(HalfCarry, (a & 0xf) + (register & 0xf) > 0xf);
+        self.register.write_flag(HalfCarry, (a & 0xf) + (hl & 0xf) > 0xf);
 
         self.cycles += 8;
     }
@@ -905,8 +898,8 @@ impl CPU {
         let a = self.register.read_8(A);
         let register = self.register.read_8(r);
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
-        let (result, did_overflow_1) = a.overflowing_add((register));
-        let (result, did_overflow_2) = result.overflowing_add((carry));
+        let (result, did_overflow_1) = a.overflowing_add(register);
+        let (result, did_overflow_2) = result.overflowing_add(carry);
 
         self.register.write_8(A, result);
 
@@ -1413,7 +1406,7 @@ impl CPU {
         let e = address as i16;
 
         if !self.register.read_flag(flag) {
-            self.register.write_16(PC, (self.register.read_16(PC).wrapping_add_signed(e)));
+            self.register.write_16(PC, self.register.read_16(PC).wrapping_add_signed(e));
             self.cycles += 12;
         } else {
             self.cycles += 8;

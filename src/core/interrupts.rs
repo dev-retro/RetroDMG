@@ -10,8 +10,8 @@ enum InterruptType {
 }
 
 struct Interrupts<'a> {
-    IME: bool,
-    Memory: &'a Memory
+    ime: bool,
+    memory: &'a Memory
 }
 
 impl<'a> Interrupts<'a> {
