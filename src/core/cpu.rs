@@ -739,15 +739,15 @@ impl CPU {
         let a = self.register.read_8(A);
         let value = self.increment_pc();
         let carry = self.register.read_flag(Carry) as u8;
-        let (result, _) = a.overflowing_add(carry);
-        let (result, did_overflow) = result.overflowing_add(value);
+        let (result, did_overflow_1) = a.overflowing_add(carry);
+        let (result, did_overflow_2) = result.overflowing_add(value);
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
-        self.register.write_flag(HalfCarry, (a & 0xf) + (value & 0xf) + carry > 0xf);
-        self.register.write_flag(Carry, did_overflow);
+        self.register.write_flag(HalfCarry, (a & 0xf) + (value & 0xf) + (carry & 0xf) > 0xf);
+        self.register.write_flag(Carry, did_overflow_1 | did_overflow_2);
 
 
         self.cycles += 8;
@@ -819,15 +819,15 @@ impl CPU {
         let a = self.register.read_8(A);
         let register = self.memory.read(self.register.read_16(HL));
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
-        let (result, _) = a.overflowing_sub(carry);
-        let (result, did_overflow) = result.overflowing_sub(register);
+        let (result, did_overflow_1) = a.overflowing_sub(carry);
+        let (result, did_overflow_2) = result.overflowing_sub(register);
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(Carry, did_overflow);
-        self.register.write_flag(HalfCarry, ((a & 0xf) as i8 - (register & 0xf) as i8 - carry as i8) < 0);
+        self.register.write_flag(Carry, did_overflow_1 | did_overflow_2);
+        self.register.write_flag(HalfCarry, ((a & 0xf) as i8 - (register & 0xf) as i8 - (carry & 0xf) as i8) < 0);
 
         self.cycles += 8;
     }
@@ -836,15 +836,15 @@ impl CPU {
         let a = self.register.read_8(A);
         let register = self.increment_pc();
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
-        let (result, _) = a.overflowing_sub(carry);
-        let (result, did_overflow) = result.overflowing_sub(register);
+        let (result, did_overflow_1) = a.overflowing_sub(carry);
+        let (result, did_overflow_2) = result.overflowing_sub(register);
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, true);
-        self.register.write_flag(Carry, did_overflow);
-        self.register.write_flag(HalfCarry, ((a & 0xf) as i8 - (register & 0xf) as i8) < 0);
+        self.register.write_flag(Carry, did_overflow_1 | did_overflow_2);
+        self.register.write_flag(HalfCarry, ((a & 0xf) as i8 - (register & 0xf) as i8 - (carry & 0xf) as i8) < 0);
 
         self.cycles += 8;
     }
@@ -935,11 +935,6 @@ impl CPU {
         let result = register.wrapping_sub(1);
 
         self.register.write_16(r, result);
-
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
-        self.register.write_flag(Subtraction, true);
-        self.register.write_flag(HalfCarry, register & 0xf == 0xf);
-        //TODO: does Carry flag need to be set here?
     }
 
     fn dec_indirect_hl(&mut self) {
@@ -960,7 +955,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, true);
         self.register.write_flag(Carry, false);
@@ -975,7 +970,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, true);
         self.register.write_flag(Carry, false);
@@ -990,7 +985,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, true);
         self.register.write_flag(Carry, false);
@@ -1005,7 +1000,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, false);
@@ -1020,7 +1015,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, false);
@@ -1035,7 +1030,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, false);
@@ -1050,7 +1045,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, false);
@@ -1065,7 +1060,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, false);
@@ -1080,7 +1075,7 @@ impl CPU {
 
         self.register.write_8(A, result);
 
-        self.register.write_flag(Zero, if result == 0 { true } else { false });
+        self.register.write_flag(Zero, result == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, false);

@@ -5,10 +5,6 @@ use std::sync::{Arc, Mutex};
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
-use game_loop::game_loop;
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
 use crate::core::Core;
 use crate::core::register_type::RegisterType16::PC;
 use crate::core::register_type::RegisterType8;
@@ -24,7 +20,7 @@ fn main() {
 
 
     // let mut game_file = File::open("/Users/hevey/Development/PlayCade/debugging/Tetris (W) (V1.0) [!].gb").expect("No file found");
-    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/09-op r,r.gb").expect("No file found");
+    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/04-op r,imm.gb").expect("No file found");
     let mut game_bytes = Vec::new();
     game_file.read_to_end(&mut game_bytes).expect("Failed to open file");
 
