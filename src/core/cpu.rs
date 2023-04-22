@@ -1,5 +1,6 @@
 use std::fs::{OpenOptions};
 use std::io::Write;
+use winit::window::Theme::Dark;
 use crate::core::flag_type::FlagType;
 use crate::core::flag_type::FlagType::*;
 use crate::core::memory::Memory;
@@ -33,30 +34,30 @@ impl CPU {
 
     pub fn tick(&mut self) {
         self.cycles = 0; //FIXME: remove once cycles are needed.
-        let mut file = OpenOptions::new()
-            .append(true)
-            .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
-            .unwrap();
-
-        if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
-                 self.register.read_8(A),
-                 self.register.read_8(F),
-                 self.register.read_8(B),
-                 self.register.read_8(C),
-                 self.register.read_8(D),
-                 self.register.read_8(E),
-                 self.register.read_8(H),
-                 self.register.read_8(L),
-                 self.register.read_16(SP),
-                 self.register.read_16(PC),
-                 self.memory.read(self.register.read_16(PC)),
-                 self.memory.read(self.register.read_16(PC)+1),
-                 self.memory.read(self.register.read_16(PC)+2),
-                 self.memory.read(self.register.read_16(PC)+3)
-            )
-        ) {
-            eprintln!("Couldn't write to file: {}", e);
-        }
+        // let mut file = OpenOptions::new()
+        //     .append(true)
+        //     .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
+        //     .unwrap();
+        //
+        // if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
+        //          self.register.read_8(A),
+        //          self.register.read_8(F),
+        //          self.register.read_8(B),
+        //          self.register.read_8(C),
+        //          self.register.read_8(D),
+        //          self.register.read_8(E),
+        //          self.register.read_8(H),
+        //          self.register.read_8(L),
+        //          self.register.read_16(SP),
+        //          self.register.read_16(PC),
+        //          self.memory.read(self.register.read_16(PC)),
+        //          self.memory.read(self.register.read_16(PC)+1),
+        //          self.memory.read(self.register.read_16(PC)+2),
+        //          self.memory.read(self.register.read_16(PC)+3)
+        //     )
+        // ) {
+        //     eprintln!("Couldn't write to file: {}", e);
+        // }
         let opcode = self.increment_pc();
 
 
@@ -328,63 +329,262 @@ impl CPU {
         let opcode = self.increment_pc();
 
         match opcode {
-            0x00 => { self.rotate_left_carry_r8(B); }
-            0x01 => { self.rotate_left_carry_r8(C); }
-            0x02 => { self.rotate_left_carry_r8(D); }
-            0x03 => { self.rotate_left_carry_r8(E); }
-            0x04 => { self.rotate_left_carry_r8(H); }
-            0x05 => { self.rotate_left_carry_r8(L); }
-            0x07 => { self.rotate_left_carry_r8(A); }
-            0x08 => { self.rotate_right_carry_r8(B); }
-            0x09 => { self.rotate_right_carry_r8(C); }
-            0x0A => { self.rotate_right_carry_r8(D); }
-            0x0B => { self.rotate_right_carry_r8(E); }
-            0x0C => { self.rotate_right_carry_r8(H); }
-            0x0D => { self.rotate_right_carry_r8(L); }
-            0x0F => { self.rotate_right_carry_r8(A); }
-            0x10 => { self.rotate_left_r8(B); }
-            0x11 => { self.rotate_left_r8(C); }
-            0x12 => { self.rotate_left_r8(D); }
-            0x13 => { self.rotate_left_r8(E); }
-            0x14 => { self.rotate_left_r8(H); }
-            0x15 => { self.rotate_left_r8(L); }
-            0x17 => { self.rotate_left_r8(A); }
-            0x18 => { self.rotate_right_r8(B); }
-            0x19 => { self.rotate_right_r8(C); }
-            0x1A => { self.rotate_right_r8(D); }
-            0x1B => { self.rotate_right_r8(E); }
-            0x1C => { self.rotate_right_r8(H); }
-            0x1D => { self.rotate_right_r8(L); }
-            0x1F => { self.rotate_right_r8(A); }
-            0x20 => { self.shift_left_r8(B); }
-            0x21 => { self.shift_left_r8(C); }
-            0x22 => { self.shift_left_r8(D); }
-            0x23 => { self.shift_left_r8(E); }
-            0x24 => { self.shift_left_r8(H); }
-            0x25 => { self.shift_left_r8(L); }
-            0x27 => { self.shift_left_r8(A); }
-            0x28 => { self.shift_right_a_r8(B); }
-            0x29 => { self.shift_right_a_r8(C); }
-            0x2A => { self.shift_right_a_r8(D); }
-            0x2B => { self.shift_right_a_r8(E); }
-            0x2C => { self.shift_right_a_r8(H); }
-            0x2D => { self.shift_right_a_r8(L); }
-            0x2F => { self.shift_right_a_r8(A); }
-            0x30 => { self.swap_r8(B); }
-            0x31 => { self.swap_r8(C); }
-            0x32 => { self.swap_r8(D); }
-            0x33 => { self.swap_r8(E); }
-            0x34 => { self.swap_r8(H); }
-            0x35 => { self.swap_r8(L); }
-            0x37 => { self.swap_r8(A); }
-            0x38 => { self.shift_right_r8(B); }
-            0x39 => { self.shift_right_r8(C); }
-            0x3A => { self.shift_right_r8(D); }
-            0x3B => { self.shift_right_r8(E); }
-            0x3C => { self.shift_right_r8(H); }
-            0x3D => { self.shift_right_r8(L); }
-            0x3F => { self.shift_right_r8(A); }
-            0x7C => { self.bit_opcode(self.register.read_8(H), 7); }
+            0x00 => { self.rotate_left_carry_r(B); }
+            0x01 => { self.rotate_left_carry_r(C); }
+            0x02 => { self.rotate_left_carry_r(D); }
+            0x03 => { self.rotate_left_carry_r(E); }
+            0x04 => { self.rotate_left_carry_r(H); }
+            0x05 => { self.rotate_left_carry_r(L); }
+            0x06 => { self.rotate_left_carry_hl_n(); }
+            0x07 => { self.rotate_left_carry_r(A); }
+            0x08 => { self.rotate_right_carry_r(B); }
+            0x09 => { self.rotate_right_carry_r(C); }
+            0x0A => { self.rotate_right_carry_r(D); }
+            0x0B => { self.rotate_right_carry_r(E); }
+            0x0C => { self.rotate_right_carry_r(H); }
+            0x0D => { self.rotate_right_carry_r(L); }
+            0x0E => { self.rotate_right_carry_hl_n(); }
+            0x0F => { self.rotate_right_carry_r(A); }
+            0x10 => { self.rotate_left_r(B); }
+            0x11 => { self.rotate_left_r(C); }
+            0x12 => { self.rotate_left_r(D); }
+            0x13 => { self.rotate_left_r(E); }
+            0x14 => { self.rotate_left_r(H); }
+            0x15 => { self.rotate_left_r(L); }
+            0x16 => { self.rotate_left_hl_n(); }
+            0x17 => { self.rotate_left_r(A); }
+            0x18 => { self.rotate_right_r(B); }
+            0x19 => { self.rotate_right_r(C); }
+            0x1A => { self.rotate_right_r(D); }
+            0x1B => { self.rotate_right_r(E); }
+            0x1C => { self.rotate_right_r(H); }
+            0x1D => { self.rotate_right_r(L); }
+            0x1E => { self.rotate_right_hl_n(); }
+            0x1F => { self.rotate_right_r(A); }
+            0x20 => { self.shift_left_r(B); }
+            0x21 => { self.shift_left_r(C); }
+            0x22 => { self.shift_left_r(D); }
+            0x23 => { self.shift_left_r(E); }
+            0x24 => { self.shift_left_r(H); }
+            0x25 => { self.shift_left_r(L); }
+            0x26 => { self.shift_left_hl_n(); }
+            0x27 => { self.shift_left_r(A); }
+            0x28 => { self.shift_right_a_r(B); }
+            0x29 => { self.shift_right_a_r(C); }
+            0x2A => { self.shift_right_a_r(D); }
+            0x2B => { self.shift_right_a_r(E); }
+            0x2C => { self.shift_right_a_r(H); }
+            0x2D => { self.shift_right_a_r(L); }
+            0x2E => { self.shift_right_a_hl_n(); }
+            0x2F => { self.shift_right_a_r(A); }
+            0x30 => { self.swap_r(B); }
+            0x31 => { self.swap_r(C); }
+            0x32 => { self.swap_r(D); }
+            0x33 => { self.swap_r(E); }
+            0x34 => { self.swap_r(H); }
+            0x35 => { self.swap_r(L); }
+            0x36 => { self.swap_hl_n(); }
+            0x37 => { self.swap_r(A); }
+            0x38 => { self.shift_right_r(B); }
+            0x39 => { self.shift_right_r(C); }
+            0x3A => { self.shift_right_r(D); }
+            0x3B => { self.shift_right_r(E); }
+            0x3C => { self.shift_right_r(H); }
+            0x3D => { self.shift_right_r(L); }
+            0x3E => { self.shift_right_hl_n(); }
+            0x3F => { self.shift_right_r(A); }
+            0x40 => { self.bit(self.register.read_8(B), 0); }
+            0x41 => { self.bit(self.register.read_8(C), 0); }
+            0x42 => { self.bit(self.register.read_8(D), 0); }
+            0x43 => { self.bit(self.register.read_8(E), 0); }
+            0x44 => { self.bit(self.register.read_8(H), 0); }
+            0x45 => { self.bit(self.register.read_8(L), 0); }
+            0x46 => { self.bit(self.memory.read(self.register.read_16(HL)), 0); }
+            0x47 => { self.bit(self.register.read_8(A), 0); }
+            0x48 => { self.bit(self.register.read_8(B), 1); }
+            0x49 => { self.bit(self.register.read_8(C), 1); }
+            0x4A => { self.bit(self.register.read_8(D), 1); }
+            0x4B => { self.bit(self.register.read_8(E), 1); }
+            0x4C => { self.bit(self.register.read_8(H), 1); }
+            0x4D => { self.bit(self.register.read_8(L), 1); }
+            0x4E => { self.bit(self.memory.read(self.register.read_16(HL)), 1); }
+            0x4F => { self.bit(self.register.read_8(A), 1); }
+            0x50 => { self.bit(self.register.read_8(B), 2); }
+            0x51 => { self.bit(self.register.read_8(C), 2); }
+            0x52 => { self.bit(self.register.read_8(D), 2); }
+            0x53 => { self.bit(self.register.read_8(E), 2); }
+            0x54 => { self.bit(self.register.read_8(H), 2); }
+            0x55 => { self.bit(self.register.read_8(L), 2); }
+            0x56 => { self.bit(self.memory.read(self.register.read_16(HL)), 2); }
+            0x57 => { self.bit(self.register.read_8(A), 2); }
+            0x58 => { self.bit(self.register.read_8(B), 3); }
+            0x59 => { self.bit(self.register.read_8(C), 3); }
+            0x5A => { self.bit(self.register.read_8(D), 3); }
+            0x5B => { self.bit(self.register.read_8(E), 3); }
+            0x5C => { self.bit(self.register.read_8(H), 3); }
+            0x5D => { self.bit(self.register.read_8(L), 3); }
+            0x5E => { self.bit(self.memory.read(self.register.read_16(HL)), 3); }
+            0x5F => { self.bit(self.register.read_8(A), 3); }
+            0x60 => { self.bit(self.register.read_8(B), 4); }
+            0x61 => { self.bit(self.register.read_8(C), 4); }
+            0x62 => { self.bit(self.register.read_8(D), 4); }
+            0x63 => { self.bit(self.register.read_8(E), 4); }
+            0x64 => { self.bit(self.register.read_8(H), 4); }
+            0x65 => { self.bit(self.register.read_8(L), 4); }
+            0x66 => { self.bit(self.memory.read(self.register.read_16(HL)), 4); }
+            0x67 => { self.bit(self.register.read_8(A), 4); }
+            0x68 => { self.bit(self.register.read_8(B), 5); }
+            0x69 => { self.bit(self.register.read_8(C), 5); }
+            0x6A => { self.bit(self.register.read_8(D), 5); }
+            0x6B => { self.bit(self.register.read_8(E), 5); }
+            0x6C => { self.bit(self.register.read_8(H), 5); }
+            0x6D => { self.bit(self.register.read_8(L), 5); }
+            0x6E => { self.bit(self.memory.read(self.register.read_16(HL)), 5); }
+            0x6F => { self.bit(self.register.read_8(A), 5); }
+            0x70 => { self.bit(self.register.read_8(B), 6); }
+            0x71 => { self.bit(self.register.read_8(C), 6); }
+            0x72 => { self.bit(self.register.read_8(D), 6); }
+            0x73 => { self.bit(self.register.read_8(E), 6); }
+            0x74 => { self.bit(self.register.read_8(H), 6); }
+            0x75 => { self.bit(self.register.read_8(L), 6); }
+            0x76 => { self.bit(self.memory.read(self.register.read_16(HL)), 6); }
+            0x77 => { self.bit(self.register.read_8(A), 6); }
+            0x78 => { self.bit(self.register.read_8(B), 7); }
+            0x79 => { self.bit(self.register.read_8(C), 7); }
+            0x7A => { self.bit(self.register.read_8(D), 7); }
+            0x7B => { self.bit(self.register.read_8(E), 7); }
+            0x7C => { self.bit(self.register.read_8(H), 7); }
+            0x7D => { self.bit(self.register.read_8(L), 7); }
+            0x7E => { self.bit(self.memory.read(self.register.read_16(HL)), 7); }
+            0x7F => { self.bit(self.register.read_8(A), 7); }
+            0x80 => { self.res_r(B, 0); }
+            0x81 => { self.res_r(C, 0); }
+            0x82 => { self.res_r(D, 0); }
+            0x83 => { self.res_r(E, 0); }
+            0x84 => { self.res_r(H, 0); }
+            0x85 => { self.res_r(L, 0); }
+            0x86 => { self.res_hl_n(0); }
+            0x87 => { self.res_r(A, 0); }
+            0x88 => { self.res_r(B, 1); }
+            0x89 => { self.res_r(C, 1); }
+            0x8A => { self.res_r(D, 1); }
+            0x8B => { self.res_r(E, 1); }
+            0x8C => { self.res_r(H, 1); }
+            0x8D => { self.res_r(L, 1); }
+            0x8E => { self.res_hl_n(1); }
+            0x8F => { self.res_r(A, 1); }
+            0x90 => { self.res_r(B, 2); }
+            0x91 => { self.res_r(C, 2); }
+            0x92 => { self.res_r(D, 2); }
+            0x93 => { self.res_r(E, 2); }
+            0x94 => { self.res_r(H, 2); }
+            0x95 => { self.res_r(L, 2); }
+            0x96 => { self.res_hl_n(2); }
+            0x97 => { self.res_r(A, 2); }
+            0x98 => { self.res_r(B, 3); }
+            0x99 => { self.res_r(C, 3); }
+            0x9A => { self.res_r(D, 3); }
+            0x9B => { self.res_r(E, 3); }
+            0x9C => { self.res_r(H, 3); }
+            0x9D => { self.res_r(L, 3); }
+            0x9E => { self.res_hl_n(3); }
+            0x9F => { self.res_r(A, 3); }
+            0xA0 => { self.res_r(B, 4); }
+            0xA1 => { self.res_r(C, 4); }
+            0xA2 => { self.res_r(D, 4); }
+            0xA3 => { self.res_r(E, 4); }
+            0xA4 => { self.res_r(H, 4); }
+            0xA5 => { self.res_r(L, 4); }
+            0xA6 => { self.res_hl_n(4); }
+            0xA7 => { self.res_r(A, 4); }
+            0xA8 => { self.res_r(B, 5); }
+            0xA9 => { self.res_r(C, 5); }
+            0xAA => { self.res_r(D, 5); }
+            0xAB => { self.res_r(E, 5); }
+            0xAC => { self.res_r(H, 5); }
+            0xAD => { self.res_r(L, 5); }
+            0xAE => { self.res_hl_n(5); }
+            0xAF => { self.res_r(A, 5); }
+            0xB0 => { self.res_r(B, 6); }
+            0xB1 => { self.res_r(C, 6); }
+            0xB2 => { self.res_r(D, 6); }
+            0xB3 => { self.res_r(E, 6); }
+            0xB4 => { self.res_r(H, 6); }
+            0xB5 => { self.res_r(L, 6); }
+            0xB6 => { self.res_hl_n(6); }
+            0xB7 => { self.res_r(A, 6); }
+            0xB8 => { self.res_r(B, 7); }
+            0xB9 => { self.res_r(C, 7); }
+            0xBA => { self.res_r(D, 7); }
+            0xBB => { self.res_r(E, 7); }
+            0xBC => { self.res_r(H, 7); }
+            0xBD => { self.res_r(L, 7); }
+            0xBE => { self.res_hl_n(7); }
+            0xBF => { self.res_r(A, 7); }
+            0xC0 => { self.set_r(B, 0); }
+            0xC1 => { self.set_r(C, 0); }
+            0xC2 => { self.set_r(D, 0); }
+            0xC3 => { self.set_r(E, 0); }
+            0xC4 => { self.set_r(H, 0); }
+            0xC5 => { self.set_r(L, 0); }
+            0xC6 => { self.set_hl_n(0); }
+            0xC7 => { self.set_r(A, 0); }
+            0xC8 => { self.set_r(B, 1); }
+            0xC9 => { self.set_r(C, 1); }
+            0xCA => { self.set_r(D, 1); }
+            0xCB => { self.set_r(E, 1); }
+            0xCC => { self.set_r(H, 1); }
+            0xCD => { self.set_r(L, 1); }
+            0xCE => { self.set_hl_n(1); }
+            0xCF => { self.set_r(A, 1); }
+            0xD0 => { self.set_r(B, 2); }
+            0xD1 => { self.set_r(C, 2); }
+            0xD2 => { self.set_r(D, 2); }
+            0xD3 => { self.set_r(E, 2); }
+            0xD4 => { self.set_r(H, 2); }
+            0xD5 => { self.set_r(L, 2); }
+            0xD6 => { self.set_hl_n(2); }
+            0xD7 => { self.set_r(A, 2); }
+            0xD8 => { self.set_r(B, 3); }
+            0xD9 => { self.set_r(C, 3); }
+            0xDA => { self.set_r(D, 3); }
+            0xDB => { self.set_r(E, 3); }
+            0xDC => { self.set_r(H, 3); }
+            0xDD => { self.set_r(L, 3); }
+            0xDE => { self.set_hl_n(3); }
+            0xDF => { self.set_r(A, 3); }
+            0xE0 => { self.set_r(B, 4); }
+            0xE1 => { self.set_r(C, 4); }
+            0xE2 => { self.set_r(D, 4); }
+            0xE3 => { self.set_r(E, 4); }
+            0xE4 => { self.set_r(H, 4); }
+            0xE5 => { self.set_r(L, 4); }
+            0xE6 => { self.set_hl_n(4); }
+            0xE7 => { self.set_r(A, 4); }
+            0xE8 => { self.set_r(B, 5); }
+            0xE9 => { self.set_r(C, 5); }
+            0xEA => { self.set_r(D, 5); }
+            0xEB => { self.set_r(E, 5); }
+            0xEC => { self.set_r(H, 5); }
+            0xED => { self.set_r(L, 5); }
+            0xEE => { self.set_hl_n(5); }
+            0xEF => { self.set_r(A, 5); }
+            0xF0 => { self.set_r(B, 6); }
+            0xF1 => { self.set_r(C, 6); }
+            0xF2 => { self.set_r(D, 6); }
+            0xF3 => { self.set_r(E, 6); }
+            0xF4 => { self.set_r(H, 6); }
+            0xF5 => { self.set_r(L, 6); }
+            0xF6 => { self.set_hl_n(6); }
+            0xF7 => { self.set_r(A, 6); }
+            0xF8 => { self.set_r(B, 7); }
+            0xF9 => { self.set_r(C, 7); }
+            0xFA => { self.set_r(D, 7); }
+            0xFB => { self.set_r(E, 7); }
+            0xFC => { self.set_r(H, 7); }
+            0xFD => { self.set_r(L, 7); }
+            0xFE => { self.set_hl_n(7); }
+            0xFF => { self.set_r(A, 7); }
             _ => { panic!("{:02X} not implemented", opcode) }
         }
     }
@@ -722,14 +922,14 @@ impl CPU {
         let a = self.register.read_8(A);
         let register = self.memory.read(self.register.read_16(HL));
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
-        let (result, _) = a.overflowing_add(carry);
-        let (result, did_overflow) = result.overflowing_add(register);
+        let (result, did_overflow_1) = a.overflowing_add(carry);
+        let (result, did_overflow_2) = result.overflowing_add(register);
 
         self.register.write_8(A, result);
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
-        self.register.write_flag(Carry, did_overflow);
+        self.register.write_flag(Carry, did_overflow_1 | did_overflow_2);
         self.register.write_flag(HalfCarry, (a & 0xf) + (register & 0xf) + (carry & 0xf) > 0xf);
 
         self.cycles += 8;
@@ -1376,7 +1576,7 @@ impl CPU {
         value != 0
     }
 
-    fn shift_left_r8(&mut self, r: RegisterType8) {
+    fn shift_left_r(&mut self, r: RegisterType8) {
         let mut register = self.register.read_8(r);
         let seven_bit = self.get_bit(register, 7);
 
@@ -1394,7 +1594,25 @@ impl CPU {
         self.cycles += 8;
     }
 
-    fn shift_right_r8(&mut self, r: RegisterType8) {
+    fn shift_left_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let seven_bit = self.get_bit(value, 7);
+
+        value <<= 1;
+
+        value = self.set_bit(value, 0, false);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, seven_bit);
+
+        self.cycles += 8;
+    }
+
+    fn shift_right_r(&mut self, r: RegisterType8) {
         let mut register = self.register.read_8(r);
         let zero_bit = self.get_bit(register, 0);
 
@@ -1412,7 +1630,25 @@ impl CPU {
         self.cycles += 8;
     }
 
-    fn shift_right_a_r8(&mut self, r: RegisterType8) {
+    fn shift_right_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let zero_bit = self.get_bit(value, 0);
+
+        value >>= 1;
+
+        value = self.set_bit(value  , 7, false);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, zero_bit);
+
+        self.cycles += 8;
+    }
+
+    fn shift_right_a_r(&mut self, r: RegisterType8) {
         let mut register = self.register.read_8(r);
         let zero_bit = self.get_bit(register, 0);
         let seven_bit = self.get_bit(register, 7);
@@ -1431,7 +1667,26 @@ impl CPU {
         self.cycles += 8;
     }
 
-    fn rotate_right_r8(&mut self, r: RegisterType8) {
+    fn shift_right_a_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let zero_bit = self.get_bit(value, 0);
+        let seven_bit = self.get_bit(value, 7);
+
+        value >>= 1;
+
+        value = self.set_bit(value, 7, seven_bit);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, zero_bit);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_right_r(&mut self, r: RegisterType8) {
         let mut register = self.register.read_8(r);
         let zero_bit = self.get_bit(register, 0);
         let carry = self.register.read_flag(Carry);
@@ -1450,7 +1705,26 @@ impl CPU {
         self.cycles += 8;
     }
 
-    fn rotate_right_carry_r8(&mut self, r: RegisterType8) {
+    fn rotate_right_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let zero_bit = self.get_bit(value, 0);
+        let carry = self.register.read_flag(Carry);
+
+        value >>= 1;
+
+        value = self.set_bit(value, 7, carry);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, zero_bit);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_right_carry_r(&mut self, r: RegisterType8) {
         let mut register = self.register.read_8(r);
         let zero_bit = self.get_bit(register, 0);
 
@@ -1461,6 +1735,23 @@ impl CPU {
         self.register.write_8(r, register);
 
         self.register.write_flag(Zero, register == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, zero_bit);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_right_carry_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let zero_bit = self.get_bit(value, 0);
+
+        value >>= 1;
+        value = self.set_bit(value, 7, zero_bit);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
         self.register.write_flag(HalfCarry, false);
         self.register.write_flag(Carry, zero_bit);
@@ -1506,7 +1797,7 @@ impl CPU {
     }
 
 
-    fn rotate_left_r8(&mut self, r: RegisterType8) {
+    fn rotate_left_r(&mut self, r: RegisterType8) {
         let carry = self.register.read_flag(Carry);
         let mut register = self.register.read_8(r);
         let seven_bit = self.get_bit(register, 7);
@@ -1524,7 +1815,25 @@ impl CPU {
         self.cycles += 8;
     }
 
-    fn rotate_left_carry_r8(&mut self, r: RegisterType8) {
+    fn rotate_left_hl_n(&mut self) {
+        let carry = self.register.read_flag(Carry);
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let seven_bit = self.get_bit(value, 7);
+
+        value <<= 1;
+        value = self.set_bit(value, 0, carry);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, seven_bit);
+
+        self.cycles += 8;
+    }
+
+    fn rotate_left_carry_r(&mut self, r: RegisterType8) {
         let mut register = self.register.read_8(r);
         let seven_bit = self.get_bit(register, 7);
 
@@ -1541,6 +1850,22 @@ impl CPU {
         self.cycles += 8;
     }
 
+    fn rotate_left_carry_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        let seven_bit = self.get_bit(value, 7);
+
+        value <<= 1;
+        value = self.set_bit(value, 0, seven_bit);
+
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, seven_bit);
+
+        self.cycles += 8;
+    }
 
     fn rotate_left_a(&mut self) {
         let carry = self.register.read_flag(Carry);
@@ -1577,7 +1902,7 @@ impl CPU {
         self.cycles += 8;
     }
 
-    fn bit_opcode(&mut self, data: u8, bit: u8) {
+    fn bit(&mut self, data: u8, bit: u8) {
         let bit = !self.get_bit(data, bit);
         self.register.write_flag(Zero, bit);
         self.register.write_flag(Subtraction, false);
@@ -1585,13 +1910,61 @@ impl CPU {
 
         self.cycles += 8;
     }
+    
+    fn res_r(&mut self, register: RegisterType8, bit: u8) {
+        let mut value = self.register.read_8(register);
+        value = self.set_bit(value, bit, false);
+        self.register.write_8(register, value);
 
-    fn swap_r8(&mut self, r: RegisterType8) {
+        self.cycles += 8;
+    }
+
+    fn res_hl_n(&mut self, bit: u8) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        value = self.set_bit(value, bit, false);
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.cycles += 8;
+    }
+
+    fn set_r(&mut self, register: RegisterType8, bit: u8) {
+        let mut value = self.register.read_8(register);
+        value = self.set_bit(value, bit, true);
+        self.register.write_8(register, value);
+
+        self.cycles += 8;
+    }
+
+    fn set_hl_n(&mut self, bit: u8) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+        value = self.set_bit(value, bit, true);
+        self.memory.write(self.register.read_16(HL), value);
+
+        self.cycles += 8;
+    }
+
+
+    fn swap_r(&mut self, r: RegisterType8) {
         let register = self.register.read_8(r);
 
         let value = (register >> 4) | (register << 4);
 
         self.register.write_8(r, value);
+
+        self.register.write_flag(Zero, value == 0);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, false);
+        self.register.write_flag(Carry, false);
+
+        self.cycles += 8;
+    }
+
+    fn swap_hl_n(&mut self) {
+        let mut value = self.memory.read(self.register.read_16(HL));
+
+        value = (value >> 4) | (value << 4);
+
+        self.memory.write(self.register.read_16(HL), value);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
