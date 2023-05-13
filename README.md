@@ -1,5 +1,5 @@
 # RetroDMG
-Gameboy extension for the Cade arcade platform
+RetroCade Platform Library for the Nintendo Gameboy
 
 
 | Blargg Test  | Passed |           
