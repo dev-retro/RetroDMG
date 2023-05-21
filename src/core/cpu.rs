@@ -5,10 +5,13 @@ use crate::core::register_type::RegisterType8::*;
 use crate::core::register_type::RegisterType16::*;
 use crate::core::register_type::{RegisterType16, RegisterType8};
 use crate::core::registers::Registers;
+use crate::core::timer::Timer;
+
 
 pub struct CPU {
     pub memory: Memory,
     pub register: Registers,
+    timer: Timer,
     cycles: i32
 }
 
@@ -17,19 +20,32 @@ impl CPU {
     pub fn new() -> Self {
         let mut register = Registers::new();
         let memory = Memory::new();
+        let timer = Timer::new();
 
-        if memory.bootrom_loaded {
-            register.write_16(PC, 0x100);
+        if !memory.bootrom_loaded {
+            register.write_8(A, 0x01);
+            register.write_8(B, 0x00);
+            register.write_8(C, 0x13);
+            register.write_8(D, 0x00);
+            register.write_8(E, 0xD8);
+            register.write_8(F, 0xB0);
+            register.write_8(H, 0x01);
+            register.write_8(L, 0x4D);
+
+            register.write_16(PC, 0x0100);
+            register.write_16(SP, 0xFFFE);
         }
 
         Self {
             memory,
             register,
+            timer,
             cycles: 0,
         }
     }
 
     pub fn tick(&mut self) {
+
         self.cycles = 0; //FIXME: remove once cycles are needed.
         // let mut file = OpenOptions::new()
         //     .append(true)

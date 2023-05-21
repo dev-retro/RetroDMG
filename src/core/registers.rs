@@ -18,29 +18,30 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Self {
         Self {
-            a: 0x01,
+            a: 0x00,
             b: 0x00,
-            c: 0x13,
+            c: 0x00,
             d: 0x00,
-            e: 0xD8,
-            f: 0xB0,
-            h: 0x01,
-            l: 0x4D,
-            sp: 0xFFFE,
-            pc: 0x0100,
+            e: 0x00,
+            f: 0x00,
+            h: 0x00,
+            l: 0x00,
+            sp: 0x0000,
+            pc: 0x0000,
             ime: false
         }
     }
 
     pub fn write_8(&mut self, register: RegisterType8, value: u8) {
         match register {
-            RegisterType8::A => { self.a = value }
-            RegisterType8::B => { self.b = value }
-            RegisterType8::C => { self.c = value }
-            RegisterType8::D => { self.d = value }
-            RegisterType8::E => { self.e = value }
-            RegisterType8::H => { self.h = value }
-            RegisterType8::L => { self.l = value }
+            RegisterType8::A => { self.a = value; }
+            RegisterType8::B => { self.b = value; }
+            RegisterType8::C => { self.c = value; }
+            RegisterType8::D => { self.d = value; }
+            RegisterType8::E => { self.e = value; }
+            RegisterType8::F => { self.f = value; }
+            RegisterType8::H => { self.h = value; }
+            RegisterType8::L => { self.l = value; }
         }
     }
 
@@ -74,6 +75,7 @@ impl Registers {
             RegisterType8::C => { self.c }
             RegisterType8::D => { self.d }
             RegisterType8::E => { self.e }
+            RegisterType8::F => { self.f }
             RegisterType8::H => { self.h }
             RegisterType8::L => { self.l }
         }

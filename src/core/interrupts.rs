@@ -1,7 +1,4 @@
-use super::memory::Memory;
-
-
-enum InterruptType {
+pub enum InterruptType {
     VBlank,
     LCD,
     Timer,
@@ -9,27 +6,24 @@ enum InterruptType {
     Joypad
 }
 
-struct Interrupts<'a> {
+pub struct Interrupts {
     ime: bool,
-    memory: &'a Memory
+
 }
 
-impl<'a> Interrupts<'a> {
-    fn write_flag(&mut self, interrupt_type: InterruptType, value: bool) {
-        match interrupt_type {
-            InterruptType::VBlank => todo!(),
-            InterruptType::LCD => todo!(),
-            InterruptType::Timer => todo!(),
-            InterruptType::Serial => todo!(),
-            InterruptType::Joypad => todo!(),
+impl Interrupts {
+
+    pub fn new() -> Self {
+        Self {
+            ime: false
         }
     }
-    
-    fn write_enable(&mut self, interrupt_type: InterruptType, value: bool) {
+
+    pub fn write(&mut self, interrupt_type: InterruptType, value: bool) {
         match interrupt_type {
             InterruptType::VBlank => todo!(),
             InterruptType::LCD => todo!(),
-            InterruptType::Timer => todo!(),
+            InterruptType::Timer => { } //TODO: stubbed out for now. Will handle.
             InterruptType::Serial => todo!(),
             InterruptType::Joypad => todo!(),
         }

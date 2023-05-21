@@ -6,6 +6,7 @@ pub mod register_type;
 pub mod flag_type;
 pub mod cpu;
 mod interrupts;
+mod timer;
 
 pub struct Core {
     pub cpu: CPU
@@ -14,7 +15,7 @@ pub struct Core {
 impl Core {
     pub fn new() -> Self {
         Self {
-            cpu: CPU::new()
+            cpu: CPU::new(),
         }
     }
 
