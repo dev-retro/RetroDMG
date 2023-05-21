@@ -6,6 +6,7 @@ use crate::core::register_type::RegisterType16::*;
 use crate::core::register_type::{RegisterType16, RegisterType8};
 use crate::core::registers::Registers;
 use crate::core::timer::Timer;
+use crate::core::interrupt_type::InterruptType;
 
 
 pub struct CPU {
@@ -40,7 +41,7 @@ impl CPU {
             memory,
             register,
             timer,
-            cycles: 0,
+            cycles: 0
         }
     }
 
@@ -72,8 +73,7 @@ impl CPU {
         //     eprintln!("Couldn't write to file: {}", e);
         // }
         let opcode = self.increment_pc();
-
-
+        
         match opcode {
             0x00 => { self.nop(); }
             0x01 => { self.ld_r16_nn(BC); }
@@ -594,6 +594,30 @@ impl CPU {
             0xFD => { self.set_r(L, 7); }
             0xFE => { self.set_hl_n(7); }
             0xFF => { self.set_r(A, 7); }
+        }
+    }
+
+    fn check_ime(&mut self) {
+        if self.register.read_ime() {
+            let req = self.memory.read(0xFF0F);
+            let enabled = self.memory.read(0xFFFF);
+            
+            if req > 0 {
+                for bit in 0..4 {
+                   if self.get_bit(req, bit) {
+                       if self.get_bit(enabled, bit) {
+                           match bit {
+                               0 => { self.handle_interrupt(InterruptType::VBlank); }
+                               1 => { self.handle_interrupt(InterruptType::LCD); }
+                               2 => { self.handle_interrupt(InterruptType::Timer); }
+                               3 => { self.handle_interrupt(InterruptType::Serial); }
+                               4 => { self.handle_interrupt(InterruptType::Joypad); }
+                               _ => panic!("bit not handled")
+                           }
+                       }
+                   }
+                }
+            }
         }
     }
 
@@ -1536,7 +1560,7 @@ impl CPU {
         let value: u16 = (msb as u16) << 8 | lsb as u16;
 
         self.register.write_16(PC, value);
-        self.register.set_ime(true);
+        self.register.write_ime(true);
 
         self.cycles += 16;
     }
@@ -1556,12 +1580,12 @@ impl CPU {
     }
 
     fn di(&mut self) {
-        self.register.set_ime(false);
+        self.register.write_ime(false);
         self.cycles += 4;
     }
 
     fn ei(&mut self) {
-        self.register.set_ime(true);
+        self.register.write_ime(true);
         self.cycles += 4;
     }
 
@@ -1979,5 +2003,46 @@ impl CPU {
         self.register.write_flag(Carry, false);
 
         self.cycles += 8;
+    }
+
+    pub fn request_interrupt(&mut self, interrupt_type: InterruptType) {
+        let mut req = self.memory.read(0xFF0F);
+
+        match interrupt_type {
+            InterruptType::VBlank => { req = self.set_bit(req, 0, true); }
+            InterruptType::LCD => { req = self.set_bit(req, 1, true); }
+            InterruptType::Timer => { req = self.set_bit(req, 2, true); }
+            InterruptType::Serial => { req = self.set_bit(req, 3, true); }
+            InterruptType::Joypad => { req = self.set_bit(req, 4, true); }
+        }
+
+        self.memory.write(0xFF0F, req);
+    }
+
+    fn handle_interrupt(&mut self, interrupt_type: InterruptType) {
+        self.register.write_ime(false);
+        let mut req = self.memory.read(0xFF0F);
+
+        match interrupt_type {
+            InterruptType::VBlank => { req = self.set_bit(req, 0, false); }
+            InterruptType::LCD => { req = self.set_bit(req, 1, false); }
+            InterruptType::Timer => { req = self.set_bit(req, 2, false); }
+            InterruptType::Serial => { req = self.set_bit(req, 3, false); }
+            InterruptType::Joypad => { req = self.set_bit(req, 4, false); }
+        }
+
+        self.memory.write(0xFF0F, req);
+
+        self.push(PC);
+
+        match interrupt_type {
+            InterruptType::VBlank => { self.register.write_16(PC, 0x0040); }
+            InterruptType::LCD => { self.register.write_16(PC, 0x0048); }
+            InterruptType::Timer => { self.register.write_16(PC, 0x0050); }
+            InterruptType::Serial => { self.register.write_16(PC, 0x0058); }
+            InterruptType::Joypad => { self.register.write_16(PC, 0x0060); }
+            _ => { self.register.write_16(PC, 0x0000); }
+        }
+
     }
 }

@@ -170,7 +170,11 @@ impl Registers {
         }
     }
 
-    pub fn set_ime(&mut self, value: bool) {
+    pub fn write_ime(&mut self, value: bool) {
         self.ime = value;
+    }
+
+    pub fn read_ime(&self) -> bool {
+        self.ime
     }
 }

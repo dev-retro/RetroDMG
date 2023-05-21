@@ -5,7 +5,7 @@ pub mod registers;
 pub mod register_type;
 pub mod flag_type;
 pub mod cpu;
-mod interrupts;
+pub mod interrupt_type;
 mod timer;
 
 pub struct Core {
