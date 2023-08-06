@@ -45,7 +45,7 @@ impl Timer {
             0b01 => 3,
             0b10 => 5,
             0b11 => 7,
-            _ => panic!("timer does support {}", self.controller)
+            _ => panic!("timer doesn't support {}", self.controller)
         };
 
         let div_bit = self.get_bit(self.div, clock_select);

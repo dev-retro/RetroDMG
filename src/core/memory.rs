@@ -3,8 +3,8 @@ use crate::core::timer::Timer;
 pub struct Memory {
     memory: [u8; 0xFFFF],
     bootrom: [u8; 0x100],
-    IE: u8,
-    IF: u8,
+    interrupt_enabled: u8,
+    interrupt_flag: u8,
     pub bootrom_loaded: bool
 }
 
@@ -14,8 +14,8 @@ impl Memory {
             memory: [0; 0xFFFF],
             bootrom: [0; 0x100],
             bootrom_loaded: false,
-            IE: 0x00,
-            IF: 0x00
+            interrupt_enabled: 0x00,
+            interrupt_flag: 0x00
         }
     }
 
@@ -29,10 +29,10 @@ impl Memory {
 
         } 
         else if location == 0xFFFF {
-            self.IE = value;
+            self.interrupt_enabled = value;
         }
         else if location == 0xFF0F {
-            self.IF = value;
+            self.interrupt_flag = value;
         }
         else if location >= 0xFF04 && location <= 0xFF07 {
             timer.write(location, value)
@@ -53,11 +53,11 @@ impl Memory {
         }
 
         if location == 0xFFFF {
-            return self.IE;
+            return self.interrupt_enabled;
         }
 
         if location == 0xFF0F {
-            return self.IF;
+            return self.interrupt_flag;
         }
 
         if location >= 0xFF04 && location <= 0xFF07 {

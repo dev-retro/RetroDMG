@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "type": "cargo",
+            "name": "DMG_test",
+            "cargoArgs": ["test"],
+        },
+        {
+            "type": "cargo",
+            "name": "DMG",
+            "cargoArgs": ["run"],
+        },
+        
+    ]
+}

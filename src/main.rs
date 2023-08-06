@@ -7,6 +7,11 @@ use crate::core::timer::Timer;
 
 mod core;
 
+/// The main function for the Game Boy emulator application.
+///
+/// This function initializes a new Core object, reads the game ROM file using a path,
+/// writes game bytes to the memory, initializes the scanline counter, and starts the emulation loop
+/// by continuously executing CPU ticks.
 fn main() {
     let mut core = Core::new();
 
@@ -16,7 +21,7 @@ fn main() {
 
 
     // let mut game_file = File::open("/Users/hevey/Development/PlayCade/debugging/Tetris (W) (V1.0) [!].gb").expect("No file found");
-    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/11-op a,(hl).gb").expect("No file found");
+    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/02-interrupts.gb").expect("No file found");
     let mut game_bytes = Vec::new();
     game_file.read_to_end(&mut game_bytes).expect("Failed to open file");
 
