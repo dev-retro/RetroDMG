@@ -1,4 +1,5 @@
-#[derive(Copy, Clone)]
+use crate::core::timer::Timer;
+
 pub struct Memory {
     memory: [u8; 0xFFFF],
     bootrom: [u8; 0x100],
@@ -18,7 +19,7 @@ impl Memory {
         }
     }
 
-    pub fn write(&mut self, location: u16, value: u8) {
+    pub fn write(&mut self, location: u16, value: u8, timer: &mut Timer) {
         let location = location as usize;
         if location >= self.memory.len() { }
         else if location == 0xFF02 && value == 0x81  {
@@ -33,13 +34,16 @@ impl Memory {
         else if location == 0xFF0F {
             self.IF = value;
         }
+        else if location >= 0xFF04 && location <= 0xFF07 {
+            timer.write(location, value)
+        }
         else {
             self.memory[location] = value
         }
     }
 
-    pub fn read(&self, location: u16) -> u8 {
-        let location = location as usize;
+    pub fn read(&self, location: u16, timer: &mut Timer) -> u8 {
+        let location: usize = location as usize;
         if location >= self.memory.len() {
             return 0;
         }
@@ -54,6 +58,11 @@ impl Memory {
 
         if location == 0xFF0F {
             return self.IF;
+        }
+
+        if location >= 0xFF04 && location <= 0xFF07 {
+            let value = timer.read(location);
+            return value;
         }
 
         self.memory[location]

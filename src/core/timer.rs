@@ -17,7 +17,7 @@ impl Timer {
         }
     }
 
-    pub fn read(&mut self, location: u16) -> u8 {
+    pub fn read(&mut self, location: usize) -> u8 {
         match location {
             0xFF04 => { (self.div >> 8) as u8 }
             0xFF05 => { self.counter }
@@ -27,7 +27,7 @@ impl Timer {
         }
     }
 
-    pub fn write(&mut self, location: u16, value: u8) {
+    pub fn write(&mut self, location: usize, value: u8) {
         match location {
             0xFF04 => { self.div = 0; }
             0xFF05 => { self.counter = value; }
@@ -64,7 +64,6 @@ impl Timer {
 
         self.enable = result;
         false
-
     }
 
     fn get_bit(&mut self, data: u16, bit: u8) -> bool {

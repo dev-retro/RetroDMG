@@ -20,8 +20,8 @@ pub struct CPU {
 impl CPU {
     pub fn new() -> Self {
         let mut register = Registers::new();
-        let memory = Memory::new();
         let timer = Timer::new();
+        let memory = Memory::new();
 
         if !memory.bootrom_loaded {
             register.write_8(A, 0x01);
@@ -47,6 +47,8 @@ impl CPU {
 
     pub fn tick(&mut self) {
 
+        self.timer.tick();
+
         self.cycles = 0; //FIXME: remove once cycles are needed.
         // let mut file = OpenOptions::new()
         //     .append(true)
@@ -64,10 +66,10 @@ impl CPU {
         //          self.register.read_8(L),
         //          self.register.read_16(SP),
         //          self.register.read_16(PC),
-        //          self.memory.read(self.register.read_16(PC)),
-        //          self.memory.read(self.register.read_16(PC)+1),
-        //          self.memory.read(self.register.read_16(PC)+2),
-        //          self.memory.read(self.register.read_16(PC)+3)
+        //          self.memory.read(self.register.read_16(PC), &mut self.timer),
+        //          self.memory.read(self.register.read_16(PC)+1, &mut self.timer),
+        //          self.memory.read(self.register.read_16(PC)+2, &mut self.timer),
+        //          self.memory.read(self.register.read_16(PC)+3, &mut self.timer)
         //     )
         // ) {
         //     eprintln!("Couldn't write to file: {}", e);
@@ -323,7 +325,7 @@ impl CPU {
             0xF5 => { self.push(AF); }
             0xF6 => { self.or_a_n(); }
             0xF7 => { self.rst(0x30); }
-            0xF8 => { panic!("LD, SP+e not implemented") } //TODO: LD, SP+e
+            0xF8 => { self.ld_sp_s8_hl(); }
             0xF9 => { self.ld_sp_hl(); }
             0xFA => { self.ld_a_indirect_nn(); }
             0xFB => { self.ei(); }
@@ -408,7 +410,10 @@ impl CPU {
             0x43 => { self.bit(self.register.read_8(E), 0); }
             0x44 => { self.bit(self.register.read_8(H), 0); }
             0x45 => { self.bit(self.register.read_8(L), 0); }
-            0x46 => { self.bit(self.memory.read(self.register.read_16(HL)), 0); }
+            0x46 => {
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 0); 
+            }
             0x47 => { self.bit(self.register.read_8(A), 0); }
             0x48 => { self.bit(self.register.read_8(B), 1); }
             0x49 => { self.bit(self.register.read_8(C), 1); }
@@ -416,7 +421,10 @@ impl CPU {
             0x4B => { self.bit(self.register.read_8(E), 1); }
             0x4C => { self.bit(self.register.read_8(H), 1); }
             0x4D => { self.bit(self.register.read_8(L), 1); }
-            0x4E => { self.bit(self.memory.read(self.register.read_16(HL)), 1); }
+            0x4E => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 1); 
+            }
             0x4F => { self.bit(self.register.read_8(A), 1); }
             0x50 => { self.bit(self.register.read_8(B), 2); }
             0x51 => { self.bit(self.register.read_8(C), 2); }
@@ -424,7 +432,10 @@ impl CPU {
             0x53 => { self.bit(self.register.read_8(E), 2); }
             0x54 => { self.bit(self.register.read_8(H), 2); }
             0x55 => { self.bit(self.register.read_8(L), 2); }
-            0x56 => { self.bit(self.memory.read(self.register.read_16(HL)), 2); }
+            0x56 => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 2); 
+            }
             0x57 => { self.bit(self.register.read_8(A), 2); }
             0x58 => { self.bit(self.register.read_8(B), 3); }
             0x59 => { self.bit(self.register.read_8(C), 3); }
@@ -432,7 +443,10 @@ impl CPU {
             0x5B => { self.bit(self.register.read_8(E), 3); }
             0x5C => { self.bit(self.register.read_8(H), 3); }
             0x5D => { self.bit(self.register.read_8(L), 3); }
-            0x5E => { self.bit(self.memory.read(self.register.read_16(HL)), 3); }
+            0x5E => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 3); 
+            }
             0x5F => { self.bit(self.register.read_8(A), 3); }
             0x60 => { self.bit(self.register.read_8(B), 4); }
             0x61 => { self.bit(self.register.read_8(C), 4); }
@@ -440,7 +454,10 @@ impl CPU {
             0x63 => { self.bit(self.register.read_8(E), 4); }
             0x64 => { self.bit(self.register.read_8(H), 4); }
             0x65 => { self.bit(self.register.read_8(L), 4); }
-            0x66 => { self.bit(self.memory.read(self.register.read_16(HL)), 4); }
+            0x66 => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 4); 
+            }
             0x67 => { self.bit(self.register.read_8(A), 4); }
             0x68 => { self.bit(self.register.read_8(B), 5); }
             0x69 => { self.bit(self.register.read_8(C), 5); }
@@ -448,7 +465,10 @@ impl CPU {
             0x6B => { self.bit(self.register.read_8(E), 5); }
             0x6C => { self.bit(self.register.read_8(H), 5); }
             0x6D => { self.bit(self.register.read_8(L), 5); }
-            0x6E => { self.bit(self.memory.read(self.register.read_16(HL)), 5); }
+            0x6E => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 5); 
+            }
             0x6F => { self.bit(self.register.read_8(A), 5); }
             0x70 => { self.bit(self.register.read_8(B), 6); }
             0x71 => { self.bit(self.register.read_8(C), 6); }
@@ -456,7 +476,10 @@ impl CPU {
             0x73 => { self.bit(self.register.read_8(E), 6); }
             0x74 => { self.bit(self.register.read_8(H), 6); }
             0x75 => { self.bit(self.register.read_8(L), 6); }
-            0x76 => { self.bit(self.memory.read(self.register.read_16(HL)), 6); }
+            0x76 => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 6); 
+            }
             0x77 => { self.bit(self.register.read_8(A), 6); }
             0x78 => { self.bit(self.register.read_8(B), 7); }
             0x79 => { self.bit(self.register.read_8(C), 7); }
@@ -464,7 +487,10 @@ impl CPU {
             0x7B => { self.bit(self.register.read_8(E), 7); }
             0x7C => { self.bit(self.register.read_8(H), 7); }
             0x7D => { self.bit(self.register.read_8(L), 7); }
-            0x7E => { self.bit(self.memory.read(self.register.read_16(HL)), 7); }
+            0x7E => { 
+                let value = self.memory.read(self.register.read_16(HL), &mut self.timer); 
+                self.bit(value, 7); 
+            }
             0x7F => { self.bit(self.register.read_8(A), 7); }
             0x80 => { self.res_r(B, 0); }
             0x81 => { self.res_r(C, 0); }
@@ -599,8 +625,8 @@ impl CPU {
 
     fn check_ime(&mut self) {
         if self.register.read_ime() {
-            let req = self.memory.read(0xFF0F);
-            let enabled = self.memory.read(0xFFFF);
+            let req = self.memory.read(0xFF0F, &mut self.timer);
+            let enabled = self.memory.read(0xFFFF, &mut self.timer);
             
             if req > 0 {
                 for bit in 0..4 {
@@ -623,7 +649,7 @@ impl CPU {
 
     fn increment_pc(&mut self) -> u8 {
         let mut pc = self.register.read_16(PC);
-        let value = self.memory.read(pc);
+        let value = self.memory.read(pc, &mut self.timer);
         pc += 1;
         self.register.write_16(PC, pc);
 
@@ -632,7 +658,7 @@ impl CPU {
 
     fn increment_hl(&mut self) -> u8 {
         let mut hl = self.register.read_16(HL);
-        let value = self.memory.read(hl);
+        let value = self.memory.read(hl, &mut self.timer);
         hl = hl.wrapping_add(1);
         self.register.write_16(HL, hl);
 
@@ -641,7 +667,7 @@ impl CPU {
 
     fn decrement_hl(&mut self) -> u8 {
         let mut hl = self.register.read_16(HL);
-        let value = self.memory.read(hl);
+        let value = self.memory.read(hl, &mut self.timer);
         hl -= 1;
         self.register.write_16(HL, hl);
 
@@ -650,7 +676,7 @@ impl CPU {
 
     fn increment_sp(&mut self) -> u8 {
         let mut sp = self.register.read_16(SP);
-        let value = self.memory.read(sp);
+        let value = self.memory.read(sp, &mut self.timer);
         sp = sp.wrapping_add(1);
         self.register.write_16(SP, sp);
 
@@ -659,7 +685,7 @@ impl CPU {
 
     fn decrement_sp(&mut self) -> u8 {
         let mut sp = self.register.read_16(SP);
-        let value = self.memory.read(sp);
+        let value = self.memory.read(sp, &mut self.timer);
         sp = sp.wrapping_sub(1);
         self.register.write_16(SP, sp);
 
@@ -679,42 +705,42 @@ impl CPU {
     }
 
     fn ld_r8_indirect_hl(&mut self, r: RegisterType8) {
-        self.register.write_8(r, self.memory.read(self.register.read_16(HL)));
+        self.register.write_8(r, self.memory.read(self.register.read_16(HL), &mut self.timer));
         self.cycles += 8;
     }
 
     fn ld_indirect_hl_r8(&mut self, r: RegisterType8) {
-        self.memory.write(self.register.read_16(HL), self.register.read_8(r));
+        self.memory.write(self.register.read_16(HL), self.register.read_8(r), &mut self.timer);
         self.cycles += 8;
     }
 
     fn ld_indirect_hl_n(&mut self) {
         let value = self.increment_pc();
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
         self.cycles += 12;
     }
 
     fn ld_a_indirect_bc(&mut self) {
-        let value = self.memory.read(self.register.read_16(BC));
+        let value = self.memory.read(self.register.read_16(BC), &mut self.timer);
         self.register.write_8(A, value);
         self.cycles += 8;
     }
 
     fn ld_a_indirect_de(&mut self) {
-        let value = self.memory.read(self.register.read_16(DE));
+        let value = self.memory.read(self.register.read_16(DE), &mut self.timer);
         self.register.write_8(A, value);
         self.cycles += 8;
     }
 
     fn ld_indirect_bc_a(&mut self) {
         let value = self.register.read_8(A);
-        self.memory.write(self.register.read_16(BC), value);
+        self.memory.write(self.register.read_16(BC), value, &mut self.timer);
         self.cycles += 8;
     }
 
     fn ld_indirect_de_a(&mut self) {
         let value = self.register.read_8(A);
-        self.memory.write(self.register.read_16(DE), value);
+        self.memory.write(self.register.read_16(DE), value, &mut self.timer);
         self.cycles += 8;
     }
 
@@ -724,7 +750,7 @@ impl CPU {
 
         let value: u16 = (msb as u16) << 8 | lsb as u16;
 
-        self.register.write_8(A, self.memory.read(value));
+        self.register.write_8(A, self.memory.read(value, &mut self.timer));
         self.cycles += 16;
     }
 
@@ -734,7 +760,7 @@ impl CPU {
 
         let value: u16 = (msb as u16) << 8 | lsb as u16;
 
-        self.memory.write(value, self.register.read_8(A));
+        self.memory.write(value, self.register.read_8(A), &mut self.timer);
         self.cycles += 16;
     }
 
@@ -744,7 +770,7 @@ impl CPU {
 
         let value: u16 = (msb as u16) << 8 | lsb as u16;
 
-        self.register.write_8(A, self.memory.read(value));
+        self.register.write_8(A, self.memory.read(value, &mut self.timer));
         self.cycles += 8;
     }
 
@@ -754,7 +780,7 @@ impl CPU {
 
         let location: u16 = (lsb as u16) << 8 | msb as u16;
 
-        self.memory.write(location, self.register.read_8(A));
+        self.memory.write(location, self.register.read_8(A), &mut self.timer);
         self.cycles += 8;
     }
 
@@ -764,7 +790,7 @@ impl CPU {
 
         let value: u16 = (msb as u16) << 8 | lsb as u16;
 
-        self.register.write_8(A, self.memory.read(value));
+        self.register.write_8(A, self.memory.read(value, &mut self.timer));
         self.cycles += 12;
     }
 
@@ -774,7 +800,7 @@ impl CPU {
 
         let location: u16 = (msb as u16) << 8 | lsb as u16;
 
-        self.memory.write(location, self.register.read_8(A));
+        self.memory.write(location, self.register.read_8(A), &mut self.timer);
         self.cycles += 12;
     }
 
@@ -788,7 +814,7 @@ impl CPU {
     fn ld_indirect_hl_dec_a(&mut self) {
         let value = self.register.read_8(A);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.decrement_hl();
         self.cycles += 8;
@@ -804,7 +830,7 @@ impl CPU {
     fn ld_indirect_hl_inc_a(&mut self) {
         let value = self.register.read_8(A);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.increment_hl();
         self.cycles += 8;
@@ -830,9 +856,9 @@ impl CPU {
 
         let mut location: u16 = (lsb as u16) << 8 | msb as u16;
 
-        self.memory.write(location, (sp >> 8) as u8);
+        self.memory.write(location, (sp >> 8) as u8, &mut self.timer);
         location += 1;
-        self.memory.write(location, sp as u8);
+        self.memory.write(location, sp as u8, &mut self.timer);
 
         self.cycles += 20;
     }
@@ -843,17 +869,31 @@ impl CPU {
         self.cycles += 8;
     }
 
+    fn ld_sp_s8_hl(&mut self) {
+        let pc = self.increment_pc() as i8 as u16;
+        let sp = self.register.read_16(SP);
+        let (value, did_overflow) = sp.overflowing_add(pc);
+
+        self.register.write_16(HL, value);
+        self.register.write_flag(Zero, false);
+        self.register.write_flag(Subtraction, false);
+        self.register.write_flag(HalfCarry, (sp & 0xf) + (pc & 0xf) > 0xf);
+        self.register.write_flag(Carry, did_overflow);
+
+        self.cycles += 12;
+    }
+
     fn push(&mut self, r: RegisterType16) {
         self.decrement_sp();
         let mut sp = self.register.read_16(SP);
         let reg = self.register.read_16(r);
 
-        self.memory.write(sp, (reg >> 8) as u8);
+        self.memory.write(sp, (reg >> 8) as u8, &mut self.timer);
 
         self.decrement_sp();
         sp = self.register.read_16(SP);
 
-        self.memory.write(sp, reg as u8);
+        self.memory.write(sp, reg as u8, &mut self.timer);
 
         self.cycles += 16;
 
@@ -888,7 +928,7 @@ impl CPU {
 
     fn add_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let hl = self.memory.read(self.register.read_16(HL));
+        let hl = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let (result, did_overflow) = a.overflowing_add(hl);
 
         self.register.write_8(A, result);
@@ -951,7 +991,7 @@ impl CPU {
 
     fn adc_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.memory.read(self.register.read_16(HL));
+        let register = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
         let (result, did_overflow_1) = a.overflowing_add(carry);
         let (result, did_overflow_2) = result.overflowing_add(register);
@@ -1001,7 +1041,7 @@ impl CPU {
 
     fn sub_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.memory.read(self.register.read_16(HL));
+        let register = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let (result, did_overflow) = a.overflowing_sub(register);
 
         self.register.write_8(A, result);
@@ -1048,7 +1088,7 @@ impl CPU {
 
     fn sbc_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.memory.read(self.register.read_16(HL));
+        let register = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let carry = if self.register.read_flag(Carry) { 1 } else { 0 };
         let (result, did_overflow_1) = a.overflowing_sub(carry);
         let (result, did_overflow_2) = result.overflowing_sub(register);
@@ -1095,7 +1135,7 @@ impl CPU {
 
     fn cp_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let register = self.memory.read(self.register.read_16(HL));
+        let register = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let (result, did_overflow) = a.overflowing_sub(register);
 
         self.register.write_flag(Zero, result == 0);
@@ -1140,10 +1180,10 @@ impl CPU {
     }
 
     fn inc_indirect_hl(&mut self) {
-        let register = self.memory.read(self.register.read_16(HL));
+        let register = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let result = register.wrapping_add(1);
 
-        self.memory.write(self.register.read_16(HL), result);
+        self.memory.write(self.register.read_16(HL), result, &mut self.timer);
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, false);
@@ -1169,10 +1209,10 @@ impl CPU {
     }
 
     fn dec_indirect_hl(&mut self) {
-        let register = self.memory.read(self.register.read_16(HL));
+        let register = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let result = register.wrapping_sub(1);
 
-        self.memory.write(self.register.read_16(HL), result);
+        self.memory.write(self.register.read_16(HL), result, &mut self.timer);
 
         self.register.write_flag(Zero, if result == 0 { true } else { false });
         self.register.write_flag(Subtraction, true);
@@ -1196,7 +1236,7 @@ impl CPU {
 
     fn and_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let value = self.memory.read(self.register.read_16(HL));
+        let value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let result = a & value;
 
         self.register.write_8(A, result);
@@ -1241,7 +1281,7 @@ impl CPU {
 
     fn or_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let value = self.memory.read(self.register.read_16(HL));
+        let value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let result = a | value;
 
         self.register.write_8(A, result);
@@ -1286,7 +1326,7 @@ impl CPU {
 
     fn xor_a_indirect_hl(&mut self) {
         let a = self.register.read_8(A);
-        let value = self.memory.read(self.register.read_16(HL));
+        let value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let result = a ^ value;
 
         self.register.write_8(A, result);
@@ -1461,9 +1501,9 @@ impl CPU {
         let pc_lsb = pc as u8;
 
         self.decrement_sp();
-        self.memory.write(self.register.read_16(SP), pc_msb);
+        self.memory.write(self.register.read_16(SP), pc_msb, &mut self.timer);
         self.decrement_sp();
-        self.memory.write(self.register.read_16(SP), pc_lsb);
+        self.memory.write(self.register.read_16(SP), pc_lsb, &mut self.timer);
 
         self.register.write_16(PC, value);
 
@@ -1478,9 +1518,9 @@ impl CPU {
 
         if self.register.read_flag(flag) {
             self.decrement_sp();
-            self.memory.write(self.register.read_16(SP), msb);
+            self.memory.write(self.register.read_16(SP), msb, &mut self.timer);
             self.decrement_sp();
-            self.memory.write(self.register.read_16(SP), lsb);
+            self.memory.write(self.register.read_16(SP), lsb, &mut self.timer);
 
             self.register.write_16(PC, value);
             self.cycles += 24;
@@ -1499,9 +1539,9 @@ impl CPU {
             let pc = self.register.read_16(PC);
 
             self.decrement_sp();
-            self.memory.write(self.register.read_16(SP), (pc >> 8) as u8);
+            self.memory.write(self.register.read_16(SP), (pc >> 8) as u8, &mut self.timer);
             self.decrement_sp();
-            self.memory.write(self.register.read_16(SP), pc as u8);
+            self.memory.write(self.register.read_16(SP), pc as u8, &mut self.timer);
 
             self.register.write_16(PC, value);
             self.cycles += 24;
@@ -1570,9 +1610,9 @@ impl CPU {
         let msb = (self.register.read_16(PC)) as u8;
 
         self.decrement_sp();
-        self.memory.write(self.register.read_16(SP), msb);
+        self.memory.write(self.register.read_16(SP), msb, &mut self.timer);
         self.decrement_sp();
-        self.memory.write(self.register.read_16(SP), lsb);
+        self.memory.write(self.register.read_16(SP), lsb, &mut self.timer);
 
         self.register.write_16(PC, (pc as u16) << 8 | 0x00 as u16);
 
@@ -1626,14 +1666,14 @@ impl CPU {
     }
 
     fn shift_left_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let seven_bit = self.get_bit(value, 7);
 
         value <<= 1;
 
         value = self.set_bit(value, 0, false);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1662,14 +1702,14 @@ impl CPU {
     }
 
     fn shift_right_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let zero_bit = self.get_bit(value, 0);
 
         value >>= 1;
 
         value = self.set_bit(value  , 7, false);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1699,7 +1739,7 @@ impl CPU {
     }
 
     fn shift_right_a_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let zero_bit = self.get_bit(value, 0);
         let seven_bit = self.get_bit(value, 7);
 
@@ -1707,7 +1747,7 @@ impl CPU {
 
         value = self.set_bit(value, 7, seven_bit);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1737,7 +1777,7 @@ impl CPU {
     }
 
     fn rotate_right_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let zero_bit = self.get_bit(value, 0);
         let carry = self.register.read_flag(Carry);
 
@@ -1745,7 +1785,7 @@ impl CPU {
 
         value = self.set_bit(value, 7, carry);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1774,13 +1814,13 @@ impl CPU {
     }
 
     fn rotate_right_carry_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let zero_bit = self.get_bit(value, 0);
 
         value >>= 1;
         value = self.set_bit(value, 7, zero_bit);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1848,13 +1888,13 @@ impl CPU {
 
     fn rotate_left_hl_n(&mut self) {
         let carry = self.register.read_flag(Carry);
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let seven_bit = self.get_bit(value, 7);
 
         value <<= 1;
         value = self.set_bit(value, 0, carry);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1882,13 +1922,13 @@ impl CPU {
     }
 
     fn rotate_left_carry_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         let seven_bit = self.get_bit(value, 7);
 
         value <<= 1;
         value = self.set_bit(value, 0, seven_bit);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -1951,9 +1991,9 @@ impl CPU {
     }
 
     fn res_hl_n(&mut self, bit: u8) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         value = self.set_bit(value, bit, false);
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.cycles += 8;
     }
@@ -1967,9 +2007,9 @@ impl CPU {
     }
 
     fn set_hl_n(&mut self, bit: u8) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
         value = self.set_bit(value, bit, true);
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.cycles += 8;
     }
@@ -1991,11 +2031,11 @@ impl CPU {
     }
 
     fn swap_hl_n(&mut self) {
-        let mut value = self.memory.read(self.register.read_16(HL));
+        let mut value = self.memory.read(self.register.read_16(HL), &mut self.timer);
 
         value = (value >> 4) | (value << 4);
 
-        self.memory.write(self.register.read_16(HL), value);
+        self.memory.write(self.register.read_16(HL), value, &mut self.timer);
 
         self.register.write_flag(Zero, value == 0);
         self.register.write_flag(Subtraction, false);
@@ -2006,7 +2046,7 @@ impl CPU {
     }
 
     pub fn request_interrupt(&mut self, interrupt_type: InterruptType) {
-        let mut req = self.memory.read(0xFF0F);
+        let mut req = self.memory.read(0xFF0F, &mut self.timer);
 
         match interrupt_type {
             InterruptType::VBlank => { req = self.set_bit(req, 0, true); }
@@ -2016,12 +2056,12 @@ impl CPU {
             InterruptType::Joypad => { req = self.set_bit(req, 4, true); }
         }
 
-        self.memory.write(0xFF0F, req);
+        self.memory.write(0xFF0F, req, &mut self.timer);
     }
 
     fn handle_interrupt(&mut self, interrupt_type: InterruptType) {
         self.register.write_ime(false);
-        let mut req = self.memory.read(0xFF0F);
+        let mut req = self.memory.read(0xFF0F, &mut self.timer);
 
         match interrupt_type {
             InterruptType::VBlank => { req = self.set_bit(req, 0, false); }
@@ -2031,7 +2071,7 @@ impl CPU {
             InterruptType::Joypad => { req = self.set_bit(req, 4, false); }
         }
 
-        self.memory.write(0xFF0F, req);
+        self.memory.write(0xFF0F, req, &mut self.timer);
 
         self.push(PC);
 

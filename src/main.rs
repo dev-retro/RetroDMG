@@ -3,6 +3,7 @@ extern crate rustils;
 use std::fs::File;
 use std::io::Read;
 use crate::core::Core;
+use crate::core::timer::Timer;
 
 mod core;
 
@@ -21,7 +22,8 @@ fn main() {
 
     // core.cpu.memory.write_bootrom(&bootrom_bytes);
     core.cpu.memory.write_game(&game_bytes[..]);
-    core.cpu.memory.write(0xFF44, 0x90);
+    let mut timer = Timer::new();
+    core.cpu.memory.write(0xFF44, 0x90, &mut timer);
 
     println!("Game Loaded");
 
