@@ -119,16 +119,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17febce684fd15d89027105661fec94afb475cb995fbc59d2865198446ba2eea"
 
 [[package]]
-name = "cade-dmg"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.1.0",
- "game-loop",
- "rustils",
- "winit",
-]
-
-[[package]]
 name = "calloop"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -690,6 +680,16 @@ name = "regex-syntax"
 version = "0.6.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
+
+[[package]]
+name = "retrocade-dmg"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.1.0",
+ "game-loop",
+ "rustils",
+ "winit",
+]
 
 [[package]]
 name = "rustils"
