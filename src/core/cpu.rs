@@ -75,30 +75,30 @@ impl CPU {
                 self.check_ime();
 
                self.cycles = 0; //FIXME: remove once cycles are needed.
-                let mut file = OpenOptions::new()
-                    .append(true)
-                    .open("/Users/hevey/Development/PlayCade/debugging/gb.txt")
-                    .unwrap();
-                
-                if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
-                         self.register.read_8(A),
-                         self.register.read_8(F),
-                         self.register.read_8(B),
-                         self.register.read_8(C),
-                         self.register.read_8(D),
-                         self.register.read_8(E),
-                         self.register.read_8(H),
-                         self.register.read_8(L),
-                         self.register.read_16(SP),
-                         self.register.read_16(PC),
-                         self.memory.read(self.register.read_16(PC), &mut self.timer),
-                         self.memory.read(self.register.read_16(PC)+1, &mut self.timer),
-                         self.memory.read(self.register.read_16(PC)+2, &mut self.timer),
-                         self.memory.read(self.register.read_16(PC)+3, &mut self.timer)
-                    )
-                ) {
-                    eprintln!("Couldn't write to file: {}", e);
-                }
+                // let mut file = OpenOptions::new()
+                //     .append(true)
+                //     .open("/Users/hevey/Development/RetroCade/!debugging/gb.txt")
+                //     .unwrap();
+                //
+                // if let Err(e) = writeln!(file, "{}", format!("A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} {:02X})",
+                //          self.register.read_8(A),
+                //          self.register.read_8(F),
+                //          self.register.read_8(B),
+                //          self.register.read_8(C),
+                //          self.register.read_8(D),
+                //          self.register.read_8(E),
+                //          self.register.read_8(H),
+                //          self.register.read_8(L),
+                //          self.register.read_16(SP),
+                //          self.register.read_16(PC),
+                //          self.memory.read(self.register.read_16(PC), &mut self.timer),
+                //          self.memory.read(self.register.read_16(PC)+1, &mut self.timer),
+                //          self.memory.read(self.register.read_16(PC)+2, &mut self.timer),
+                //          self.memory.read(self.register.read_16(PC)+3, &mut self.timer)
+                //     )
+                // ) {
+                //     eprintln!("Couldn't write to file: {}", e);
+                // }
                 let opcode = self.increment_pc();
 
                 match opcode {

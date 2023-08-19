@@ -21,7 +21,7 @@ fn main() {
 
 
     // let mut game_file = File::open("/Users/hevey/Development/PlayCade/debugging/Tetris (W) (V1.0) [!].gb").expect("No file found");
-    let mut game_file = File::open("/Users/hevey/Development/PlayCade/gb-test-roms/cpu_instrs/individual/02-interrupts.gb").expect("No file found");
+    let mut game_file = File::open("/Users/hevey/Development/RetroCade/!debugging/gb-test-roms/cpu_instrs/individual/08-misc instrs.gb").expect("No file found");
     let mut game_bytes = Vec::new();
     game_file.read_to_end(&mut game_bytes).expect("Failed to open file");
 
