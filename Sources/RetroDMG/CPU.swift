@@ -22,16 +22,36 @@ struct CPU {
         cycles = 0
         state = .Running
         memory = Memory()
+        
+        if !memory.bootromLoaded {
+            registers.write(register: .A, value: 0x01)
+            registers.write(register: .B, value: 0x00)
+            registers.write(register: .C, value: 0x13)
+            registers.write(register: .D, value: 0x00)
+            registers.write(register: .E, value: 0xD8)
+            registers.write(register: .F, value: 0xB0)
+            registers.write(register: .H, value: 0x01)
+            registers.write(register: .L, value: 0x4D)
+
+            registers.write(register: .PC, value: 0x0100)
+            registers.write(register: .SP, value: 0xFFFE)
+        }
     }
     
     mutating func tick() {
         cycles = 0 //TODO: remove once cycles are needed
+        
+        print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(memory.read(location: registers.read(register: .PC)).hex) \(memory.read(location: registers.read(register: .PC)+1).hex) \(memory.read(location: registers.read(register: .PC)+2).hex) \(memory.read(location: registers.read(register: .PC)+3).hex))")
+        
+        
         
         let opCode = increment(register: .PC)
         
         switch opCode {
         case 0x00: //NOP
             cycles += 4
+        case 0x01:
+            loadFromMemory(to: .BC)
         case 0x02:
             load(indirect: .BC, register: .A)
         case 0x06:
@@ -40,6 +60,8 @@ struct CPU {
             load(register: .A, indirect: .BC)
         case 0x0E:
             load(from: .PC, to: .C)
+        case 0x11:
+            loadFromMemory(to: .DE)
         case 0x12:
             load(indirect: .DE, register: .A)
         case 0x16:
@@ -48,16 +70,20 @@ struct CPU {
             load(register: .A, indirect: .DE)
         case 0x1E:
             load(from: .PC, to: .E)
+        case 0x21:
+            loadFromMemory(to: .HL)
         case 0x22:
             load(indirect: .HL, register: .A)
             _ = increment(register: .HL)
         case 0x26:
             load(from: .PC, to: .H)
         case 0x2A:
-            _ = increment(register: .HL)
             load(register: .A, indirect: .HL)
+            _ = increment(register: .HL)
         case 0x2E:
             load(from: .PC, to: .L)
+        case 0x11:
+            loadFromMemory(to: .SP)
         case 0x32:
             load(indirect: .HL, register: .A)
             _ = decrement(register: .HL)
@@ -66,104 +92,104 @@ struct CPU {
         case 0x3E:
             load(from: .PC, to: .A)
         case 0x3A:
-            _ = decrement(register: .HL)
             load(register: .A, indirect: .HL)
+            _ = decrement(register: .HL)
         case 0x40:
             load(from: .B, to: .B)
         case 0x41:
-            load(from: .B, to: .C)
+            load(from: .C, to: .B)
         case 0x42:
-            load(from: .B, to: .D)
+            load(from: .D, to: .B)
         case 0x43:
-            load(from: .B, to: .E)
+            load(from: .E, to: .B)
         case 0x44:
-            load(from: .B, to: .H)
+            load(from: .H, to: .B)
         case 0x45:
-            load(from: .B, to: .L)
+            load(from: .L, to: .B)
         case 0x46:
             load(register: .B, indirect: .HL)
         case 0x47:
-            load(from: .B, to: .A)
+            load(from: .A, to: .B)
         case 0x48:
-            load(from: .C, to: .B)
+            load(from: .B, to: .C)
         case 0x49:
             load(from: .C, to: .C)
         case 0x4A:
-            load(from: .C, to: .D)
+            load(from: .D, to: .C)
         case 0x4B:
-            load(from: .C, to: .E)
+            load(from: .E, to: .C)
         case 0x4C:
-            load(from: .C, to: .H)
+            load(from: .H, to: .C)
         case 0x4D:
-            load(from: .C, to: .L)
+            load(from: .L, to: .C)
         case 0x4E:
             load(register: .C, indirect: .HL)
         case 0x4F:
-            load(from: .C, to: .A)
+            load(from: .A, to: .C)
         case 0x50:
-            load(from: .D, to: .B)
+            load(from: .B, to: .D)
         case 0x51:
-            load(from: .D, to: .C)
+            load(from: .C, to: .D)
         case 0x52:
             load(from: .D, to: .D)
         case 0x53:
-            load(from: .D, to: .E)
+            load(from: .E, to: .D)
         case 0x54:
-            load(from: .D, to: .H)
+            load(from: .H, to: .D)
         case 0x55:
-            load(from: .D, to: .L)
+            load(from: .L, to: .D)
         case 0x56:
             load(register: .D, indirect: .HL)
         case 0x57:
-            load(from: .D, to: .A)
+            load(from: .A, to: .D)
         case 0x58:
-            load(from: .E, to: .B)
+            load(from: .B, to: .E)
         case 0x59:
-            load(from: .E, to: .C)
+            load(from: .C, to: .E)
         case 0x5A:
-            load(from: .E, to: .D)
+            load(from: .D, to: .E)
         case 0x5B:
             load(from: .E, to: .E)
         case 0x5C:
-            load(from: .E, to: .H)
+            load(from: .H, to: .E)
         case 0x5D:
-            load(from: .E, to: .L)
+            load(from: .L, to: .E)
         case 0x5E:
             load(register: .E, indirect: .HL)
         case 0x5F:
-            load(from: .E, to: .A)
+            load(from: .A, to: .E)
         case 0x60:
-            load(from: .H, to: .B)
+            load(from: .B, to: .H)
         case 0x61:
-            load(from: .H, to: .C)
+            load(from: .C, to: .H)
         case 0x62:
-            load(from: .H, to: .D)
+            load(from: .D, to: .H)
         case 0x63:
-            load(from: .H, to: .E)
+            load(from: .E, to: .H)
         case 0x64:
             load(from: .H, to: .H)
         case 0x65:
-            load(from: .H, to: .L)
+            load(from: .L, to: .H)
         case 0x66:
             load(register: .H, indirect: .HL)
         case 0x67:
-            load(from: .H, to: .A)
+            load(from: .A, to: .H)
         case 0x68:
-            load(from: .L, to: .B)
+            load(from: .B, to: .L)
         case 0x69:
-            load(from: .L, to: .C)
+            load(from: .C, to: .L)
         case 0x6A:
-            load(from: .L, to: .D)
+            load(from: .D, to: .L)
         case 0x6B:
-            load(from: .L, to: .E)
+            load(from: .E, to: .L)
         case 0x6C:
-            load(from: .L, to: .H)
+            load(from: .H, to: .L)
         case 0x6D:
             load(from: .L, to: .L)
         case 0x6E:
             load(register: .L, indirect: .HL)
         case 0x6F:
-            load(from: .L, to: .A)
+            load(from: .A, to: .L)
         case 0x70:
             load(indirect: .HL, register: .B)
         case 0x71:
@@ -194,8 +220,10 @@ struct CPU {
             load(register: .A, indirect: .HL)
         case 0x7F:
             load(from: .A, to: .A)
+        case 0xC3:
+            jump()
         default:
-            fatalError("opCode \(opCode) not supported")
+            fatalError("opCode \(opCode.hex) not supported")
         }
     }
     
@@ -244,6 +272,16 @@ struct CPU {
             cycles += 12
     }
     
+    mutating func loadFromMemory(to register: RegisterType16) {
+        let lsb = increment(register: .PC)
+        let msb = increment(register: .PC)
+        let value = UInt16(msb) << 8 | UInt16(lsb);
+        
+        registers.write(register: register, value: value)
+        
+        cycles += 12
+    }
+    
 //    mutating func load(indirect from: RegisterType8?) {
 //        let lsb = increment(register: .PC)
 //        var cycleCount: Int32 = 12
@@ -258,4 +296,14 @@ struct CPU {
 //        
 //        cycles += cycleCount
 //    }
+    
+    mutating func jump() {
+        let lsb = increment(register: .PC)
+        let msb = increment(register: .PC)
+        let value = UInt16(msb) << 8 | UInt16(lsb);
+        
+        registers.write(register: .PC, value: value)
+        
+        cycles += 16
+    }
 }

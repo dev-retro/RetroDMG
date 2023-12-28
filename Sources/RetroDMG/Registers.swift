@@ -71,16 +71,16 @@ struct Registers {
         switch register {
         case .AF:
             a = UInt8(value >> 8)
-            f = UInt8(value & 0xF0)
+            f = UInt8(value & 0x0F)
         case .BC:
             b = UInt8(value >> 8)
-            c = UInt8(value & 0xF0)
+            c = UInt8(value & 0x0F)
         case .DE:
             d = UInt8(value >> 8)
-            e = UInt8(value & 0xF0)
+            e = UInt8(value & 0x0F)
         case .HL:
             h = UInt8(value >> 8)
-            l = UInt8(value & 0xF0)
+            l = UInt8(value & 0x0F)
         case .SP:
             sp = value
         case .PC:
@@ -153,13 +153,13 @@ struct Registers {
     func read(register: RegisterType16) -> UInt16 {
         switch register {
         case .AF:
-            return UInt16(a << 8) | UInt16(f)
+            return UInt16(a) << 8 | UInt16(f)
         case .BC:
-            return UInt16(b << 8) | UInt16(c)
+            return UInt16(b) << 8 | UInt16(c)
         case .DE:
-            return UInt16(d << 8) | UInt16(e)
+            return UInt16(d) << 8 | UInt16(e)
         case .HL:
-            return UInt16(h << 8) | UInt16(l)
+            return UInt16(h) << 8 | UInt16(l)
         case .SP:
             return sp
         case .PC:
