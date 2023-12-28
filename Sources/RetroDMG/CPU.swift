@@ -45,7 +45,7 @@ struct CPU {
         
         
         
-        let opCode = increment(register: .PC)
+        let opCode = incrementAndReturn(indirect: .PC)
         
         switch opCode {
         case 0x00: //NOP
@@ -54,32 +54,44 @@ struct CPU {
             loadFromMemory(to: .BC)
         case 0x02:
             load(indirect: .BC, register: .A)
+        case 0x04:
+            increment(register: .B)
         case 0x06:
             load(from: .PC, to: .B)
         case 0x0A:
             load(register: .A, indirect: .BC)
+        case 0x0C:
+            increment(register: .C)
         case 0x0E:
             load(from: .PC, to: .C)
         case 0x11:
             loadFromMemory(to: .DE)
         case 0x12:
             load(indirect: .DE, register: .A)
+        case 0x14:
+            increment(register: .D)
         case 0x16:
             load(from: .PC, to: .D)
         case 0x1A:
             load(register: .A, indirect: .DE)
+        case 0x1C:
+            increment(register: .E)
         case 0x1E:
             load(from: .PC, to: .E)
         case 0x21:
             loadFromMemory(to: .HL)
         case 0x22:
             load(indirect: .HL, register: .A)
-            _ = increment(register: .HL)
+            _ = increment(indirect: .HL)
+        case 0x24:
+            increment(register: .H)
         case 0x26:
             load(from: .PC, to: .H)
         case 0x2A:
             load(register: .A, indirect: .HL)
-            _ = increment(register: .HL)
+            _ = increment(indirect: .HL)
+        case 0x2C:
+            increment(register: .L)
         case 0x2E:
             load(from: .PC, to: .L)
         case 0x11:
@@ -87,6 +99,8 @@ struct CPU {
         case 0x32:
             load(indirect: .HL, register: .A)
             _ = decrement(register: .HL)
+        case 0x34:
+            increment(indirect: .HL)
         case 0x36:
             load(indirect: .HL)
         case 0x3E:
@@ -94,6 +108,8 @@ struct CPU {
         case 0x3A:
             load(register: .A, indirect: .HL)
             _ = decrement(register: .HL)
+        case 0x3C:
+            increment(register: .A)
         case 0x40:
             load(from: .B, to: .B)
         case 0x41:
@@ -227,13 +243,35 @@ struct CPU {
         }
     }
     
-    mutating func increment(register: RegisterType16) -> UInt8 {
+    mutating func incrementAndReturn(indirect register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
         let value = memory.read(location: regValue)
         regValue += 1
         registers.write(register: register, value: regValue)
         
         return value
+    }
+    
+    mutating func increment(register: RegisterType8) {
+        var registerValue = registers.read(register: register)
+        var value = registerValue + 1
+        registers.write(register: register, value: value)
+        
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (registerValue & 0xF) + (1 & 0xF) > 0xF)
+        
+    }
+    
+    mutating func increment(indirect register: RegisterType16) {
+        var registerValue = registers.read(register: register)
+        var value = memory.read(location: registerValue)
+        value += 1
+        memory.write(location: registerValue, value: value)
+        
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (registerValue & 0xF) + (1 & 0xF) > 0xF)
     }
     
     mutating func decrement(register: RegisterType16) -> UInt8 {
@@ -261,20 +299,20 @@ struct CPU {
     }
     
     mutating func load(from fromRegister: RegisterType16, to toRegister: RegisterType8) {
-        let value = increment(register: fromRegister)
+        let value = incrementAndReturn(indirect: fromRegister)
         registers.write(register: toRegister, value: value)
         cycles += 8
     }
     
     mutating func load(indirect register: RegisterType16) {
-        let value = increment(register: .PC)
+        let value = incrementAndReturn(indirect: .PC)
             memory.write(location: registers.read(register: register), value: value)
             cycles += 12
     }
     
     mutating func loadFromMemory(to register: RegisterType16) {
-        let lsb = increment(register: .PC)
-        let msb = increment(register: .PC)
+        let lsb = incrementAndReturn(indirect: .PC)
+        let msb = incrementAndReturn(indirect: .PC)
         let value = UInt16(msb) << 8 | UInt16(lsb);
         
         registers.write(register: register, value: value)
@@ -298,8 +336,8 @@ struct CPU {
 //    }
     
     mutating func jump() {
-        let lsb = increment(register: .PC)
-        let msb = increment(register: .PC)
+        let lsb = incrementAndReturn(indirect: .PC)
+        let msb = incrementAndReturn(indirect: .PC)
         let value = UInt16(msb) << 8 | UInt16(lsb);
         
         registers.write(register: .PC, value: value)
