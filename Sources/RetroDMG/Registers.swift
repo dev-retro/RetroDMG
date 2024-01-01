@@ -71,16 +71,16 @@ struct Registers {
         switch register {
         case .AF:
             a = UInt8(value >> 8)
-            f = UInt8(value & 0x0F)
+            f = UInt8(value & 0xFF)
         case .BC:
             b = UInt8(value >> 8)
-            c = UInt8(value & 0x0F)
+            c = UInt8(value & 0xFF)
         case .DE:
             d = UInt8(value >> 8)
-            e = UInt8(value & 0x0F)
+            e = UInt8(value & 0xFF)
         case .HL:
             h = UInt8(value >> 8)
-            l = UInt8(value & 0x0F)
+            l = UInt8(value & 0xFF)
         case .SP:
             sp = value
         case .PC:
