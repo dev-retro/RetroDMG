@@ -56,12 +56,16 @@ struct CPU {
             load(indirect: .BC, register: .A)
         case 0x04:
             increment(register: .B)
+        case 0x05:
+            decrement(register: .B)
         case 0x06:
             load(from: .PC, to: .B)
         case 0x0A:
             load(register: .A, indirect: .BC)
         case 0x0C:
             increment(register: .C)
+        case 0x0D:
+            decrement(register: .C)
         case 0x0E:
             load(from: .PC, to: .C)
         case 0x11:
@@ -70,12 +74,16 @@ struct CPU {
             load(indirect: .DE, register: .A)
         case 0x14:
             increment(register: .D)
+        case 0x15:
+            decrement(register: .D)
         case 0x16:
             load(from: .PC, to: .D)
         case 0x1A:
             load(register: .A, indirect: .DE)
         case 0x1C:
             increment(register: .E)
+        case 0x1D:
+            decrement(register: .E)
         case 0x1E:
             load(from: .PC, to: .E)
         case 0x20:
@@ -87,6 +95,8 @@ struct CPU {
             increment(register: .HL)
         case 0x24:
             increment(register: .H)
+        case 0x25:
+            decrement(register: .H)
         case 0x26:
             load(from: .PC, to: .H)
         case 0x2A:
@@ -94,6 +104,8 @@ struct CPU {
             increment(register: .HL)
         case 0x2C:
             increment(register: .L)
+        case 0x2D:
+            decrement(register: .L)
         case 0x2E:
             load(from: .PC, to: .L)
         case 0x11:
@@ -112,6 +124,8 @@ struct CPU {
             decrement(register: .HL)
         case 0x3C:
             increment(register: .A)
+        case 0x3D:
+            decrement(register: .A)
         case 0x40:
             load(from: .B, to: .B)
         case 0x41:
@@ -223,17 +237,17 @@ struct CPU {
         case 0x77:
             load(indirect: .HL, register: .A)
         case 0x78:
-            load(from: .A, to: .B)
+            load(from: .B, to: .A)
         case 0x79:
-            load(from: .A, to: .C)
+            load(from: .C, to: .A)
         case 0x7A:
-            load(from: .A, to: .D)
+            load(from: .D, to: .A)
         case 0x7B:
-            load(from: .A, to: .E)
+            load(from: .E, to: .A)
         case 0x7C:
-            load(from: .A, to: .H)
+            load(from: .H, to: .A)
         case 0x7D:
-            load(from: .A, to: .L)
+            load(from: .L, to: .A)
         case 0x7E:
             load(register: .A, indirect: .HL)
         case 0x7F:
@@ -280,6 +294,16 @@ struct CPU {
         registers.write(flag: .Zero, set: value == 0)
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: (registerValue & 0xF) + (1 & 0xF) > 0xF)
+    }
+    
+    mutating func decrement(register: RegisterType8) {
+        var currentValue = registers.read(register: register)
+        var newValue = currentValue.subtractingReportingOverflow(1).partialValue
+        registers.write(register: register, value: newValue)
+        
+        registers.write(flag: .Zero, set: newValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(currentValue & 0xF) - Int8(1 & 0xF) < 0)
     }
     
     mutating func decrement(register: RegisterType16) -> UInt8 {
