@@ -15,7 +15,7 @@ struct Memory {
     var bootromLoaded: Bool
     
     init() {
-        memory = [UInt8](repeating: 0, count: 0xFFFF)
+        memory = [UInt8](repeating: 0, count: 65537)
         bootrom = [UInt8](repeating: 0, count: 0x100)
         bootromLoaded = false
         interruptEnabled = 0x00
@@ -23,8 +23,8 @@ struct Memory {
     }
     
     mutating func write(location: UInt16, value: UInt8) {
-        if location >= memory.count {
-            print("\(location) is out of bounds")
+        if location >= memory.endIndex {
+            print("\(location.hex) is out of bounds")
             return
         }
         

@@ -78,6 +78,8 @@ struct CPU {
             decrement(register: .D)
         case 0x16:
             load(from: .PC, to: .D)
+        case 0x18:
+            jump(type: .memorySigned8Bit)
         case 0x1A:
             load(register: .A, indirect: .DE)
         case 0x1C:
@@ -108,7 +110,7 @@ struct CPU {
             decrement(register: .L)
         case 0x2E:
             load(from: .PC, to: .L)
-        case 0x11:
+        case 0x31:
             loadFromMemory(to: .SP)
         case 0x32:
             load(indirect: .HL, register: .A)
@@ -252,8 +254,34 @@ struct CPU {
             load(register: .A, indirect: .HL)
         case 0x7F:
             load(from: .A, to: .A)
+        case 0xC1:
+            pop(register: .BC)
         case 0xC3:
-            jump()
+            jump(type: .memoryUnsigned16Bit)
+        case 0xC5:
+            push(register: .BC)
+        case 0xC9:
+            ret()
+        case 0xCD:
+            call()
+        case 0xD1:
+            pop(register: .DE)
+        case 0xD5:
+            push(register: .DE)
+        case 0xE0:
+            loadToMemory(from: .A, masked: true)
+        case 0xE1:
+            pop(register: .HL)
+        case 0xE5:
+            push(register: .HL)
+        case 0xEA:
+            loadToMemory(from: .A)
+        case 0xF1:
+            pop(register: .AF)
+        case 0xF3:
+            set(ime: false)
+        case 0xF5:
+            push(register: .AF)
         default:
             fatalError("opCode 0x\(opCode.hex) not supported")
         }
@@ -352,6 +380,17 @@ struct CPU {
         cycles += 12
     }
     
+    mutating func loadToMemory(from register: RegisterType8, masked: Bool = false) {
+        let lsb = returnAndIncrement(indirect: .PC)
+        let msb = masked ? 0xFF : returnAndIncrement(indirect: .PC)
+        
+        let location = UInt16(msb) << 8 | UInt16(lsb);
+
+        memory.write(location: location, value: registers.read(register: register))
+        
+        cycles += masked ? 12 : 16;
+    }
+    
 //    mutating func load(indirect from: RegisterType8?) {
 //        let lsb = increment(register: .PC)
 //        var cycleCount: Int32 = 12
@@ -367,14 +406,26 @@ struct CPU {
 //        cycles += cycleCount
 //    }
     
-    mutating func jump() {
-        let lsb = returnAndIncrement(indirect: .PC)
-        let msb = returnAndIncrement(indirect: .PC)
-        let value = UInt16(msb) << 8 | UInt16(lsb);
-        
-        registers.write(register: .PC, value: value)
-        
-        cycles += 16
+    mutating func jump(type: JumpType) {
+        switch type {
+        case .memorySigned8Bit:
+            let address = Int8(returnAndIncrement(indirect: .PC))
+            let address16Bit = UInt16(address)
+
+            registers.write(register: .PC, value: registers.read(register: .PC).addingReportingOverflow(address16Bit).partialValue)
+
+            cycles += 12
+        case .memoryUnsigned16Bit:
+            let lsb = returnAndIncrement(indirect: .PC)
+            let msb = returnAndIncrement(indirect: .PC)
+            let value = UInt16(msb) << 8 | UInt16(lsb);
+            
+            registers.write(register: .PC, value: value)
+            
+            cycles += 16
+        default:
+            fatalError("jump type not supported")
+        }
     }
     
     mutating func jumpIfNot(flag: FlagType) {
@@ -390,4 +441,64 @@ struct CPU {
         }
         
     }
+    
+    mutating func set(ime: Bool) {
+        registers.write(ime: ime)
+        cycles += 4
+        state = .Running
+    }
+    
+    mutating func call() {
+        let lsb = returnAndIncrement(indirect: .PC)
+        let msb = returnAndIncrement(indirect: .PC)
+        let value = UInt16(msb) << 8 | UInt16(lsb);
+        
+        let pc = registers.read(register: .PC)
+        let pcMsb = UInt8(pc >> 8)
+        let pcLsb = UInt8(truncatingIfNeeded: pc)
+
+        decrement(register: .SP)
+        memory.write(location: registers.read(register: .SP), value: pcMsb)
+        decrement(register: .SP)
+        memory.write(location: registers.read(register: .SP), value: pcLsb)
+        
+        registers.write(register: .PC, value: value)
+
+        self.cycles += 24;
+    }
+    
+    mutating func ret() {
+        let lsb = returnAndIncrement(indirect: .SP)
+        let msb = returnAndIncrement(indirect: .SP)
+
+        let value = UInt16(msb) << 8 | UInt16(lsb);
+
+        registers.write(register: .PC, value: value)
+
+        cycles += 16
+    }
+    
+    mutating func push(register: RegisterType16) {
+        let value = registers.read(register: register)
+        decrement(register: .SP)
+        memory.write(location: registers.read(register: .SP), value: UInt8(value >> 8))
+        decrement(register: .SP)
+        memory.write(location: registers.read(register: .SP), value: UInt8(truncatingIfNeeded: value))
+
+        cycles += 16
+    }
+    
+    mutating func pop(register: RegisterType16) {
+        let lsb = returnAndIncrement(indirect: .SP)
+        let msb = returnAndIncrement(indirect: .SP)
+        let value = UInt16(msb) << 8 | UInt16(lsb);
+        
+        registers.write(register: register, value: value)
+        
+        cycles += 12
+    }
+}
+
+enum JumpType {
+   case memorySigned8Bit, memoryUnsigned16Bit
 }
