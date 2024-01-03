@@ -44,7 +44,6 @@ struct CPU {
         print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(memory.read(location: registers.read(register: .PC)).hex) \(memory.read(location: registers.read(register: .PC)+1).hex) \(memory.read(location: registers.read(register: .PC)+2).hex) \(memory.read(location: registers.read(register: .PC)+3).hex))")
         
         
-        
         let opCode = returnAndIncrement(indirect: .PC)
         
         switch opCode {
@@ -54,46 +53,61 @@ struct CPU {
             loadFromMemory(to: .BC)
         case 0x02:
             load(indirect: .BC, register: .A)
+        case 0x03:
+            increment(register: .BC)
         case 0x04:
             increment(register: .B)
         case 0x05:
             decrement(register: .B)
         case 0x06:
             load(from: .PC, to: .B)
+        //TODO: 0x07
+        //TODO: 0x08
+        //TODO: 0x09
         case 0x0A:
             load(register: .A, indirect: .BC)
+        //TODO: 0x0B
         case 0x0C:
             increment(register: .C)
         case 0x0D:
             decrement(register: .C)
         case 0x0E:
             load(from: .PC, to: .C)
+        //TODO: 0x0F
         case 0x11:
             loadFromMemory(to: .DE)
         case 0x12:
             load(indirect: .DE, register: .A)
+        case 0x13:
+            increment(register: .DE)
         case 0x14:
             increment(register: .D)
         case 0x15:
             decrement(register: .D)
         case 0x16:
             load(from: .PC, to: .D)
+        //TODO: 0x17
         case 0x18:
             jump(type: .memorySigned8Bit)
+        //TODO: 0x19
         case 0x1A:
             load(register: .A, indirect: .DE)
+        //TODO: 0x1B
         case 0x1C:
             increment(register: .E)
         case 0x1D:
             decrement(register: .E)
         case 0x1E:
             load(from: .PC, to: .E)
+        //TODO: 0x1F
         case 0x20:
             jumpIfNot(flag: .Zero)
         case 0x21:
             loadFromMemory(to: .HL)
         case 0x22:
             load(indirect: .HL, register: .A)
+            increment(register: .HL, partOfOtherOpCode: true)
+        case 0x23:
             increment(register: .HL)
         case 0x24:
             increment(register: .H)
@@ -101,33 +115,50 @@ struct CPU {
             decrement(register: .H)
         case 0x26:
             load(from: .PC, to: .H)
+        //TODO: 0x27
+        case 0x28:
+            jumpIf(flag: .Zero)
+        //TODO: 0x29
         case 0x2A:
             load(register: .A, indirect: .HL)
-            increment(register: .HL)
+            increment(register: .HL, partOfOtherOpCode: true)
+        //TODO: 0x2B
         case 0x2C:
             increment(register: .L)
         case 0x2D:
             decrement(register: .L)
         case 0x2E:
             load(from: .PC, to: .L)
+        //TODO: 0x2F
+        case 0x30:
+            jumpIfNot(flag: .Carry)
         case 0x31:
             loadFromMemory(to: .SP)
         case 0x32:
             load(indirect: .HL, register: .A)
             decrement(register: .HL)
+        case 0x33:
+            increment(register: .HL)
         case 0x34:
             increment(indirect: .HL)
+        //TODO: 0x35
         case 0x36:
             load(indirect: .HL)
-        case 0x3E:
-            load(from: .PC, to: .A)
+        //TODO: 0x37
+        case 0x38:
+            jumpIf(flag: .Carry)
+        //TODO: 0x39
         case 0x3A:
             load(register: .A, indirect: .HL)
             decrement(register: .HL)
+        //TODO: 0x3B
         case 0x3C:
             increment(register: .A)
         case 0x3D:
             decrement(register: .A)
+        case 0x3E:
+            load(from: .PC, to: .A)
+        //TODO: 0x3F
         case 0x40:
             load(from: .B, to: .B)
         case 0x41:
@@ -236,6 +267,7 @@ struct CPU {
             load(indirect: .HL, register: .H)
         case 0x75:
             load(indirect: .HL, register: .L)
+        //TODO: 0x76
         case 0x77:
             load(indirect: .HL, register: .A)
         case 0x78:
@@ -254,34 +286,177 @@ struct CPU {
             load(register: .A, indirect: .HL)
         case 0x7F:
             load(from: .A, to: .A)
+        //TODO: 0x80
+        //TODO: 0x81
+        //TODO: 0x82
+        //TODO: 0x83
+        //TODO: 0x84
+        //TODO: 0x85
+        //TODO: 0x86
+        //TODO: 0x87
+        //TODO: 0x88
+        //TODO: 0x89
+        //TODO: 0x8A
+        //TODO: 0x8B
+        //TODO: 0x8C
+        //TODO: 0x8D
+        //TODO: 0x8E
+        //TODO: 0x8F
+        //TODO: 0x90
+        //TODO: 0x91
+        //TODO: 0x92
+        //TODO: 0x93
+        //TODO: 0x94
+        //TODO: 0x95
+        //TODO: 0x96
+        //TODO: 0x97
+        //TODO: 0x98
+        //TODO: 0x99
+        //TODO: 0x9A
+        //TODO: 0x9B
+        //TODO: 0x9C
+        //TODO: 0x9D
+        //TODO: 0x9E
+        //TODO: 0x9F
+        //TODO: 0xA0
+        //TODO: 0xA1
+        //TODO: 0xA2
+        //TODO: 0xA3
+        //TODO: 0xA4
+        //TODO: 0xA5
+        //TODO: 0xA6
+        //TODO: 0xA7
+        case 0xA8:
+            xor(register: .B)
+        case 0xA9:
+            xor(register: .C)
+        case 0xAA:
+            xor(register: .D)
+        case 0xAB:
+            xor(register: .E)
+        case 0xAC:
+            xor(register: .H)
+        case 0xAD:
+            xor(register: .L)
+        case 0xAE:
+            xor(indirect: .HL)
+        case 0xAF:
+            xor(register: .A)
+        case 0xB0:
+            or(register: .B)
+        case 0xB1:
+            or(register: .C)
+        case 0xB2:
+            or(register: .D)
+        case 0xB3:
+            or(register: .E)
+        case 0xB4:
+            or(register: .H)
+        case 0xB5:
+            or(register: .L)
+        case 0xB6:
+            or(indirect: .HL)
+        //TODO: 0xB7
+        //TODO: 0xB8
+        //TODO: 0xB9
+        //TODO: 0xBA
+        //TODO: 0xBB
+        //TODO: 0xBC
+        //TODO: 0xBD
+        //TODO: 0xBE
+        //TODO: 0xBF
         case 0xC1:
             pop(register: .BC)
+        //TODO: 0xC2
         case 0xC3:
             jump(type: .memoryUnsigned16Bit)
+        case 0xC4:
+            callIfNot(flag: .Zero)
         case 0xC5:
             push(register: .BC)
+        //TODO: 0xC6
+        //TODO: 0xC7
+        //TODO: 0xC8
         case 0xC9:
             ret()
+        //TODO: 0xCA
+        case 0xCB:
+            return //Not Used
+        //TODO: 0xCC
         case 0xCD:
             call()
+        //TODO: 0xCE
+        //TODO: 0xCF
+        //TODO: 0xD0
         case 0xD1:
             pop(register: .DE)
+        //TODO: 0xD2
+        case 0xD3:
+            return //Not Used
+        //TODO: 0xD4
         case 0xD5:
             push(register: .DE)
+        //TODO: 0xD6
+        //TODO: 0xD7
+        //TODO: 0xD8
+        //TODO: 0xD9
+        //TODO: 0xDA
+        case 0xDB:
+            return //Not Used
+        //TODO: 0xDC
+        //TODO: 0xDE
+        //TODO: 0xDF
         case 0xE0:
             loadToMemory(from: .A, masked: true)
         case 0xE1:
             pop(register: .HL)
+        //TODO: 0xE2
+        case 0xE3:
+            return //Not Used
+        case 0xE4:
+            return //Not Used
         case 0xE5:
             push(register: .HL)
+        case 0xE6:
+            and()
+        //TODO: 0xE7
+        //TODO: 0xE8
+        //TODO: 0xE9
         case 0xEA:
             loadToMemory(from: .A)
+        case 0xEB:
+            return //Not Used
+        case 0xEC:
+            return //Not Used
+        case 0xED:
+            return //Not Used
+        //TODO: 0xEE
+        //TODO: 0xEF
+        case 0xF0:
+            loadFromMemory(to: .A, masked: true)
         case 0xF1:
             pop(register: .AF)
+        //TODO: 0xF2
         case 0xF3:
             set(ime: false)
+        case 0xF4:
+            return //Not Used
         case 0xF5:
             push(register: .AF)
+        //TODO: 0xF6
+        //TODO: 0xF7
+        //TODO: 0xF8
+        //TODO: 0xF9
+        case 0xFA:
+            loadFromMemory(to: .A, masked: false)
+        //TODO: 0xFB
+        case 0xFC:
+            return //Not Used
+        case 0xFD:
+            return //Not Used
+        case 0xFE:
+            copy()
+        //TODO: 0xFF
         default:
             fatalError("opCode 0x\(opCode.hex) not supported")
         }
@@ -307,10 +482,14 @@ struct CPU {
         
     }
     
-    mutating func increment(register: RegisterType16) {
+    mutating func increment(register: RegisterType16, partOfOtherOpCode: Bool = false) {
         var value = registers.read(register: register)
         
         registers.write(register: register, value: value.addingReportingOverflow(1).partialValue)
+        
+        if !partOfOtherOpCode {
+            cycles += 8
+        }
     }
     
     mutating func increment(indirect register: RegisterType16) {
@@ -371,20 +550,30 @@ struct CPU {
     }
     
     mutating func loadFromMemory(to register: RegisterType16) {
-        let lsb = returnAndIncrement(indirect: .PC)
-        let msb = returnAndIncrement(indirect: .PC)
-        let value = UInt16(msb) << 8 | UInt16(lsb);
+        let lsb = UInt16(returnAndIncrement(indirect: .PC))
+        let msb = UInt16(returnAndIncrement(indirect: .PC))
+        let value = msb << 8 | lsb
         
         registers.write(register: register, value: value)
         
         cycles += 12
     }
     
+    mutating func loadFromMemory(to register: RegisterType8, masked: Bool) {
+        let lsb = UInt16(returnAndIncrement(indirect: .PC))
+        let msb = masked ? UInt16(0xFF) : UInt16(returnAndIncrement(indirect: .PC))
+        let value = msb << 8 | lsb
+        
+        registers.write(register: register, value: memory.read(location: value))
+        
+        cycles += masked ? 12 : 16
+    }
+    
     mutating func loadToMemory(from register: RegisterType8, masked: Bool = false) {
         let lsb = returnAndIncrement(indirect: .PC)
         let msb = masked ? 0xFF : returnAndIncrement(indirect: .PC)
         
-        let location = UInt16(msb) << 8 | UInt16(lsb);
+        let location = UInt16(msb) << 8 | UInt16(lsb)
 
         memory.write(location: location, value: registers.read(register: register))
         
@@ -434,7 +623,21 @@ struct CPU {
         
         
         if !registers.read(flag: flag) {
-            registers.write(register: .PC, value: UInt16(Int16(registers.read(register: .PC)) + address))
+            registers.write(register: .PC, value: UInt16(bitPattern: Int16(truncatingIfNeeded: registers.read(register: .PC)) + address))
+            cycles += 12
+        } else {
+            cycles += 8
+        }
+        
+    }
+    
+    mutating func jumpIf(flag: FlagType) {
+        let address_raw = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
+        let address = Int16(address_raw)
+        
+        
+        if registers.read(flag: flag) {
+            registers.write(register: .PC, value: UInt16(bitPattern: Int16(truncatingIfNeeded: registers.read(register: .PC)) + address))
             cycles += 12
         } else {
             cycles += 8
@@ -451,7 +654,7 @@ struct CPU {
     mutating func call() {
         let lsb = returnAndIncrement(indirect: .PC)
         let msb = returnAndIncrement(indirect: .PC)
-        let value = UInt16(msb) << 8 | UInt16(lsb);
+        let value = UInt16(msb) << 8 | UInt16(lsb)
         
         let pc = registers.read(register: .PC)
         let pcMsb = UInt8(pc >> 8)
@@ -464,7 +667,32 @@ struct CPU {
         
         registers.write(register: .PC, value: value)
 
-        self.cycles += 24;
+        cycles += 24
+    }
+    
+    mutating func callIfNot(flag: FlagType) {
+        let lsb = UInt16(returnAndIncrement(indirect: .PC))
+        let msb = UInt16(returnAndIncrement(indirect: .PC))
+
+        let value = msb << 8 | lsb
+
+        if !registers.read(flag: flag) {
+            let pc = registers.read(register: .PC)
+            let pcMsb = UInt8(pc >> 8)
+            let pcLsb = UInt8(truncatingIfNeeded: pc)
+
+            decrement(register: .SP)
+            memory.write(location: registers.read(register: .SP), value: pcMsb)
+            decrement(register: .SP)
+            memory.write(location: registers.read(register: .SP), value: pcLsb)
+            
+            registers.write(register: .PC, value: value)
+
+            cycles += 24
+            
+        } else {
+            cycles += 12
+        }
     }
     
     mutating func ret() {
@@ -496,6 +724,94 @@ struct CPU {
         registers.write(register: register, value: value)
         
         cycles += 12
+    }
+    
+    mutating func or(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let result = a | value;
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 4
+    }
+    
+    mutating func or(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = memory.read(location: registers.read(register: register))
+        let result = a | value;
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 8
+    }
+    
+    mutating func xor(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let result = a ^ value
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 4
+    }
+    
+    mutating func xor(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = memory.read(location: registers.read(register: register))
+        let result = a ^ value
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 8
+    }
+    
+    mutating func and() {
+        let a = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let result = a & value;
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: true)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 8
+    }
+    
+    mutating func copy() {
+        let regValue = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let result = regValue.subtractingReportingOverflow(value)
+        
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(truncatingIfNeeded: regValue & 0xF) - Int8(truncatingIfNeeded: value & 0xF) < 0)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 8
     }
 }
 

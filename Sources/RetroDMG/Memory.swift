@@ -53,6 +53,10 @@ struct Memory {
            return bootrom[location]
         }
         
+        if location == 0xFF44 {
+            return 0x90 //FIXME: stubbed for now. Remove when required
+        }
+        
         return memory[location]
     }
 }
