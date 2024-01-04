@@ -99,7 +99,8 @@ struct CPU {
             decrement(register: .E)
         case 0x1E:
             load(from: .PC, to: .E)
-        //TODO: 0x1F
+        case 0x1F:
+            rotateRight(register: .A, zeroDependant: false)
         case 0x20:
             jumpIfNot(flag: .Zero)
         case 0x21:
@@ -141,7 +142,8 @@ struct CPU {
             increment(register: .HL)
         case 0x34:
             increment(indirect: .HL)
-        //TODO: 0x35
+        case 0x35:
+            decrement(indirect: .HL)
         case 0x36:
             load(indirect: .HL)
         //TODO: 0x37
@@ -356,7 +358,8 @@ struct CPU {
             or(register: .L)
         case 0xB6:
             or(indirect: .HL)
-        //TODO: 0xB7
+        case 0xB7:
+            or(register: .A)
         //TODO: 0xB8
         //TODO: 0xB9
         //TODO: 0xBA
@@ -365,6 +368,8 @@ struct CPU {
         //TODO: 0xBD
         //TODO: 0xBE
         //TODO: 0xBF
+        case 0xC0:
+            retIfNotSet(flag: .Zero)
         case 0xC1:
             pop(register: .BC)
         //TODO: 0xC2
@@ -374,20 +379,24 @@ struct CPU {
             callIfNot(flag: .Zero)
         case 0xC5:
             push(register: .BC)
-        //TODO: 0xC6
+        case 0xC6:
+            add()
         //TODO: 0xC7
-        //TODO: 0xC8
+        case 0xC8:
+            retIfSet(flag: .Zero)
         case 0xC9:
             ret()
         //TODO: 0xCA
         case 0xCB:
-            return //Not Used
+            extendedOpCodes()
         //TODO: 0xCC
         case 0xCD:
             call()
-        //TODO: 0xCE
+        case 0xCE:
+            addWithCarry()
         //TODO: 0xCF
-        //TODO: 0xD0
+        case 0xD0:
+            retIfNotSet(flag: .Carry)
         case 0xD1:
             pop(register: .DE)
         //TODO: 0xD2
@@ -396,9 +405,11 @@ struct CPU {
         //TODO: 0xD4
         case 0xD5:
             push(register: .DE)
-        //TODO: 0xD6
+        case 0xD6:
+            sub()
         //TODO: 0xD7
-        //TODO: 0xD8
+        case 0xD8:
+            retIfSet(flag: .Zero)
         //TODO: 0xD9
         //TODO: 0xDA
         case 0xDB:
@@ -430,7 +441,8 @@ struct CPU {
             return //Not Used
         case 0xED:
             return //Not Used
-        //TODO: 0xEE
+        case 0xEE:
+            xor()
         //TODO: 0xEF
         case 0xF0:
             loadFromMemory(to: .A, masked: true)
@@ -459,6 +471,287 @@ struct CPU {
         //TODO: 0xFF
         default:
             fatalError("opCode 0x\(opCode.hex) not supported")
+        }
+    }
+    
+    mutating func extendedOpCodes() {
+        let opCode = returnAndIncrement(indirect: .PC)
+        
+        switch opCode {
+        //TODO: 0x00
+        //TODO: 0x01
+        //TODO: 0x02
+        //TODO: 0x03
+        //TODO: 0x04
+        //TODO: 0x05
+        //TODO: 0x06
+        //TODO: 0x07
+        //TODO: 0x08
+        //TODO: 0x09
+        //TODO: 0x0A
+        //TODO: 0x0B
+        //TODO: 0x0C
+        //TODO: 0x0D
+        //TODO: 0x0E
+        //TODO: 0x0F
+        //TODO: 0x10
+        //TODO: 0x11
+        //TODO: 0x12
+        //TODO: 0x13
+        //TODO: 0x14
+        //TODO: 0x15
+        //TODO: 0x16
+        //TODO: 0x17
+        case 0x18:
+            rotateRight(register: .B)
+        case 0x19:
+            rotateRight(register: .C)
+        case 0x1A:
+            rotateRight(register: .D)
+        case 0x1B:
+            rotateRight(register: .E)
+        case 0x1C:
+            rotateRight(register: .H)
+        case 0x1D:
+            rotateRight(register: .L)
+        case 0x1E:
+            rotateRight(indirect: .HL)
+        case 0x1F:
+            rotateRight(register: .A)
+        //TODO: 0x20
+        //TODO: 0x21
+        //TODO: 0x22
+        //TODO: 0x23
+        //TODO: 0x24
+        //TODO: 0x25
+        //TODO: 0x26
+        //TODO: 0x27
+        //TODO: 0x28
+        //TODO: 0x29
+        //TODO: 0x2A
+        //TODO: 0x2B
+        //TODO: 0x2C
+        //TODO: 0x2D
+        //TODO: 0x2E
+        //TODO: 0x2F
+        //TODO: 0x30
+        //TODO: 0x31
+        //TODO: 0x32
+        //TODO: 0x33
+        //TODO: 0x34
+        //TODO: 0x35
+        //TODO: 0x36
+        //TODO: 0x37
+        case 0x38:
+            shiftRight(register: .B)
+        case 0x39:
+            shiftRight(register: .C)
+        case 0x3A:
+            shiftRight(register: .D)
+        case 0x3B:
+            shiftRight(register: .E)
+        case 0x3C:
+            shiftRight(register: .H)
+        case 0x3D:
+            shiftRight(register: .L)
+        case 0x3E:
+            shiftRight(indirect: .HL)
+        case 0x3F:
+            shiftRight(register: .A)
+        //TODO: 0x40
+        //TODO: 0x41
+        //TODO: 0x42
+        //TODO: 0x43
+        //TODO: 0x44
+        //TODO: 0x45
+        //TODO: 0x46
+        //TODO: 0x47
+        //TODO: 0x48
+        //TODO: 0x49
+        //TODO: 0x4A
+        //TODO: 0x4B
+        //TODO: 0x4C
+        //TODO: 0x4D
+        //TODO: 0x4E
+        //TODO: 0x4F
+        //TODO: 0x50
+        //TODO: 0x51
+        //TODO: 0x52
+        //TODO: 0x53
+        //TODO: 0x54
+        //TODO: 0x55
+        //TODO: 0x56
+        //TODO: 0x57
+        //TODO: 0x58
+        //TODO: 0x59
+        //TODO: 0x5A
+        //TODO: 0x5B
+        //TODO: 0x5C
+        //TODO: 0x5D
+        //TODO: 0x5E
+        //TODO: 0x5F
+        //TODO: 0x60
+        //TODO: 0x61
+        //TODO: 0x62
+        //TODO: 0x63
+        //TODO: 0x64
+        //TODO: 0x65
+        //TODO: 0x66
+        //TODO: 0x67
+        //TODO: 0x68
+        //TODO: 0x69
+        //TODO: 0x6A
+        //TODO: 0x6B
+        //TODO: 0x6C
+        //TODO: 0x6D
+        //TODO: 0x6E
+        //TODO: 0x6F
+        //TODO: 0x70
+        //TODO: 0x71
+        //TODO: 0x72
+        //TODO: 0x73
+        //TODO: 0x74
+        //TODO: 0x75
+        //TODO: 0x76
+        //TODO: 0x77
+        //TODO: 0x78
+        //TODO: 0x79
+        //TODO: 0x7A
+        //TODO: 0x7B
+        //TODO: 0x7C
+        //TODO: 0x7D
+        //TODO: 0x7E
+        //TODO: 0x7F
+        //TODO: 0x80
+        //TODO: 0x81
+        //TODO: 0x82
+        //TODO: 0x83
+        //TODO: 0x84
+        //TODO: 0x85
+        //TODO: 0x86
+        //TODO: 0x87
+        //TODO: 0x88
+        //TODO: 0x89
+        //TODO: 0x8A
+        //TODO: 0x8B
+        //TODO: 0x8C
+        //TODO: 0x8D
+        //TODO: 0x8E
+        //TODO: 0x8F
+        //TODO: 0x90
+        //TODO: 0x91
+        //TODO: 0x92
+        //TODO: 0x93
+        //TODO: 0x94
+        //TODO: 0x95
+        //TODO: 0x96
+        //TODO: 0x97
+        //TODO: 0x98
+        //TODO: 0x99
+        //TODO: 0x9A
+        //TODO: 0x9B
+        //TODO: 0x9C
+        //TODO: 0x9D
+        //TODO: 0x9E
+        //TODO: 0x9F
+        //TODO: 0xA0
+        //TODO: 0xA1
+        //TODO: 0xA2
+        //TODO: 0xA3
+        //TODO: 0xA4
+        //TODO: 0xA5
+        //TODO: 0xA6
+        //TODO: 0xA7
+        //TODO: 0xA8
+        //TODO: 0xA9
+        //TODO: 0xAA
+        //TODO: 0xAB
+        //TODO: 0xAC
+        //TODO: 0xAD
+        //TODO: 0xAE
+        //TODO: 0xAF
+        //TODO: 0xB0
+        //TODO: 0xB1
+        //TODO: 0xB2
+        //TODO: 0xB3
+        //TODO: 0xB4
+        //TODO: 0xB5
+        //TODO: 0xB6
+        //TODO: 0xB7
+        //TODO: 0xB8
+        //TODO: 0xB9
+        //TODO: 0xBA
+        //TODO: 0xBB
+        //TODO: 0xBC
+        //TODO: 0xBD
+        //TODO: 0xBE
+        //TODO: 0xBF
+        //TODO: 0xC0
+        //TODO: 0xC1
+        //TODO: 0xC2
+        //TODO: 0xC3
+        //TODO: 0xC4
+        //TODO: 0xC5
+        //TODO: 0xC6
+        //TODO: 0xC7
+        //TODO: 0xC8
+        //TODO: 0xC9
+        //TODO: 0xCA
+        //TODO: 0xCB
+        //TODO: 0xCC
+        //TODO: 0xCD
+        //TODO: 0xCE
+        //TODO: 0xCF
+        //TODO: 0xD0
+        //TODO: 0xD1
+        //TODO: 0xD2
+        //TODO: 0xD3
+        //TODO: 0xD4
+        //TODO: 0xD5
+        //TODO: 0xD6
+        //TODO: 0xD7
+        //TODO: 0xD8
+        //TODO: 0xD9
+        //TODO: 0xDA
+        //TODO: 0xDB
+        //TODO: 0xDC
+        //TODO: 0xDD
+        //TODO: 0xDE
+        //TODO: 0xDF
+        //TODO: 0xE0
+        //TODO: 0xE1
+        //TODO: 0xE2
+        //TODO: 0xE3
+        //TODO: 0xE4
+        //TODO: 0xE5
+        //TODO: 0xE6
+        //TODO: 0xE7
+        //TODO: 0xE8
+        //TODO: 0xE9
+        //TODO: 0xEA
+        //TODO: 0xEB
+        //TODO: 0xEC
+        //TODO: 0xED
+        //TODO: 0xEE
+        //TODO: 0xEF
+        //TODO: 0xF0
+        //TODO: 0xF1
+        //TODO: 0xF2
+        //TODO: 0xF3
+        //TODO: 0xF4
+        //TODO: 0xF5
+        //TODO: 0xF6
+        //TODO: 0xF7
+        //TODO: 0xF8
+        //TODO: 0xF9
+        //TODO: 0xFA
+        //TODO: 0xFB
+        //TODO: 0xFC
+        //TODO: 0xFD
+        //TODO: 0xFE
+        //TODO: 0xFF
+        default:
+            fatalError("extended opCode 0x\(opCode.hex) not supported")
         }
     }
     
@@ -507,6 +800,18 @@ struct CPU {
         var currentValue = registers.read(register: register)
         var newValue = currentValue.subtractingReportingOverflow(1).partialValue
         registers.write(register: register, value: newValue)
+        
+        registers.write(flag: .Zero, set: newValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(currentValue & 0xF) - Int8(1 & 0xF) < 0)
+        
+        cycles += 12
+    }
+    
+    mutating func decrement(indirect register: RegisterType16) {
+        var currentValue = memory.read(location: registers.read(register: register))
+        var newValue = currentValue.subtractingReportingOverflow(1).partialValue
+        memory.write(location: registers.read(register: register), value: newValue)
         
         registers.write(flag: .Zero, set: newValue == 0)
         registers.write(flag: .Subtraction, set: true)
@@ -696,14 +1001,44 @@ struct CPU {
     }
     
     mutating func ret() {
-        let lsb = returnAndIncrement(indirect: .SP)
-        let msb = returnAndIncrement(indirect: .SP)
+        let lsb = UInt16(returnAndIncrement(indirect: .SP))
+        let msb = UInt16(returnAndIncrement(indirect: .SP))
 
-        let value = UInt16(msb) << 8 | UInt16(lsb);
+        let value = msb << 8 | lsb
 
         registers.write(register: .PC, value: value)
 
         cycles += 16
+    }
+    
+    mutating func retIfSet(flag: FlagType) {
+        if registers.read(flag: flag) {
+            let lsb = UInt16(returnAndIncrement(indirect: .SP))
+            let msb = UInt16(returnAndIncrement(indirect: .SP))
+
+            let value = msb << 8 | lsb
+
+            registers.write(register: .PC, value: value)
+
+            self.cycles += 20;
+        } else {
+            self.cycles += 8;
+        }
+    }
+    
+    mutating func retIfNotSet(flag: FlagType) {
+        if !registers.read(flag: flag) {
+            let lsb = UInt16(returnAndIncrement(indirect: .SP))
+            let msb = UInt16(returnAndIncrement(indirect: .SP))
+
+            let value = msb << 8 | lsb
+
+            registers.write(register: .PC, value: value)
+
+            self.cycles += 20;
+        } else {
+            self.cycles += 8;
+        }
     }
     
     mutating func push(register: RegisterType16) {
@@ -756,6 +1091,21 @@ struct CPU {
         cycles += 8
     }
     
+    mutating func xor() {
+        let a = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let result = a ^ value
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 4
+    }
+    
     mutating func xor(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
@@ -789,7 +1139,7 @@ struct CPU {
     mutating func and() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
-        let result = a & value;
+        let result = a & value
 
         registers.write(register: .A, value: result)
 
@@ -797,6 +1147,55 @@ struct CPU {
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: true)
         registers.write(flag: .Carry, set: false)
+
+        cycles += 8
+    }
+    
+    mutating func add() {
+        let a = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let result = a.addingReportingOverflow(value)
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) > 0xF)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 8
+    }
+    
+    mutating func addWithCarry() {
+        let a = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let carry = UInt8(registers.read(flag: .Carry))
+        
+        var resultCarry = a.addingReportingOverflow(carry)
+        var result = resultCarry.partialValue.addingReportingOverflow(value)
+        
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
+        registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
+
+        cycles += 8
+    }
+    
+    mutating func sub() {
+        let a = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let result = a.subtractingReportingOverflow(value)
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(a & 0xF) - Int8(value & 0xF) < 0)
+        registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
     }
@@ -810,6 +1209,99 @@ struct CPU {
         registers.write(flag: .Subtraction, set: true)
         registers.write(flag: .HalfCarry, set: Int8(truncatingIfNeeded: regValue & 0xF) - Int8(truncatingIfNeeded: value & 0xF) < 0)
         registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 8
+    }
+    
+    mutating func setBit(data: UInt8, bit: UInt8, state: Bool) -> UInt8 {
+        let mask = UInt8(1 << bit)
+        var newValue = data
+        
+        if state {
+            newValue = (data | mask)
+        } else {
+            newValue = data & (mask ^ 0xFF)
+        }
+        
+        return newValue
+    }
+
+    mutating func getBit(data: UInt8, bit: UInt8) -> Bool {
+        let value = (data >> bit) & 1
+        
+        return value != 0
+    }
+    
+    mutating func shiftRight(register: RegisterType8) {
+        var value = registers.read(register: register)
+        let zeroBit = getBit(data: value, bit: 0)
+
+        value >>= 1
+
+        value = setBit(data: value, bit: 7, state: false)
+
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += 8
+    }
+    
+    mutating func shiftRight(indirect register: RegisterType16) {
+        var value = memory.read(location: registers.read(register: register))
+        let zeroBit = getBit(data: value, bit: 0)
+        
+        value >>= 1
+
+        value = setBit(data: value, bit: 7, state: false)
+
+        memory.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += 16
+    }
+    
+    mutating func rotateRight(register: RegisterType8, zeroDependant: Bool = true) {
+        var value = registers.read(register: register)
+        let zeroBit = getBit(data: value, bit: 0)
+        let carry = registers.read(flag: .Carry)
+        
+        value >>= 1
+
+        value = setBit(data: value, bit: 7, state: carry)
+
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: zeroDependant ? value == 0 : false)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += 8
+    }
+    
+    mutating func rotateRight(indirect register: RegisterType16) {
+        var value = memory.read(location: registers.read(register: register))
+        let zeroBit = getBit(data: value, bit: 0)
+        let carry = registers.read(flag: .Carry)
+        
+        value >>= 1
+
+        value = setBit(data: value, bit: 7, state: carry)
+
+        memory.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
 
         cycles += 8
     }

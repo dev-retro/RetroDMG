@@ -21,6 +21,11 @@ extension UInt8 {
     var hex: String {
         String(format:"%02X", self)
     }
+    
+    init(_ boolean: Bool) {
+         
+        self = boolean ? 1 : 0
+    }
 }
 
 extension UInt16 {

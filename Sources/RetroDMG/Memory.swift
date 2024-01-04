@@ -29,7 +29,7 @@ struct Memory {
         }
         
         if location == 0xFF02 && value == 0x81 {
-            print(memory[0xFF01])
+//            print(Character(UnicodeScalar(memory[0xFF01])))
         } else {
             memory[Int(location)] = value
         }
