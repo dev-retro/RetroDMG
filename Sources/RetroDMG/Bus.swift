@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Memory {
+struct Bus {
     var memory: [UInt8]
     var bootrom: [UInt8]
     var interruptEnabled: UInt8

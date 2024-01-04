@@ -15,15 +15,15 @@ struct CPU {
     var registers: Registers
     var cycles: Int32
     var state: CPUState
-    var memory: Memory
+    var bus: Bus
     
     init() {
         registers = Registers()
         cycles = 0
         state = .Running
-        memory = Memory()
+        bus = Bus()
         
-        if !memory.bootromLoaded {
+        if !bus.bootromLoaded {
             registers.write(register: .A, value: 0x01)
             registers.write(register: .B, value: 0x00)
             registers.write(register: .C, value: 0x13)
@@ -41,7 +41,7 @@ struct CPU {
     mutating func tick() {
         cycles = 0 //TODO: remove once cycles are needed
         
-//        print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(memory.read(location: registers.read(register: .PC)).hex) \(memory.read(location: registers.read(register: .PC)+1).hex) \(memory.read(location: registers.read(register: .PC)+2).hex) \(memory.read(location: registers.read(register: .PC)+3).hex))")
+//        print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))")
         
         
         let opCode = returnAndIncrement(indirect: .PC)
@@ -762,7 +762,7 @@ struct CPU {
     
     mutating func returnAndIncrement(indirect register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
-        let value = memory.read(location: regValue)
+        let value = bus.read(location: regValue)
         regValue += 1
         registers.write(register: register, value: regValue)
         
@@ -792,9 +792,9 @@ struct CPU {
     
     mutating func increment(indirect register: RegisterType16) {
         var registerValue = registers.read(register: register)
-        var value = memory.read(location: registerValue)
+        var value = bus.read(location: registerValue)
         value += 1
-        memory.write(location: registerValue, value: value)
+        bus.write(location: registerValue, value: value)
         
         registers.write(flag: .Zero, set: value == 0)
         registers.write(flag: .Subtraction, set: false)
@@ -814,9 +814,9 @@ struct CPU {
     }
     
     mutating func decrement(indirect register: RegisterType16) {
-        var currentValue = memory.read(location: registers.read(register: register))
+        var currentValue = bus.read(location: registers.read(register: register))
         var newValue = currentValue.subtractingReportingOverflow(1).partialValue
-        memory.write(location: registers.read(register: register), value: newValue)
+        bus.write(location: registers.read(register: register), value: newValue)
         
         registers.write(flag: .Zero, set: newValue == 0)
         registers.write(flag: .Subtraction, set: true)
@@ -825,7 +825,7 @@ struct CPU {
     
     mutating func decrement(register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
-        let value = memory.read(location: regValue)
+        let value = bus.read(location: regValue)
         regValue -= 1
         registers.write(register: register, value: regValue)
         
@@ -838,12 +838,12 @@ struct CPU {
     }
     
     mutating func load(register: RegisterType8, indirect: RegisterType16) {
-        registers.write(register: register, value: memory.read(location: registers.read(register: indirect)))
+        registers.write(register: register, value: bus.read(location: registers.read(register: indirect)))
         cycles += 8
     }
     
     mutating func load(indirect: RegisterType16, register: RegisterType8) {
-        memory.write(location: registers.read(register: indirect), value: registers.read(register: register))
+        bus.write(location: registers.read(register: indirect), value: registers.read(register: register))
         cycles += 8
     }
     
@@ -855,7 +855,7 @@ struct CPU {
     
     mutating func load(indirect register: RegisterType16) {
         let value = returnAndIncrement(indirect: .PC)
-            memory.write(location: registers.read(register: register), value: value)
+            bus.write(location: registers.read(register: register), value: value)
             cycles += 12
     }
     
@@ -874,7 +874,7 @@ struct CPU {
         let msb = masked ? UInt16(0xFF) : UInt16(returnAndIncrement(indirect: .PC))
         let value = msb << 8 | lsb
         
-        registers.write(register: register, value: memory.read(location: value))
+        registers.write(register: register, value: bus.read(location: value))
         
         cycles += masked ? 12 : 16
     }
@@ -885,7 +885,7 @@ struct CPU {
         
         let location = UInt16(msb) << 8 | UInt16(lsb)
 
-        memory.write(location: location, value: registers.read(register: register))
+        bus.write(location: location, value: registers.read(register: register))
         
         cycles += masked ? 12 : 16;
     }
@@ -900,7 +900,7 @@ struct CPU {
 //        let msb = 0xFF
 //        let location = UInt16(lsb << 8) | UInt16(msb)
 //        
-//        memory.write(location: location, value: UInt8)
+//        bus.write(location: location, value: UInt8)
 //        
 //        cycles += cycleCount
 //    }
@@ -977,9 +977,9 @@ struct CPU {
         let pcLsb = UInt8(truncatingIfNeeded: pc)
 
         decrement(register: .SP)
-        memory.write(location: registers.read(register: .SP), value: pcMsb)
+        bus.write(location: registers.read(register: .SP), value: pcMsb)
         decrement(register: .SP)
-        memory.write(location: registers.read(register: .SP), value: pcLsb)
+        bus.write(location: registers.read(register: .SP), value: pcLsb)
         
         registers.write(register: .PC, value: value)
 
@@ -998,9 +998,9 @@ struct CPU {
             let pcLsb = UInt8(truncatingIfNeeded: pc)
 
             decrement(register: .SP)
-            memory.write(location: registers.read(register: .SP), value: pcMsb)
+            bus.write(location: registers.read(register: .SP), value: pcMsb)
             decrement(register: .SP)
-            memory.write(location: registers.read(register: .SP), value: pcLsb)
+            bus.write(location: registers.read(register: .SP), value: pcLsb)
             
             registers.write(register: .PC, value: value)
 
@@ -1055,9 +1055,9 @@ struct CPU {
     mutating func push(register: RegisterType16) {
         let value = registers.read(register: register)
         decrement(register: .SP)
-        memory.write(location: registers.read(register: .SP), value: UInt8(value >> 8))
+        bus.write(location: registers.read(register: .SP), value: UInt8(value >> 8))
         decrement(register: .SP)
-        memory.write(location: registers.read(register: .SP), value: UInt8(truncatingIfNeeded: value))
+        bus.write(location: registers.read(register: .SP), value: UInt8(truncatingIfNeeded: value))
 
         cycles += 16
     }
@@ -1089,7 +1089,7 @@ struct CPU {
     
     mutating func or(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
-        let value = memory.read(location: registers.read(register: register))
+        let value = bus.read(location: registers.read(register: register))
         let result = a | value;
 
         registers.write(register: .A, value: result)
@@ -1134,7 +1134,7 @@ struct CPU {
     
     mutating func xor(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
-        let value = memory.read(location: registers.read(register: register))
+        let value = bus.read(location: registers.read(register: register))
         let result = a ^ value
 
         registers.write(register: .A, value: result)
@@ -1277,14 +1277,14 @@ struct CPU {
     }
     
     mutating func shiftRight(indirect register: RegisterType16) {
-        var value = memory.read(location: registers.read(register: register))
+        var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         
         value >>= 1
 
         value = setBit(data: value, bit: 7, state: false)
 
-        memory.write(location: registers.read(register: register), value: value)
+        bus.write(location: registers.read(register: register), value: value)
 
         registers.write(flag: .Zero, set: value == 0)
         registers.write(flag: .Subtraction, set: false)
@@ -1314,7 +1314,7 @@ struct CPU {
     }
     
     mutating func rotateRight(indirect register: RegisterType16) {
-        var value = memory.read(location: registers.read(register: register))
+        var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         let carry = registers.read(flag: .Carry)
         
@@ -1322,7 +1322,7 @@ struct CPU {
 
         value = setBit(data: value, bit: 7, state: carry)
 
-        memory.write(location: registers.read(register: register), value: value)
+        bus.write(location: registers.read(register: register), value: value)
 
         registers.write(flag: .Zero, set: value == 0)
         registers.write(flag: .Subtraction, set: false)

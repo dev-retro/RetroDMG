@@ -13,7 +13,7 @@ public struct RetroDMG {
     }
     
     public mutating func load(file: [UInt8]) {
-        cpu.memory.write(rom: file)
+        cpu.bus.write(rom: file)
     }
 }
 
