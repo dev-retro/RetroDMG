@@ -41,7 +41,7 @@ struct CPU {
     mutating func tick() {
         cycles = 0 //TODO: remove once cycles are needed
         
-        print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(memory.read(location: registers.read(register: .PC)).hex) \(memory.read(location: registers.read(register: .PC)+1).hex) \(memory.read(location: registers.read(register: .PC)+2).hex) \(memory.read(location: registers.read(register: .PC)+3).hex))")
+//        print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(memory.read(location: registers.read(register: .PC)).hex) \(memory.read(location: registers.read(register: .PC)+1).hex) \(memory.read(location: registers.read(register: .PC)+2).hex) \(memory.read(location: registers.read(register: .PC)+3).hex))")
         
         
         let opCode = returnAndIncrement(indirect: .PC)
@@ -63,7 +63,8 @@ struct CPU {
             load(from: .PC, to: .B)
         //TODO: 0x07
         //TODO: 0x08
-        //TODO: 0x09
+        case 0x09:
+            add(register: .BC)
         case 0x0A:
             load(register: .A, indirect: .BC)
         //TODO: 0x0B
@@ -89,7 +90,8 @@ struct CPU {
         //TODO: 0x17
         case 0x18:
             jump(type: .memorySigned8Bit)
-        //TODO: 0x19
+        case 0x19:
+            add(register: .DE)
         case 0x1A:
             load(register: .A, indirect: .DE)
         //TODO: 0x1B
@@ -119,7 +121,8 @@ struct CPU {
         //TODO: 0x27
         case 0x28:
             jumpIf(flag: .Zero)
-        //TODO: 0x29
+        case 0x29:
+            add(register: .HL)
         case 0x2A:
             load(register: .A, indirect: .HL)
             increment(register: .HL, partOfOtherOpCode: true)
@@ -149,7 +152,8 @@ struct CPU {
         //TODO: 0x37
         case 0x38:
             jumpIf(flag: .Carry)
-        //TODO: 0x39
+        case 0x39:
+            add(register: .SP)
         case 0x3A:
             load(register: .A, indirect: .HL)
             decrement(register: .HL)
@@ -409,7 +413,7 @@ struct CPU {
             sub()
         //TODO: 0xD7
         case 0xD8:
-            retIfSet(flag: .Zero)
+            retIfSet(flag: .Carry)
         //TODO: 0xD9
         //TODO: 0xDA
         case 0xDB:
@@ -432,7 +436,8 @@ struct CPU {
             and()
         //TODO: 0xE7
         //TODO: 0xE8
-        //TODO: 0xE9
+        case 0xE9:
+            jump(to: .HL)
         case 0xEA:
             loadToMemory(from: .A)
         case 0xEB:
@@ -903,8 +908,8 @@ struct CPU {
     mutating func jump(type: JumpType) {
         switch type {
         case .memorySigned8Bit:
-            let address = Int8(returnAndIncrement(indirect: .PC))
-            let address16Bit = UInt16(address)
+            let address = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
+            let address16Bit = UInt16(bitPattern: Int16(address))
 
             registers.write(register: .PC, value: registers.read(register: .PC).addingReportingOverflow(address16Bit).partialValue)
 
@@ -948,6 +953,12 @@ struct CPU {
             cycles += 8
         }
         
+    }
+    
+    mutating func jump(to register: RegisterType16) {
+        registers.write(register: .PC, value: registers.read(register: register))
+        
+        cycles += 4
     }
     
     mutating func set(ime: Bool) {
@@ -1181,6 +1192,21 @@ struct CPU {
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
         registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
+
+        cycles += 8
+    }
+    
+    mutating func add(register: RegisterType16) {
+        let initialValue = registers.read(register: .HL)
+        let value = registers.read(register: register)
+        let (result, overflow) = initialValue.addingReportingOverflow(value)
+
+
+        registers.write(register: .HL, value: result)
+
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .Carry, set: overflow)
+        registers.write(flag: .HalfCarry, set: (initialValue & 0x0FFF) + (value & 0x0FFF) > 0x0FFF)
 
         cycles += 8
     }
