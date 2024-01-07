@@ -13,6 +13,7 @@ struct Bus {
     var interruptEnabled: UInt8
     var interruptFlag: UInt8
     var bootromLoaded: Bool
+    public var ppu: PPU
     
     init() {
         memory = [UInt8](repeating: 0, count: 65537)
@@ -20,6 +21,7 @@ struct Bus {
         bootromLoaded = false
         interruptEnabled = 0x00
         interruptFlag = 0x00
+        ppu = PPU()
     }
     
     mutating func write(location: UInt16, value: UInt8) {

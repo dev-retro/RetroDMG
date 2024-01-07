@@ -15,6 +15,10 @@ public struct RetroDMG {
     public mutating func load(file: [UInt8]) {
         cpu.bus.write(rom: file)
     }
+    
+    public func ppuTest() -> [Int] {
+        return cpu.bus.ppu.createTile()
+    }
 }
 
 extension UInt8 {
