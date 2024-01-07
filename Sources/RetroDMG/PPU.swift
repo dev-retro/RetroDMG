@@ -44,15 +44,15 @@ struct PPU {
             
             if msb {
                 if lsb {
-                    colourIds[bit] = 3
+                    colourIds[7-bit] = 3
                 } else {
-                    colourIds[bit] = 2
+                    colourIds[7-bit] = 2
                 }
             } else {
                 if lsb {
-                    colourIds[bit] = 1
+                    colourIds[7-bit] = 1
                 } else {
-                    colourIds[bit] = 0
+                    colourIds[7-bit] = 0
                 }
             }
         }
