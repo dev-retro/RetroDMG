@@ -20,7 +20,7 @@ public struct RetroDMG {
         return cpu.bus.ppu.createTile()
     }
     
-    public func tileDataTest() -> [Int] {
+    public func tileData() -> [Int] {
         return cpu.bus.ppu.createTileData()
     }
 }

@@ -30,7 +30,9 @@ struct Bus {
             return
         }
         
-        if location == 0xFF02 && value == 0x81 {
+        if location >= 0x8000 && location <= 0x97FF {
+            ppu.memory[Int(location - 0x8000)] = value
+        } else if location == 0xFF02 && value == 0x81 {
             print(Character(UnicodeScalar(memory[0xFF01])), terminator: "")
         } else {
             memory[Int(location)] = value
@@ -53,6 +55,10 @@ struct Bus {
         
         if location < 0x100 && bootromLoaded {
            return bootrom[location]
+        }
+        
+        if location >= 0x8000 && location <= 0x97FF {
+            return ppu.memory[Int(location - 0x8000)]
         }
         
         if location == 0xFF44 {

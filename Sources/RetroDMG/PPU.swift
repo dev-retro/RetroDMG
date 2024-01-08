@@ -17,7 +17,7 @@ struct PPU {
     var statusRegister: UInt8
     
     init() {
-        memory = [UInt8](repeating: 0, count: 0x17FF)
+        memory = [UInt8](repeating: 0, count: 0x1800)
         controlRegister = UInt8()
         statusRegister = UInt8()
     }
@@ -25,7 +25,8 @@ struct PPU {
     public func createTileData() -> [Int] {
         var tiles = [Int]()
         for byte in stride(from: 0, to: memory.count, by: 16) {
-            tiles.append(contentsOf: createTile())
+            let byteArray = memory[byte..<byte+16]
+            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
         }
         
         return tiles
