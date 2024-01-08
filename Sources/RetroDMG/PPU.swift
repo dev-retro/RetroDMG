@@ -15,13 +15,30 @@ struct PPU {
     var memory: [UInt8]
     var controlRegister: UInt8
     var statusRegister: UInt8
-//    let VRAM0: [UInt8]
-//    let VRAM1: [UInt8]
     
     init() {
-        memory = [UInt8](repeating: 0, count: 0x2000)
+        memory = [UInt8](repeating: 0, count: 0x17FF)
         controlRegister = UInt8()
         statusRegister = UInt8()
+    }
+    
+    public func createTileData() -> [Int] {
+        var tiles = [Int]()
+        for byte in stride(from: 0, to: memory.count, by: 16) {
+            tiles.append(contentsOf: createTile())
+        }
+        
+        return tiles
+    }
+    
+    public func createTile(bytes: [UInt8]) -> [Int] {
+        var pixelRows = [Int]()
+        
+        for row in stride(from: 0, to: bytes.count, by: 2) {
+            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
+        }
+        
+       return pixelRows
     }
     
     public func createTile() -> [Int] {
