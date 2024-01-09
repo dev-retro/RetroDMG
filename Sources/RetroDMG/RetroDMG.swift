@@ -23,6 +23,10 @@ public struct RetroDMG {
     public func tileData() -> [Int] {
         return cpu.bus.ppu.createTileData()
     }
+    
+    public func tileMap() -> [Int] {
+        return cpu.bus.ppu.createTileMap()
+    }
 }
 
 extension UInt8 {

@@ -15,17 +15,31 @@ struct PPU {
     var memory: [UInt8]
     var controlRegister: UInt8
     var statusRegister: UInt8
+    var tileMapOne: [UInt8]
+    var tileMapTwo: [UInt8]
     
     init() {
         memory = [UInt8](repeating: 0, count: 0x1800)
         controlRegister = UInt8()
         statusRegister = UInt8()
+        tileMapOne = [UInt8](repeating: 0, count: 0x0400)
+        tileMapTwo = [UInt8](repeating: 0, count: 0x0400)
     }
     
     public func createTileData() -> [Int] {
         var tiles = [Int]()
         for byte in stride(from: 0, to: memory.count, by: 16) {
             let byteArray = memory[byte..<byte+16]
+            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
+        }
+        
+        return tiles
+    }
+    
+    public func createTileMap() -> [Int] {
+        var tiles = [Int]()
+        for tileNo in tileMapOne {
+            let byteArray = memory[Int(UInt16(tileNo) * 16)..<Int((UInt16(tileNo) * 16 + 16))]
             tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
         }
         

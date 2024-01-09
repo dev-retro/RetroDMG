@@ -32,7 +32,12 @@ struct Bus {
         
         if location >= 0x8000 && location <= 0x97FF {
             ppu.memory[Int(location - 0x8000)] = value
-        } else if location == 0xFF02 && value == 0x81 {
+        } else if location >= 0x9800 && location <= 0x9BFF {
+            ppu.tileMapOne[Int(location - 0x9800)] = value
+        } else if location >= 0x9C00 && location <= 0x9FFF {
+            ppu.tileMapTwo[Int(location - 0x9C00)] = value
+        }
+        else if location == 0xFF02 && value == 0x81 {
             print(Character(UnicodeScalar(memory[0xFF01])), terminator: "")
         } else {
             memory[Int(location)] = value
@@ -59,6 +64,14 @@ struct Bus {
         
         if location >= 0x8000 && location <= 0x97FF {
             return ppu.memory[Int(location - 0x8000)]
+        }
+        
+        if location >= 0x9800 && location <= 0x9BFF {
+            return ppu.tileMapOne[Int(location - 0x9800)]
+        }
+        
+        if location >= 0x9C00 && location <= 0x9FFF {
+            ppu.tileMapTwo[Int(location - 0x9C00)]
         }
         
         if location == 0xFF44 {
