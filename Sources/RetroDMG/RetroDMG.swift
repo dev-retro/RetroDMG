@@ -27,6 +27,11 @@ public struct RetroDMG {
     public func tileMap() -> [Int] {
         return cpu.bus.ppu.createTileMap()
     }
+    
+    public mutating func viewPort() -> [Int] {
+        cpu.bus.ppu.fetch()
+        return cpu.bus.ppu.viewPort
+    }
 }
 
 extension UInt8 {

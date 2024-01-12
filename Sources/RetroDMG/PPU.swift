@@ -7,24 +7,232 @@
 
 import Foundation
 
-struct Pixel {
-    
-}
-
 struct PPU {
     var memory: [UInt8]
-    var controlRegister: UInt8
-    var statusRegister: UInt8
     var tileMapOne: [UInt8]
     var tileMapTwo: [UInt8]
+    var viewPort: [Int]
+    var scx: UInt8
+    var scy: UInt8
+    var ly: UInt8
+    
+    private var cycle: Int
+    private var mode: PPUMode
+    
+    
+    //MARK: PPU Registers
+    private var control: UInt8
+    private var status: UInt8
     
     init() {
         memory = [UInt8](repeating: 0, count: 0x1800)
-        controlRegister = UInt8()
-        statusRegister = UInt8()
         tileMapOne = [UInt8](repeating: 0, count: 0x0400)
         tileMapTwo = [UInt8](repeating: 0, count: 0x0400)
+        viewPort = [Int](repeating: 0, count: 22400)
+        cycle = 0
+        
+        control = 0x00
+        status = 0x80
+        mode = .OAM
+        
+        scx = 0x00
+        scy = 0x00
+        
+        ly = 0x00
     }
+        
+    //MARK: Line based rendering
+    
+    public mutating func fetch() {
+        viewPort.removeAll()
+        
+        for line in 0..<144 {
+            ly = UInt8(line)
+            let tilemap = read(flag: .BGTileMapSelect) ? tileMapTwo : tileMapOne
+            var x = 0
+            for _ in stride(from: 0, to: 160, by: 8) {
+                var fetcherX = x + (Int(scx) / 8) & 0x1F
+                var fetcherY = (line + Int(scy)) & 0xFF
+                
+                var tilemapAddress = x + ((fetcherY / 8) * 0x20)
+                var tileNo = Int(tilemap[Int(tilemapAddress)])
+                var tileLocation = tileNo * 16
+                tileLocation += (2 * (fetcherY % 8))
+                
+                
+                let byte1 = memory[Int(tileLocation)]
+                let byte2 = memory[Int(tileLocation + 0x1)]
+                var tile = createPixelRow(byte1: byte1, byte2: byte2)
+                
+                viewPort.append(contentsOf: tile)
+                x += 1
+            }
+        }
+    }
+    
+    mutating func write(mode: PPUMode) {
+        self.mode = mode
+    }
+    
+    public func readMode() -> PPUMode {
+        return mode
+    }
+    
+    public mutating func write(flag: PPURegisterType, set: Bool) {
+        switch flag {
+        case .LCDDisplayEnable:
+            let mask: UInt8 = 0b10000000
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .WindowTileMapSelect:
+            let mask: UInt8 = 0b01000000
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .WindowDisplayEnable:
+            let mask: UInt8 = 0b00100000
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .TileDataSelect:
+            let mask: UInt8 = 0b00010000
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .BGTileMapSelect:
+            let mask: UInt8 = 0b00001000
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .SpriteSize:
+            let mask: UInt8 = 0b00000100
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .SpriteEnable:
+            let mask: UInt8 = 0b00000010
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .BGWindowEnable:
+            let mask: UInt8 = 0b00000001
+            
+            if set {
+                control |= mask
+            } else {
+                control &= mask ^ 0xFF
+            }
+        case .LYCLYInterruptEnable:
+            let mask: UInt8 = 0b01000000
+            
+            if set {
+                status |= mask
+            } else {
+                status &= mask ^ 0xFF
+            }
+        case .Mode2InterruptEnable:
+            let mask: UInt8 = 0b00100000
+            
+            if set {
+                status |= mask
+            } else {
+                status &= mask ^ 0xFF
+            }
+        case .Mode1InterruptEnable:
+            let mask: UInt8 = 0b00010000
+            
+            if set {
+                status |= mask
+            } else {
+                status &= mask ^ 0xFF
+            }
+        case .Mode0InterruptEnable:
+            let mask: UInt8 = 0b00001000
+            
+            if set {
+                status |= mask
+            } else {
+                status &= mask ^ 0xFF
+            }
+        case .CoincidenceFlag:
+            let mask: UInt8 = 0b00000100
+            
+            if set {
+                status |= mask
+            } else {
+                status &= mask ^ 0xFF
+            }
+        }
+    }
+    
+    public func read(flag: PPURegisterType) -> Bool {
+        switch flag {
+        case .LCDDisplayEnable:
+            let mask: UInt8 = 0b10000000
+            return control & mask == mask
+        case .WindowTileMapSelect:
+            let mask: UInt8 = 0b01000000
+            return control & mask == mask
+        case .WindowDisplayEnable:
+            let mask: UInt8 = 0b00100000
+            return control & mask == mask
+        case .TileDataSelect:
+            let mask: UInt8 = 0b00010000
+            return control & mask == mask
+        case .BGTileMapSelect:
+            let mask: UInt8 = 0b00001000
+            return control & mask == mask
+        case .SpriteSize:
+            let mask: UInt8 = 0b00000100
+            return control & mask == mask
+        case .SpriteEnable:
+            let mask: UInt8 = 0b00000010
+            return control & mask == mask
+        case .BGWindowEnable:
+            let mask: UInt8 = 0b00000001
+            return control & mask == mask
+        case .LYCLYInterruptEnable:
+            let mask: UInt8 = 0b01000000
+            return status & mask == mask
+        case .Mode2InterruptEnable:
+            let mask: UInt8 = 0b00100000
+            return status & mask == mask
+        case .Mode1InterruptEnable:
+            let mask: UInt8 = 0b00010000
+            return status & mask == mask
+        case .Mode0InterruptEnable:
+            let mask: UInt8 = 0b00001000
+            return status & mask == mask
+        case .CoincidenceFlag:
+            let mask: UInt8 = 0b00000100
+            return status & mask == mask
+        }
+    }
+    
+    
+    //MARK: Tile based rendering
     
     public func createTileData() -> [Int] {
         var tiles = [Int]()
@@ -71,8 +279,8 @@ struct PPU {
         var colourIds = [Int](repeating: 0, count: 8)
         
         for bit in 0..<8 {
-            let msb = getBit(data: byte2, bit: UInt8(bit))
-            let lsb = getBit(data: byte1, bit: UInt8(bit))
+            let msb = byte2.get(bit: UInt8(bit))
+            let lsb = byte1.get(bit: UInt8(bit))
             
             if msb {
                 if lsb {
@@ -91,18 +299,37 @@ struct PPU {
         
         return colourIds
     }
-    
-    func getBit(data: UInt8, bit: UInt8) -> Bool {
-        let value = (data >> bit) & 1
-        
-        return value != 0
-    }
+}
+
+//MARK: Internal information
+
+enum Palette {
+    case white
+    case light
+    case dark
+    case black
 }
 
 enum PPUMode {
+    case HorizontalBlank
     case VerticalBlank
     case OAM
     case Draw
-    case HorizontalBlank
 }
 
+enum PPURegisterType {
+    case LCDDisplayEnable
+    case WindowTileMapSelect
+    case WindowDisplayEnable
+    case TileDataSelect
+    case BGTileMapSelect
+    case SpriteSize
+    case SpriteEnable
+    case BGWindowEnable
+    
+    case LYCLYInterruptEnable
+    case Mode2InterruptEnable
+    case Mode1InterruptEnable
+    case Mode0InterruptEnable
+    case CoincidenceFlag
+}

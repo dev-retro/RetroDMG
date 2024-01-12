@@ -36,6 +36,12 @@ struct Bus {
             ppu.tileMapOne[Int(location - 0x9800)] = value
         } else if location >= 0x9C00 && location <= 0x9FFF {
             ppu.tileMapTwo[Int(location - 0x9C00)] = value
+        } else if location == 0xFF42 {
+            ppu.scy = value
+        } else if location == 0xFF43 {
+            ppu.scx = value
+        } else if location == 0xFF44 {
+            return
         }
 //        else if location == 0xFF02 && value == 0x81 {
 //            print(Character(UnicodeScalar(memory[0xFF01])), terminator: "")
@@ -76,7 +82,7 @@ struct Bus {
         }
         
         if location == 0xFF44 {
-            return 0x90 //FIXME: stubbed for now. Remove when required
+            return UInt8(truncatingIfNeeded: ppu.ly)
         }
         
         return memory[location]
