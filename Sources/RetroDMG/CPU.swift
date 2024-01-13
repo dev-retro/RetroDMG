@@ -303,14 +303,22 @@ struct CPU {
             load(register: .A, indirect: .HL)
         case 0x7F:
             load(from: .A, to: .A)
-        //TODO: 0x80
-        //TODO: 0x81
-        //TODO: 0x82
-        //TODO: 0x83
-        //TODO: 0x84
-        //TODO: 0x85
-        //TODO: 0x86
-        //TODO: 0x87
+        case 0x80:
+            add(register: .B)
+        case 0x81:
+            add(register: .C)
+        case 0x82:
+            add(register: .D)
+        case 0x83:
+            add(register: .E)
+        case 0x84:
+            add(register: .H)
+        case 0x85:
+            add(register: .L)
+        case 0x86:
+            add(indirect: .HL)
+        case 0x87:
+            add(register: .A)
         //TODO: 0x88
         //TODO: 0x89
         //TODO: 0x8A
@@ -1426,6 +1434,36 @@ struct CPU {
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: false)
+
+        cycles += 8
+    }
+    
+    mutating func add(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let result = a.addingReportingOverflow(value)
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) > 0xF)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 4
+    }
+    
+    mutating func add(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = bus.read(location: registers.read(register: register))
+        let result = a.addingReportingOverflow(value)
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) > 0xF)
+        registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
     }
