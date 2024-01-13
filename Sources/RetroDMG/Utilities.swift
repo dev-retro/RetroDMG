@@ -16,7 +16,7 @@ extension UInt8 {
         let mask = UInt8(1 << bit)
         
         if value {
-            self != mask
+            self |= mask
         } else {
             self &= mask ^ 0xFF
         }

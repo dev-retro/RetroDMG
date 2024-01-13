@@ -13,5 +13,10 @@ RetroCade Platform Library for the Nintendo Gameboy
 | 07-jr,jp,call,ret,rst | ❌ |
 | 08-misc instrs | ❌ |
 | 09-op r,r     | ❌ |
-| 10-bit ops    | 🏗️ |
+| 10-bit ops    | ✅ |
 | 11-op a,(hl)  | ❌ |
+
+**Key**
+❌ = Fatal Error
+🏗️ = Runs but test(s) fail
+✅ = All tests pass
