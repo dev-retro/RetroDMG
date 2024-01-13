@@ -22,7 +22,9 @@ struct CPU {
         cycles = 0
         state = .Running
         bus = Bus()
-        
+    }
+    
+    mutating func start() {
         if !bus.bootromLoaded {
             registers.write(register: .A, value: 0x01)
             registers.write(register: .B, value: 0x00)
@@ -89,7 +91,8 @@ struct CPU {
             decrement(register: .D)
         case 0x16:
             load(from: .PC, to: .D)
-        //TODO: 0x17
+        case 0x17:
+            rotateLeft(register: .A, zeroDependant: false)
         case 0x18:
             jump(type: .memorySigned8Bit)
         case 0x19:
@@ -432,7 +435,8 @@ struct CPU {
             loadToMemory(from: .A, masked: true)
         case 0xE1:
             pop(register: .HL)
-        //TODO: 0xE2
+        case 0xE2:
+            loadToMemory(masked: .C)
         case 0xE3:
             return //Not Used
         case 0xE4:
@@ -508,14 +512,21 @@ struct CPU {
         //TODO: 0x0D
         //TODO: 0x0E
         //TODO: 0x0F
-        //TODO: 0x10
-        //TODO: 0x11
-        //TODO: 0x12
-        //TODO: 0x13
-        //TODO: 0x14
-        //TODO: 0x15
+        case 0x10:
+            rotateLeft(register: .B)
+        case 0x11:
+            rotateLeft(register: .C)
+        case 0x12:
+            rotateLeft(register: .D)
+        case 0x13:
+            rotateLeft(register: .E)
+        case 0x14:
+            rotateLeft(register: .H)
+        case 0x15:
+            rotateLeft(register: .L)
         //TODO: 0x16
-        //TODO: 0x17
+        case 0x17:
+            rotateLeft(register: .A)
         case 0x18:
             rotateRight(register: .B)
         case 0x19:
@@ -580,198 +591,390 @@ struct CPU {
             shiftRight(indirect: .HL)
         case 0x3F:
             shiftRight(register: .A)
-        //TODO: 0x40
-        //TODO: 0x41
-        //TODO: 0x42
-        //TODO: 0x43
-        //TODO: 0x44
-        //TODO: 0x45
-        //TODO: 0x46
-        //TODO: 0x47
-        //TODO: 0x48
-        //TODO: 0x49
-        //TODO: 0x4A
-        //TODO: 0x4B
-        //TODO: 0x4C
-        //TODO: 0x4D
-        //TODO: 0x4E
-        //TODO: 0x4F
-        //TODO: 0x50
-        //TODO: 0x51
-        //TODO: 0x52
-        //TODO: 0x53
-        //TODO: 0x54
-        //TODO: 0x55
-        //TODO: 0x56
-        //TODO: 0x57
-        //TODO: 0x58
-        //TODO: 0x59
-        //TODO: 0x5A
-        //TODO: 0x5B
-        //TODO: 0x5C
-        //TODO: 0x5D
-        //TODO: 0x5E
-        //TODO: 0x5F
-        //TODO: 0x60
-        //TODO: 0x61
-        //TODO: 0x62
-        //TODO: 0x63
-        //TODO: 0x64
-        //TODO: 0x65
-        //TODO: 0x66
-        //TODO: 0x67
-        //TODO: 0x68
-        //TODO: 0x69
-        //TODO: 0x6A
-        //TODO: 0x6B
-        //TODO: 0x6C
-        //TODO: 0x6D
-        //TODO: 0x6E
-        //TODO: 0x6F
-        //TODO: 0x70
-        //TODO: 0x71
-        //TODO: 0x72
-        //TODO: 0x73
-        //TODO: 0x74
-        //TODO: 0x75
-        //TODO: 0x76
-        //TODO: 0x77
-        //TODO: 0x78
-        //TODO: 0x79
-        //TODO: 0x7A
-        //TODO: 0x7B
-        //TODO: 0x7C
-        //TODO: 0x7D
-        //TODO: 0x7E
-        //TODO: 0x7F
-        //TODO: 0x80
-        //TODO: 0x81
-        //TODO: 0x82
-        //TODO: 0x83
-        //TODO: 0x84
-        //TODO: 0x85
-        //TODO: 0x86
-        //TODO: 0x87
-        //TODO: 0x88
-        //TODO: 0x89
-        //TODO: 0x8A
-        //TODO: 0x8B
-        //TODO: 0x8C
-        //TODO: 0x8D
-        //TODO: 0x8E
-        //TODO: 0x8F
-        //TODO: 0x90
-        //TODO: 0x91
-        //TODO: 0x92
-        //TODO: 0x93
-        //TODO: 0x94
-        //TODO: 0x95
-        //TODO: 0x96
-        //TODO: 0x97
-        //TODO: 0x98
-        //TODO: 0x99
-        //TODO: 0x9A
-        //TODO: 0x9B
-        //TODO: 0x9C
-        //TODO: 0x9D
-        //TODO: 0x9E
-        //TODO: 0x9F
-        //TODO: 0xA0
-        //TODO: 0xA1
-        //TODO: 0xA2
-        //TODO: 0xA3
-        //TODO: 0xA4
-        //TODO: 0xA5
-        //TODO: 0xA6
-        //TODO: 0xA7
-        //TODO: 0xA8
-        //TODO: 0xA9
-        //TODO: 0xAA
-        //TODO: 0xAB
-        //TODO: 0xAC
-        //TODO: 0xAD
-        //TODO: 0xAE
-        //TODO: 0xAF
-        //TODO: 0xB0
-        //TODO: 0xB1
-        //TODO: 0xB2
-        //TODO: 0xB3
-        //TODO: 0xB4
-        //TODO: 0xB5
-        //TODO: 0xB6
-        //TODO: 0xB7
-        //TODO: 0xB8
-        //TODO: 0xB9
-        //TODO: 0xBA
-        //TODO: 0xBB
-        //TODO: 0xBC
-        //TODO: 0xBD
-        //TODO: 0xBE
-        //TODO: 0xBF
-        //TODO: 0xC0
-        //TODO: 0xC1
-        //TODO: 0xC2
-        //TODO: 0xC3
-        //TODO: 0xC4
-        //TODO: 0xC5
-        //TODO: 0xC6
-        //TODO: 0xC7
-        //TODO: 0xC8
-        //TODO: 0xC9
-        //TODO: 0xCA
-        //TODO: 0xCB
-        //TODO: 0xCC
-        //TODO: 0xCD
-        //TODO: 0xCE
-        //TODO: 0xCF
-        //TODO: 0xD0
-        //TODO: 0xD1
-        //TODO: 0xD2
-        //TODO: 0xD3
-        //TODO: 0xD4
-        //TODO: 0xD5
-        //TODO: 0xD6
-        //TODO: 0xD7
-        //TODO: 0xD8
-        //TODO: 0xD9
-        //TODO: 0xDA
-        //TODO: 0xDB
-        //TODO: 0xDC
-        //TODO: 0xDD
-        //TODO: 0xDE
-        //TODO: 0xDF
-        //TODO: 0xE0
-        //TODO: 0xE1
-        //TODO: 0xE2
-        //TODO: 0xE3
-        //TODO: 0xE4
-        //TODO: 0xE5
-        //TODO: 0xE6
-        //TODO: 0xE7
-        //TODO: 0xE8
-        //TODO: 0xE9
-        //TODO: 0xEA
-        //TODO: 0xEB
-        //TODO: 0xEC
-        //TODO: 0xED
-        //TODO: 0xEE
-        //TODO: 0xEF
-        //TODO: 0xF0
-        //TODO: 0xF1
-        //TODO: 0xF2
-        //TODO: 0xF3
-        //TODO: 0xF4
-        //TODO: 0xF5
-        //TODO: 0xF6
-        //TODO: 0xF7
-        //TODO: 0xF8
-        //TODO: 0xF9
-        //TODO: 0xFA
-        //TODO: 0xFB
-        //TODO: 0xFC
-        //TODO: 0xFD
-        //TODO: 0xFE
-        //TODO: 0xFF
+        case 0x40:
+            bit(register: .B, bit: 0)
+        case 0x41:
+            bit(register: .C, bit: 0)
+        case 0x42:
+            bit(register: .D, bit: 0)
+        case 0x43:
+            bit(register: .E, bit: 0)
+        case 0x44:
+            bit(register: .H, bit: 0)
+        case 0x45:
+            bit(register: .L, bit: 0)
+        case 0x46:
+            bit(indirect: .HL, bit: 0)
+        case 0x47:
+            bit(register: .A, bit: 0)
+        case 0x48:
+            bit(register: .B, bit: 1)
+        case 0x49:
+            bit(register: .C, bit: 1)
+        case 0x4A:
+            bit(register: .D, bit: 1)
+        case 0x4B:
+            bit(register: .E, bit: 1)
+        case 0x4C:
+            bit(register: .H, bit: 1)
+        case 0x4D:
+            bit(register: .L, bit: 1)
+        case 0x4E:
+            bit(indirect: .HL, bit: 1)
+        case 0x4F:
+            bit(register: .A, bit: 1)
+        case 0x50:
+            bit(register: .B, bit: 2)
+        case 0x51:
+            bit(register: .C, bit: 2)
+        case 0x52:
+            bit(register: .D, bit: 2)
+        case 0x53:
+            bit(register: .E, bit: 2)
+        case 0x54:
+            bit(register: .H, bit: 2)
+        case 0x55:
+            bit(register: .L, bit: 2)
+        case 0x56:
+            bit(indirect: .HL, bit: 2)
+        case 0x57:
+            bit(register: .A, bit: 2)
+        case 0x58:
+            bit(register: .B, bit: 3)
+        case 0x59:
+            bit(register: .C, bit: 3)
+        case 0x5A:
+            bit(register: .D, bit: 3)
+        case 0x5B:
+            bit(register: .E, bit: 3)
+        case 0x5C:
+            bit(register: .H, bit: 3)
+        case 0x5D:
+            bit(register: .L, bit: 3)
+        case 0x5E:
+            bit(indirect: .HL, bit: 3)
+        case 0x5F:
+            bit(register: .A, bit: 3)
+        case 0x60:
+            bit(register: .B, bit: 4)
+        case 0x61:
+            bit(register: .C, bit: 4)
+        case 0x62:
+            bit(register: .D, bit: 4)
+        case 0x63:
+            bit(register: .E, bit: 4)
+        case 0x64:
+            bit(register: .H, bit: 4)
+        case 0x65:
+            bit(register: .L, bit: 4)
+        case 0x66:
+            bit(indirect: .HL, bit: 4)
+        case 0x67:
+            bit(register: .A, bit: 4)
+        case 0x68:
+            bit(register: .B, bit: 5)
+        case 0x69:
+            bit(register: .C, bit: 5)
+        case 0x6A:
+            bit(register: .D, bit: 5)
+        case 0x6B:
+            bit(register: .E, bit: 5)
+        case 0x6C:
+            bit(register: .H, bit: 5)
+        case 0x6D:
+            bit(register: .L, bit: 5)
+        case 0x6E:
+            bit(indirect: .HL, bit: 5)
+        case 0x6F:
+            bit(register: .A, bit: 5)
+        case 0x70:
+            bit(register: .B, bit: 6)
+        case 0x71:
+            bit(register: .C, bit: 6)
+        case 0x72:
+            bit(register: .D, bit: 6)
+        case 0x73:
+            bit(register: .E, bit: 6)
+        case 0x74:
+            bit(register: .H, bit: 6)
+        case 0x75:
+            bit(register: .L, bit: 6)
+        case 0x76:
+            bit(indirect: .HL, bit: 6)
+        case 0x77:
+            bit(register: .A, bit: 6)
+        case 0x78:
+            bit(register: .B, bit: 7)
+        case 0x79:
+            bit(register: .C, bit: 7)
+        case 0x7A:
+            bit(register: .D, bit: 7)
+        case 0x7B:
+            bit(register: .E, bit: 7)
+        case 0x7C:
+            bit(register: .H, bit: 7)
+        case 0x7D:
+            bit(register: .L, bit: 7)
+        case 0x7E:
+            bit(indirect: .HL, bit: 7)
+        case 0x7F:
+            bit(register: .A, bit: 7)
+        case 0x80:
+            set(bit: 0, register: .B, value: false)
+        case 0x81:
+            set(bit: 0, register: .C, value: false)
+        case 0x82:
+            set(bit: 0, register: .D, value: false)
+        case 0x83:
+            set(bit: 0, register: .E, value: false)
+        case 0x84:
+            set(bit: 0, register: .H, value: false)
+        case 0x85:
+            set(bit: 0, register: .L, value: false)
+        case 0x86:
+            set(bit: 0, indirect: .HL, value: false)
+        case 0x87:
+            set(bit: 0, register: .A, value: false)
+        case 0x88:
+            set(bit: 1, register: .B, value: false)
+        case 0x89:
+            set(bit: 1, register: .C, value: false)
+        case 0x8A:
+            set(bit: 1, register: .D, value: false)
+        case 0x8B:
+            set(bit: 1, register: .E, value: false)
+        case 0x8C:
+            set(bit: 1, register: .H, value: false)
+        case 0x8D:
+            set(bit: 1, register: .L, value: false)
+        case 0x8E:
+            set(bit: 1, indirect: .HL, value: false)
+        case 0x8F:
+            set(bit: 1, register: .A, value: false)
+        case 0x90:
+            set(bit: 2, register: .B, value: false)
+        case 0x91:
+            set(bit: 2, register: .C, value: false)
+        case 0x92:
+            set(bit: 2, register: .D, value: false)
+        case 0x93:
+            set(bit: 2, register: .E, value: false)
+        case 0x94:
+            set(bit: 2, register: .H, value: false)
+        case 0x95:
+            set(bit: 2, register: .L, value: false)
+        case 0x96:
+            set(bit: 2, indirect: .HL, value: false)
+        case 0x97:
+            set(bit: 2, register: .A, value: false)
+        case 0x98:
+            set(bit: 3, register: .B, value: false)
+        case 0x99:
+            set(bit: 3, register: .C, value: false)
+        case 0x9A:
+            set(bit: 3, register: .D, value: false)
+        case 0x9B:
+            set(bit: 3, register: .E, value: false)
+        case 0x9C:
+            set(bit: 3, register: .H, value: false)
+        case 0x9D:
+            set(bit: 3, register: .L, value: false)
+        case 0x9E:
+            set(bit: 3, indirect: .HL, value: false)
+        case 0x9F:
+            set(bit: 3, register: .A, value: false)
+        case 0xA0:
+            set(bit: 4, register: .B, value: false)
+        case 0xA1:
+            set(bit: 4, register: .C, value: false)
+        case 0xA2:
+            set(bit: 4, register: .D, value: false)
+        case 0xA3:
+            set(bit: 4, register: .E, value: false)
+        case 0xA4:
+            set(bit: 4, register: .H, value: false)
+        case 0xA5:
+            set(bit: 4, register: .L, value: false)
+        case 0xA6:
+            set(bit: 4, indirect: .HL, value: false)
+        case 0xA7:
+            set(bit: 4, register: .A, value: false)
+        case 0xA8:
+            set(bit: 5, register: .B, value: false)
+        case 0xA9:
+            set(bit: 5, register: .C, value: false)
+        case 0xAA:
+            set(bit: 5, register: .D, value: false)
+        case 0xAB:
+            set(bit: 5, register: .E, value: false)
+        case 0xAC:
+            set(bit: 5, register: .H, value: false)
+        case 0xAD:
+            set(bit: 5, register: .L, value: false)
+        case 0xAE:
+            set(bit: 5, indirect: .HL, value: false)
+        case 0xAF:
+            set(bit: 5, register: .A, value: false)
+        case 0xB0:
+            set(bit: 6, register: .B, value: false)
+        case 0xB1:
+            set(bit: 6, register: .C, value: false)
+        case 0xB2:
+            set(bit: 6, register: .D, value: false)
+        case 0xB3:
+            set(bit: 6, register: .E, value: false)
+        case 0xB4:
+            set(bit: 6, register: .H, value: false)
+        case 0xB5:
+            set(bit: 6, register: .L, value: false)
+        case 0xB6:
+            set(bit: 6, indirect: .HL, value: false)
+        case 0xB7:
+            set(bit: 6, register: .A, value: false)
+        case 0xB8:
+            set(bit: 7, register: .B, value: false)
+        case 0xB9:
+            set(bit: 7, register: .C, value: false)
+        case 0xBA:
+            set(bit: 7, register: .D, value: false)
+        case 0xBB:
+            set(bit: 7, register: .E, value: false)
+        case 0xBC:
+            set(bit: 7, register: .H, value: false)
+        case 0xBD:
+            set(bit: 7, register: .L, value: false)
+        case 0xBE:
+            set(bit: 7, indirect: .HL, value: false)
+        case 0xBF:
+            set(bit: 7, register: .A, value: false)
+        case 0xC0:
+            set(bit: 0, register: .B, value: true)
+        case 0xC1:
+            set(bit: 0, register: .C, value: true)
+        case 0xC2:
+            set(bit: 0, register: .D, value: true)
+        case 0xC3:
+            set(bit: 0, register: .E, value: true)
+        case 0xC4:
+            set(bit: 0, register: .H, value: true)
+        case 0xC5:
+            set(bit: 0, register: .L, value: true)
+        case 0xC6:
+            set(bit: 0, indirect: .HL, value: true)
+        case 0xC7:
+            set(bit: 0, register: .A, value: true)
+        case 0xC8:
+            set(bit: 1, register: .B, value: true)
+        case 0xC9:
+            set(bit: 1, register: .C, value: true)
+        case 0xCA:
+            set(bit: 1, register: .D, value: true)
+        case 0xCB:
+            set(bit: 1, register: .E, value: true)
+        case 0xCC:
+            set(bit: 1, register: .H, value: true)
+        case 0xCD:
+            set(bit: 1, register: .L, value: true)
+        case 0xCE:
+            set(bit: 1, indirect: .HL, value: true)
+        case 0xCF:
+            set(bit: 1, register: .A, value: true)
+        case 0xD0:
+            set(bit: 2, register: .B, value: true)
+        case 0xD1:
+            set(bit: 2, register: .C, value: true)
+        case 0xD2:
+            set(bit: 2, register: .D, value: true)
+        case 0xD3:
+            set(bit: 2, register: .E, value: true)
+        case 0xD4:
+            set(bit: 2, register: .H, value: true)
+        case 0xD5:
+            set(bit: 2, register: .L, value: true)
+        case 0xD6:
+            set(bit: 2, indirect: .HL, value: true)
+        case 0xD7:
+            set(bit: 2, register: .A, value: true)
+        case 0xD8:
+            set(bit: 3, register: .B, value: true)
+        case 0xD9:
+            set(bit: 3, register: .C, value: true)
+        case 0xDA:
+            set(bit: 3, register: .D, value: true)
+        case 0xDB:
+            set(bit: 3, register: .E, value: true)
+        case 0xDC:
+            set(bit: 3, register: .H, value: true)
+        case 0xDD:
+            set(bit: 3, register: .L, value: true)
+        case 0xDE:
+            set(bit: 3, indirect: .HL, value: true)
+        case 0xDF:
+            set(bit: 3, register: .A, value: true)
+        case 0xE0:
+            set(bit: 4, register: .B, value: true)
+        case 0xE1:
+            set(bit: 4, register: .C, value: true)
+        case 0xE2:
+            set(bit: 4, register: .D, value: true)
+        case 0xE3:
+            set(bit: 4, register: .E, value: true)
+        case 0xE4:
+            set(bit: 4, register: .H, value: true)
+        case 0xE5:
+            set(bit: 4, register: .L, value: true)
+        case 0xE6:
+            set(bit: 4, indirect: .HL, value: true)
+        case 0xE7:
+            set(bit: 4, register: .A, value: true)
+        case 0xE8:
+            set(bit: 5, register: .B, value: true)
+        case 0xE9:
+            set(bit: 5, register: .C, value: true)
+        case 0xEA:
+            set(bit: 5, register: .D, value: true)
+        case 0xEB:
+            set(bit: 5, register: .E, value: true)
+        case 0xEC:
+            set(bit: 5, register: .H, value: true)
+        case 0xED:
+            set(bit: 5, register: .L, value: true)
+        case 0xEE:
+            set(bit: 5, indirect: .HL, value: true)
+        case 0xEF:
+            set(bit: 5, register: .A, value: true)
+        case 0xF0:
+            set(bit: 6, register: .B, value: true)
+        case 0xF1:
+            set(bit: 6, register: .C, value: true)
+        case 0xF2:
+            set(bit: 6, register: .D, value: true)
+        case 0xF3:
+            set(bit: 6, register: .E, value: true)
+        case 0xF4:
+            set(bit: 6, register: .H, value: true)
+        case 0xF5:
+            set(bit: 6, register: .L, value: true)
+        case 0xF6:
+            set(bit: 6, indirect: .HL, value: true)
+        case 0xF7:
+            set(bit: 6, register: .A, value: true)
+        case 0xF8:
+            set(bit: 7, register: .B, value: true)
+        case 0xF9:
+            set(bit: 7, register: .C, value: true)
+        case 0xFA:
+            set(bit: 7, register: .D, value: true)
+        case 0xFB:
+            set(bit: 7, register: .E, value: true)
+        case 0xFC:
+            set(bit: 7, register: .H, value: true)
+        case 0xFD:
+            set(bit: 7, register: .L, value: true)
+        case 0xFE:
+            set(bit: 7, indirect: .HL, value: true)
+        case 0xFF:
+            set(bit: 7, register: .A, value: true)
         default:
             fatalError("extended opCode 0x\(opCode.hex) not supported")
         }
@@ -911,6 +1114,17 @@ struct CPU {
         bus.write(location: location, value: registers.read(register: register))
         
         cycles += masked ? 12 : 16;
+    }
+    
+    mutating func loadToMemory(masked register: RegisterType8) {
+        let lsb = registers.read(register: register)
+        let msb = 0xFF
+        
+        let location = UInt16(msb) << 8 | UInt16(lsb)
+        
+        bus.write(location: location, value: registers.read(register: .A))
+        
+        cycles += 8
     }
     
     mutating func loadToMemory(from register: RegisterType16) {
@@ -1283,10 +1497,10 @@ struct CPU {
         let register = returnAndIncrement(indirect: .PC)
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
         
-        var (resultOne, overFlowOne) = register.subtractingReportingOverflow(carry)
-        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(a)
-        var halfCarry = Int8(Int8(a & 0xF) - Int8(register & 0xF))
-        halfCarry -= Int8(carry & 0xF)
+        var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
+        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
+        var halfCarry = Int8(Int8(truncatingIfNeeded: a) & 0xF - Int8(truncatingIfNeeded: register) & 0xF)
+        halfCarry -= Int8(truncatingIfNeeded: carry) & 0xF
             
         registers.write(register: .A, value: resultTwo)
 
@@ -1374,6 +1588,25 @@ struct CPU {
         cycles += 16
     }
     
+    mutating func rotateLeft(register: RegisterType8, zeroDependant: Bool = true) {
+        var value = registers.read(register: register)
+        let sevenBit = getBit(data: value, bit: 7)
+        let carry = registers.read(flag: .Carry)
+        
+        value <<= 1
+
+        value = setBit(data: value, bit: 0, state: carry)
+
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: zeroDependant ? value == 0 : false)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: sevenBit)
+
+        cycles += 8
+    }
+    
     mutating func rotateRight(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
         let zeroBit = getBit(data: value, bit: 0)
@@ -1438,6 +1671,42 @@ struct CPU {
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: false)
+        
+        cycles += 16
+    }
+    
+    mutating func bit(register: RegisterType8, bit: UInt8) {
+        let bit = !registers.read(register: register).get(bit: bit)
+        
+        registers.write(flag: .Zero, set: bit)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: true)
+            
+        cycles += 8
+    }
+    
+    mutating func bit(indirect register: RegisterType16, bit: UInt8) {
+        let bit = !bus.read(location: registers.read(register: register)).get(bit: bit)
+        
+        registers.write(flag: .Zero, set: bit)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: true)
+            
+        cycles += 12
+    }
+    
+    mutating func set(bit: UInt8, register: RegisterType8, value: Bool) {
+        var regValue = registers.read(register: register)
+        regValue.set(bit: bit, value: value)
+        
+        registers.write(register: register, value: regValue)
+        cycles += 8
+    }
+    
+    mutating func set(bit: UInt8, indirect register: RegisterType16, value: Bool) {
+        var memoryValue = bus.read(location: registers.read(register: register))
+        memoryValue.set(bit: bit, value: value)
+        bus.write(location: registers.read(register: .HL), value: memoryValue)
         
         cycles += 16
     }

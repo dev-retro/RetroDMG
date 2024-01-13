@@ -12,7 +12,13 @@ extension UInt8 {
         return value != 0
     }
     
-    func set(bit: UInt8, value: Bool) {
+    mutating func set(bit: UInt8, value: Bool) {
+        let mask = UInt8(1 << bit)
         
+        if value {
+            self != mask
+        } else {
+            self &= mask ^ 0xFF
+        }
     }
 }
