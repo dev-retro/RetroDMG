@@ -351,30 +351,38 @@ struct CPU {
             sub(indirect: .HL)
         case 0x97:
             sub(register: .A)
-            
-        //TODO: 0x91
-        //TODO: 0x92
-        //TODO: 0x93
-        //TODO: 0x94
-        //TODO: 0x95
-        //TODO: 0x96
-        //TODO: 0x97
-        //TODO: 0x98
-        //TODO: 0x99
-        //TODO: 0x9A
-        //TODO: 0x9B
-        //TODO: 0x9C
-        //TODO: 0x9D
-        //TODO: 0x9E
-        //TODO: 0x9F
-        //TODO: 0xA0
-        //TODO: 0xA1
-        //TODO: 0xA2
-        //TODO: 0xA3
-        //TODO: 0xA4
-        //TODO: 0xA5
-        //TODO: 0xA6
-        //TODO: 0xA7
+        case 0x98:
+            sbc(register: .B)
+        case 0x99:
+            sbc(register: .C)
+        case 0x9A:
+            sbc(register: .D)
+        case 0x9B:
+            sbc(register: .E)
+        case 0x9C:
+            sbc(register: .H)
+        case 0x9D:
+            sbc(register: .L)
+        case 0x9E:
+            sbc(indirect: .HL)
+        case 0x9F:
+            sbc(register: .A)
+        case 0xA0:
+            and(register: .B)
+        case 0xA1:
+            and(register: .C)
+        case 0xA2:
+            and(register: .D)
+        case 0xA3:
+            and(register: .E)
+        case 0xA4:
+            and(register: .H)
+        case 0xA5:
+            and(register: .L)
+        case 0xA6:
+            and(indirect: .HL)
+        case 0xA7:
+            and(register: .A)
         case 0xA8:
             xor(register: .B)
         case 0xA9:
@@ -407,14 +415,22 @@ struct CPU {
             or(indirect: .HL)
         case 0xB7:
             or(register: .A)
-        //TODO: 0xB8
-        //TODO: 0xB9
-        //TODO: 0xBA
-        //TODO: 0xBB
-        //TODO: 0xBC
-        //TODO: 0xBD
-        //TODO: 0xBE
-        //TODO: 0xBF
+        case 0xB8:
+            cp(register: .B)
+        case 0xB9:
+            cp(register: .C)
+        case 0xBA:
+            cp(register: .D)
+        case 0xBB:
+            cp(register: .E)
+        case 0xBC:
+            cp(register: .H)
+        case 0xBD:
+            cp(register: .L)
+        case 0xBE:
+            cp(indirect: .HL)
+        case 0xBF:
+            cp(register: .A)
         case 0xC0:
             retIfNotSet(flag: .Zero)
         case 0xC1:
@@ -1432,6 +1448,36 @@ struct CPU {
         cycles += 8
     }
     
+    mutating func and(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let result = a & value
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: true)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 4
+    }
+    
+    mutating func and(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = bus.read(location: registers.read(register: register))
+        let result = a & value
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: true)
+        registers.write(flag: .Carry, set: false)
+
+        cycles += 8
+    }
+    
     mutating func and() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
@@ -1905,6 +1951,32 @@ struct CPU {
         
         
         cycles += 4
+    }
+    
+    mutating func cp(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let result = a.subtractingReportingOverflow(value)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(a & 0xF) - Int8(value & 0xF) < 0)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 4
+    }
+    
+    mutating func cp(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = bus.read(location: registers.read(register: register))
+        let result = a.subtractingReportingOverflow(value)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(a & 0xF) - Int8(value & 0xF) < 0)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 8
     }
 }
 
