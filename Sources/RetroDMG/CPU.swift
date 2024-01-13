@@ -335,7 +335,23 @@ struct CPU {
             adc(indirect: .HL)
         case 0x8F:
             adc(register: .A)
-        //TODO: 0x90
+        case 0x90:
+            sub(register: .B)
+        case 0x91:
+            sub(register: .C)
+        case 0x92:
+            sub(register: .D)
+        case 0x93:
+            sub(register: .E)
+        case 0x94:
+            sub(register: .H)
+        case 0x95:
+            sub(register: .L)
+        case 0x96:
+            sub(indirect: .HL)
+        case 0x97:
+            sub(register: .A)
+            
         //TODO: 0x91
         //TODO: 0x92
         //TODO: 0x93
@@ -1565,6 +1581,36 @@ struct CPU {
         cycles += 8
     }
     
+    mutating func sub(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let result = a.subtractingReportingOverflow(value)
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(a & 0xF) - Int8(value & 0xF) < 0)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 4
+    }
+    
+    mutating func sub(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = bus.read(location: registers.read(register: .HL))
+        let result = a.subtractingReportingOverflow(value)
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: Int8(a & 0xF) - Int8(value & 0xF) < 0)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 8
+    }
+    
     mutating func sub() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
@@ -1576,6 +1622,46 @@ struct CPU {
         registers.write(flag: .Subtraction, set: true)
         registers.write(flag: .HalfCarry, set: Int8(a & 0xF) - Int8(value & 0xF) < 0)
         registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += 8
+    }
+    
+    mutating func sbc(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let register = registers.read(register: register)
+        let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
+        
+        var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
+        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
+        var halfCarry = Int8(Int8(truncatingIfNeeded: a) & 0xF - Int8(truncatingIfNeeded: register) & 0xF)
+        halfCarry -= Int8(truncatingIfNeeded: carry) & 0xF
+            
+        registers.write(register: .A, value: resultTwo)
+
+        registers.write(flag: .Zero, set: resultTwo == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .Carry, set: overFlowOne || overFlowTwo)
+        registers.write(flag: .HalfCarry, set: halfCarry < 0)
+
+        cycles += 4
+    }
+    
+    mutating func sbc(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let register = bus.read(location: registers.read(register: register))
+        let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
+        
+        var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
+        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
+        var halfCarry = Int8(Int8(truncatingIfNeeded: a) & 0xF - Int8(truncatingIfNeeded: register) & 0xF)
+        halfCarry -= Int8(truncatingIfNeeded: carry) & 0xF
+            
+        registers.write(register: .A, value: resultTwo)
+
+        registers.write(flag: .Zero, set: resultTwo == 0)
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .Carry, set: overFlowOne || overFlowTwo)
+        registers.write(flag: .HalfCarry, set: halfCarry < 0)
 
         cycles += 8
     }
