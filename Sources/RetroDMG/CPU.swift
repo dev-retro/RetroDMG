@@ -140,7 +140,8 @@ struct CPU {
             decrement(register: .L)
         case 0x2E:
             load(from: .PC, to: .L)
-        //TODO: 0x2F
+        case 0x2F:
+            cpl()
         case 0x30:
             jumpIfNot(flag: .Carry)
         case 0x31:
@@ -173,7 +174,8 @@ struct CPU {
             decrement(register: .A)
         case 0x3E:
             load(from: .PC, to: .A)
-        //TODO: 0x3F
+        case 0x3F:
+            ccf()
         case 0x40:
             load(from: .B, to: .B)
         case 0x41:
@@ -1709,6 +1711,28 @@ struct CPU {
         bus.write(location: registers.read(register: .HL), value: memoryValue)
         
         cycles += 16
+    }
+    
+    mutating func cpl() {
+        var value = ~registers.read(register: .A)
+        
+        registers.write(register: .A, value: value)
+        
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: true)
+        
+        cycles += 4
+    }
+    
+    mutating func ccf() {
+        var value = !registers.read(flag: .Carry)
+        
+        registers.write(flag: .Subtraction, set: true)
+        registers.write(flag: .HalfCarry, set: true)
+        registers.write(flag: .Carry, set: value)
+        
+        
+        cycles += 4
     }
 }
 
