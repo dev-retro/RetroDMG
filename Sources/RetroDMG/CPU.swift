@@ -1850,7 +1850,7 @@ struct CPU {
 
         value >>= 1
         
-        setBit(data: value, bit: 7, state: sevenBit)
+        value = setBit(data: value, bit: 7, state: sevenBit)
         
         registers.write(register: register, value: value)
 
@@ -2143,8 +2143,8 @@ struct CPU {
     mutating func ccf() {
         var value = !registers.read(flag: .Carry)
         
-        registers.write(flag: .Subtraction, set: true)
-        registers.write(flag: .HalfCarry, set: true)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: value)
         
         
