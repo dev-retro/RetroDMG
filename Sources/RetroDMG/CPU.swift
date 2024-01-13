@@ -63,7 +63,8 @@ struct CPU {
             decrement(register: .B)
         case 0x06:
             load(from: .PC, to: .B)
-        //TODO: 0x07
+        case 0x07:
+            rotateLeftCarry(register: .A, zeroDependant: false)
         case 0x08:
             loadToMemory(from: .SP)
         case 0x09:
@@ -78,7 +79,8 @@ struct CPU {
             decrement(register: .C)
         case 0x0E:
             load(from: .PC, to: .C)
-        //TODO: 0x0F
+        case 0x0F:
+            rotateRightCarry(register: .A, zeroDependant: false)
         case 0x11:
             loadFromMemory(to: .DE)
         case 0x12:
@@ -456,7 +458,7 @@ struct CPU {
         case 0xCD:
             call()
         case 0xCE:
-            addWithCarry()
+            adc()
         //TODO: 0xCF
         case 0xD0:
             retIfNotSet(flag: .Carry)
@@ -546,22 +548,38 @@ struct CPU {
         let opCode = returnAndIncrement(indirect: .PC)
         
         switch opCode {
-        //TODO: 0x00
-        //TODO: 0x01
-        //TODO: 0x02
-        //TODO: 0x03
-        //TODO: 0x04
-        //TODO: 0x05
-        //TODO: 0x06
-        //TODO: 0x07
-        //TODO: 0x08
-        //TODO: 0x09
-        //TODO: 0x0A
-        //TODO: 0x0B
-        //TODO: 0x0C
-        //TODO: 0x0D
-        //TODO: 0x0E
-        //TODO: 0x0F
+        case 0x00:
+            rotateLeftCarry(register: .B)
+        case 0x01:
+            rotateLeftCarry(register: .C)
+        case 0x02:
+            rotateLeftCarry(register: .D)
+        case 0x03:
+            rotateLeftCarry(register: .E)
+        case 0x04:
+            rotateLeftCarry(register: .H)
+        case 0x05:
+            rotateLeftCarry(register: .L)
+        case 0x06:
+            rotateLeftCarry(indirect: .HL)
+        case 0x07:
+            rotateLeftCarry(register: .A)
+        case 0x08:
+            rotateRightCarry(register: .B)
+        case 0x09:
+            rotateRightCarry(register: .C)
+        case 0x0A:
+            rotateRightCarry(register: .D)
+        case 0x0B:
+            rotateRightCarry(register: .E)
+        case 0x0C:
+            rotateRightCarry(register: .H)
+        case 0x0D:
+            rotateRightCarry(register: .L)
+        case 0x0E:
+            rotateRightCarry(indirect: .HL)
+        case 0x0F:
+            rotateRightCarry(register: .A)
         case 0x10:
             rotateLeft(register: .B)
         case 0x11:
@@ -574,7 +592,8 @@ struct CPU {
             rotateLeft(register: .H)
         case 0x15:
             rotateLeft(register: .L)
-        //TODO: 0x16
+        case 0x16:
+            rotateLeft(indirect: .HL)
         case 0x17:
             rotateLeft(register: .A)
         case 0x18:
@@ -593,22 +612,38 @@ struct CPU {
             rotateRight(indirect: .HL)
         case 0x1F:
             rotateRight(register: .A)
-        //TODO: 0x20
-        //TODO: 0x21
-        //TODO: 0x22
-        //TODO: 0x23
-        //TODO: 0x24
-        //TODO: 0x25
-        //TODO: 0x26
-        //TODO: 0x27
-        //TODO: 0x28
-        //TODO: 0x29
-        //TODO: 0x2A
-        //TODO: 0x2B
-        //TODO: 0x2C
-        //TODO: 0x2D
-        //TODO: 0x2E
-        //TODO: 0x2F
+        case 0x20:
+            shiftLeftArithmatically(register: .B)
+        case 0x21:
+            shiftLeftArithmatically(register: .C)
+        case 0x22:
+            shiftLeftArithmatically(register: .D)
+        case 0x23:
+            shiftLeftArithmatically(register: .E)
+        case 0x24:
+            shiftLeftArithmatically(register: .H)
+        case 0x25:
+            shiftLeftArithmatically(register: .L)
+        case 0x26:
+            shiftLeftArithmatically(indirect: .HL)
+        case 0x27:
+            shiftLeftArithmatically(register: .A)
+        case 0x28:
+            shiftRightArithmatically(register: .B)
+        case 0x29:
+            shiftRightArithmatically(register: .C)
+        case 0x2A:
+            shiftRightArithmatically(register: .D)
+        case 0x2B:
+            shiftRightArithmatically(register: .E)
+        case 0x2C:
+            shiftRightArithmatically(register: .H)
+        case 0x2D:
+            shiftRightArithmatically(register: .L)
+        case 0x2E:
+            shiftRightArithmatically(indirect: .HL)
+        case 0x2F:
+            shiftRightArithmatically(register: .A)
         case 0x30:
             swap(register: .B)
         case 0x31:
@@ -626,21 +661,21 @@ struct CPU {
         case 0x37:
             swap(register: .A)
         case 0x38:
-            shiftRight(register: .B)
+            shiftRightLogically(register: .B)
         case 0x39:
-            shiftRight(register: .C)
+            shiftRightLogically(register: .C)
         case 0x3A:
-            shiftRight(register: .D)
+            shiftRightLogically(register: .D)
         case 0x3B:
-            shiftRight(register: .E)
+            shiftRightLogically(register: .E)
         case 0x3C:
-            shiftRight(register: .H)
+            shiftRightLogically(register: .H)
         case 0x3D:
-            shiftRight(register: .L)
+            shiftRightLogically(register: .L)
         case 0x3E:
-            shiftRight(indirect: .HL)
+            shiftRightLogically(indirect: .HL)
         case 0x3F:
-            shiftRight(register: .A)
+            shiftRightLogically(register: .A)
         case 0x40:
             bit(register: .B, bit: 0)
         case 0x41:
@@ -1063,7 +1098,7 @@ struct CPU {
     mutating func increment(indirect register: RegisterType16) {
         var registerValue = registers.read(register: register)
         var value = bus.read(location: registerValue)
-        value += 1
+        value = value.addingReportingOverflow(1).partialValue
         bus.write(location: registerValue, value: value)
         
         registers.write(flag: .Zero, set: value == 0)
@@ -1593,7 +1628,7 @@ struct CPU {
     }
     
     
-    mutating func addWithCarry() {
+    mutating func adc() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let carry = UInt8(registers.read(flag: .Carry))
@@ -1772,7 +1807,78 @@ struct CPU {
         return value != 0
     }
     
-    mutating func shiftRight(register: RegisterType8) {
+    mutating func shiftLeftArithmatically(register: RegisterType8) {
+        var value = registers.read(register: register)
+        let sevenBit = getBit(data: value, bit: 7)
+
+        value <<= 1
+
+        value = setBit(data: value, bit: 0, state: false)
+
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: sevenBit)
+
+        cycles += 8
+    }
+    
+    mutating func shiftLeftArithmatically(indirect register: RegisterType16) {
+        var value = bus.read(location: registers.read(register: register))
+        let sevenBit = getBit(data: value, bit: 7)
+        
+        value <<= 1
+
+        value = setBit(data: value, bit: 0, state: false)
+
+        bus.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: sevenBit)
+
+        cycles += 16
+    }
+    
+    mutating func shiftRightArithmatically(register: RegisterType8) {
+        var value = registers.read(register: register)
+        let zeroBit = getBit(data: value, bit: 0)
+        let sevenBit = getBit(data: value, bit: 7)
+
+        value >>= 1
+        
+        setBit(data: value, bit: 7, state: sevenBit)
+        
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += 8
+    }
+    
+    mutating func shiftRightArithmatically(indirect register: RegisterType16) {
+        var value = bus.read(location: registers.read(register: register))
+        let zeroBit = getBit(data: value, bit: 0)
+        
+        value >>= 1
+
+        bus.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += 16
+    }
+    
+    mutating func shiftRightLogically(register: RegisterType8) {
         var value = registers.read(register: register)
         let zeroBit = getBit(data: value, bit: 0)
 
@@ -1790,7 +1896,7 @@ struct CPU {
         cycles += 8
     }
     
-    mutating func shiftRight(indirect register: RegisterType16) {
+    mutating func shiftRightLogically(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         
@@ -1807,6 +1913,43 @@ struct CPU {
 
         cycles += 16
     }
+    
+    mutating func rotateLeftCarry(register: RegisterType8, zeroDependant: Bool = true) {
+        var value = registers.read(register: register)
+        let sevenBit = getBit(data: value, bit: 7)
+        
+        value <<= 1
+
+        value = setBit(data: value, bit: 0, state: sevenBit)
+
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: zeroDependant ? value == 0 : false)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: sevenBit)
+
+        cycles += zeroDependant ? 8 : 4
+    }
+    
+    mutating func rotateLeftCarry(indirect register: RegisterType16) {
+        var value = bus.read(location: registers.read(register: register))
+        let sevenBit = getBit(data: value, bit: 7)
+        
+        value <<= 1
+
+        value = setBit(data: value, bit: 0, state: sevenBit)
+
+        bus.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: sevenBit)
+
+        cycles += 16
+    }
+    
     
     mutating func rotateLeft(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
@@ -1825,6 +1968,61 @@ struct CPU {
         registers.write(flag: .Carry, set: sevenBit)
 
         cycles += 8
+    }
+    
+    mutating func rotateLeft(indirect register: RegisterType16) {
+        var value = bus.read(location: registers.read(register: register))
+        let sevenBit = getBit(data: value, bit: 7)
+        let carry = registers.read(flag: .Carry)
+        
+        value <<= 1
+
+        value = setBit(data: value, bit: 0, state: carry)
+
+        bus.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: sevenBit)
+
+        cycles += 16
+    }
+    
+    mutating func rotateRightCarry(register: RegisterType8, zeroDependant: Bool = true) {
+        var value = registers.read(register: register)
+        let zeroBit = getBit(data: value, bit: 0)
+        
+        value >>= 1
+
+        value = setBit(data: value, bit: 7, state: zeroBit)
+
+        registers.write(register: register, value: value)
+
+        registers.write(flag: .Zero, set: zeroDependant ? value == 0 : false)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += zeroDependant ? 8 : 4
+    }
+    
+    mutating func rotateRightCarry(indirect register: RegisterType16) {
+        var value = bus.read(location: registers.read(register: register))
+        let zeroBit = getBit(data: value, bit: 0)
+        
+        value >>= 1
+
+        value = setBit(data: value, bit: 7, state: zeroBit)
+
+        bus.write(location: registers.read(register: register), value: value)
+
+        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: zeroBit)
+
+        cycles += 16
     }
     
     mutating func rotateRight(register: RegisterType8, zeroDependant: Bool = true) {
