@@ -319,14 +319,22 @@ struct CPU {
             add(indirect: .HL)
         case 0x87:
             add(register: .A)
-        //TODO: 0x88
-        //TODO: 0x89
-        //TODO: 0x8A
-        //TODO: 0x8B
-        //TODO: 0x8C
-        //TODO: 0x8D
-        //TODO: 0x8E
-        //TODO: 0x8F
+        case 0x88:
+            adc(register: .B)
+        case 0x89:
+            adc(register: .C)
+        case 0x8A:
+            adc(register: .D)
+        case 0x8B:
+            adc(register: .E)
+        case 0x8C:
+            adc(register: .H)
+        case 0x8D:
+            adc(register: .L)
+        case 0x8E:
+            adc(indirect: .HL)
+        case 0x8F:
+            adc(register: .A)
         //TODO: 0x90
         //TODO: 0x91
         //TODO: 0x92
@@ -1482,6 +1490,46 @@ struct CPU {
 
         cycles += 8
     }
+    
+    mutating func adc(register: RegisterType8) {
+        let a = registers.read(register: .A)
+        let value = registers.read(register: register)
+        let carry = UInt8(registers.read(flag: .Carry))
+        
+        var resultCarry = a.addingReportingOverflow(carry)
+        var result = resultCarry.partialValue.addingReportingOverflow(value)
+        
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
+        registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
+
+        cycles += 4
+    }
+    
+    
+    mutating func adc(indirect register: RegisterType16) {
+        let a = registers.read(register: .A)
+        let value = bus.read(location: registers.read(register: register))
+        let carry = UInt8(registers.read(flag: .Carry))
+        
+        var resultCarry = a.addingReportingOverflow(carry)
+        var result = resultCarry.partialValue.addingReportingOverflow(value)
+        
+
+        registers.write(register: .A, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: result.partialValue == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
+        registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
+
+        cycles += 8
+    }
+    
     
     mutating func addWithCarry() {
         let a = registers.read(register: .A)
