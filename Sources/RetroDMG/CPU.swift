@@ -130,7 +130,7 @@ struct CPU {
         case 0x27:
             daa()
         case 0x28:
-            jumpIf(flag: .Zero)
+            jumpIf(type: .memorySigned8Bit, flag: .Zero)
         case 0x29:
             add(register: .HL)
         case 0x2A:
@@ -164,7 +164,7 @@ struct CPU {
         case 0x37:
             setCarryFlag()
         case 0x38:
-            jumpIf(flag: .Carry)
+            jumpIf(type: .memorySigned8Bit, flag: .Carry)
         case 0x39:
             add(register: .SP)
         case 0x3A:
@@ -455,10 +455,12 @@ struct CPU {
             retIfSet(flag: .Zero)
         case 0xC9:
             ret()
-        //TODO: 0xCA
+        case 0xCA:
+            jumpIf(type: .memoryUnsigned16Bit, flag: .Zero)
         case 0xCB:
             extendedOpCodes()
-        //TODO: 0xCC
+        case 0xCC:
+            callIf(flag: .Zero)
         case 0xCD:
             call()
         case 0xCE:
@@ -469,7 +471,7 @@ struct CPU {
             retIfNotSet(flag: .Carry)
         case 0xD1:
             pop(register: .DE)
-        case 0xC2:
+        case 0xD2:
             jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
         case 0xD3:
             return //Not Used
@@ -483,11 +485,14 @@ struct CPU {
             rst(value: 0x10)
         case 0xD8:
             retIfSet(flag: .Carry)
-        //TODO: 0xD9
-        //TODO: 0xDA
+        case 0xD9:
+            reti()
+        case 0xDA:
+            jumpIf(type: .memoryUnsigned16Bit, flag: .Carry)
         case 0xDB:
             return //Not Used
-        //TODO: 0xDC
+        case 0xDC:
+            callIf(flag: .Carry)
         case 0xDE:
             sbc()
         case 0xDF:
@@ -1098,7 +1103,7 @@ struct CPU {
         
         registers.write(flag: .Zero, set: value.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (registerValue & 0xF) + (1 & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((registerValue & 0xF) + (1 & 0xF)) & 0x10) == 0x10)
         
     }
     
@@ -1116,12 +1121,12 @@ struct CPU {
     mutating func increment(indirect register: RegisterType16) {
         var registerValue = registers.read(register: register)
         var value = bus.read(location: registerValue)
-        value = value.addingReportingOverflow(1).partialValue
-        bus.write(location: registerValue, value: value)
+        var newValue = value.addingReportingOverflow(1).partialValue
+        bus.write(location: registerValue, value: newValue)
         
         registers.write(flag: .Zero, set: value == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (registerValue & 0xF) + (1 & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((value & 0xF) + (1 & 0xF)) & 0x10) == 0x10)
     }
     
     mutating func decrement(register: RegisterType8) {
@@ -1272,7 +1277,7 @@ struct CPU {
     mutating func jump(type: JumpType) {
         switch type {
         case .memorySigned8Bit:
-            let address = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
+            let address = Int8(bitPattern: returnAndIncrement(indirect: .PC))
             let address16Bit = UInt16(bitPattern: Int16(address))
 
             registers.write(register: .PC, value: registers.read(register: .PC).addingReportingOverflow(address16Bit).partialValue)
@@ -1294,19 +1299,19 @@ struct CPU {
     mutating func jumpIfNot(type: JumpType, flag: FlagType) {
         switch type {
         case .memorySigned8Bit:
-            let address_raw = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
-            let address = Int16(address_raw)
+            let address_raw = Int8(bitPattern: returnAndIncrement(indirect: .PC))
+            let address = UInt16(bitPattern: Int16(address_raw))
             
             if !registers.read(flag: flag) {
-                registers.write(register: .PC, value: UInt16(bitPattern: Int16(truncatingIfNeeded: registers.read(register: .PC)) + address))
+                registers.write(register: .PC, value: registers.read(register: .PC).addingReportingOverflow(address).partialValue)
                 cycles += 12
             } else {
                 cycles += 8
             }
         case .memoryUnsigned16Bit:
+            let lsb = returnAndIncrement(indirect: .PC)
+            let msb = returnAndIncrement(indirect: .PC)
             if !registers.read(flag: flag) {
-                let lsb = returnAndIncrement(indirect: .PC)
-                let msb = returnAndIncrement(indirect: .PC)
                 let value = UInt16(msb) << 8 | UInt16(lsb);
                 
                 registers.write(register: .PC, value: value)
@@ -1319,16 +1324,31 @@ struct CPU {
         }
     }
     
-    mutating func jumpIf(flag: FlagType) {
-        let address_raw = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
-        let address = Int16(address_raw)
-        
-        
-        if registers.read(flag: flag) {
-            registers.write(register: .PC, value: UInt16(bitPattern: Int16(truncatingIfNeeded: registers.read(register: .PC)) + address))
-            cycles += 12
-        } else {
-            cycles += 8
+    mutating func jumpIf(type: JumpType, flag: FlagType) {
+        switch type {
+        case .memorySigned8Bit:
+            let address_raw = Int8(bitPattern: returnAndIncrement(indirect: .PC))
+            let address = UInt16(bitPattern: Int16(address_raw))
+            
+            
+            if registers.read(flag: flag) {
+                registers.write(register: .PC, value: registers.read(register: .PC).addingReportingOverflow(address).partialValue)
+                cycles += 12
+            } else {
+                cycles += 8
+            }
+        case .memoryUnsigned16Bit:
+            let lsb = returnAndIncrement(indirect: .PC)
+            let msb = returnAndIncrement(indirect: .PC)
+            if registers.read(flag: flag) {
+                let value = UInt16(msb) << 8 | UInt16(lsb);
+                
+                registers.write(register: .PC, value: value)
+                
+                cycles += 16
+            } else {
+                cycles += 12
+            }
         }
         
     }
@@ -1389,6 +1409,31 @@ struct CPU {
         }
     }
     
+    mutating func callIf(flag: FlagType) {
+        let lsb = UInt16(returnAndIncrement(indirect: .PC))
+        let msb = UInt16(returnAndIncrement(indirect: .PC))
+
+        let value = msb << 8 | lsb
+
+        if registers.read(flag: flag) {
+            let pc = registers.read(register: .PC)
+            let pcMsb = UInt8(pc >> 8)
+            let pcLsb = UInt8(truncatingIfNeeded: pc)
+
+            decrement(register: .SP, partOfOtherOpCode: true)
+            bus.write(location: registers.read(register: .SP), value: pcMsb)
+            decrement(register: .SP, partOfOtherOpCode: true)
+            bus.write(location: registers.read(register: .SP), value: pcLsb)
+            
+            registers.write(register: .PC, value: value)
+
+            cycles += 24
+            
+        } else {
+            cycles += 12
+        }
+    }
+    
     mutating func ret() {
         let lsb = UInt16(returnAndIncrement(indirect: .SP))
         let msb = UInt16(returnAndIncrement(indirect: .SP))
@@ -1396,6 +1441,18 @@ struct CPU {
         let value = msb << 8 | lsb
 
         registers.write(register: .PC, value: value)
+
+        cycles += 16
+    }
+    
+    mutating func reti() {
+        let lsb = UInt16(returnAndIncrement(indirect: .SP))
+        let msb = UInt16(returnAndIncrement(indirect: .SP))
+
+        let value = msb << 8 | lsb
+
+        registers.write(register: .PC, value: value)
+        registers.write(ime: true)
 
         cycles += 16
     }
@@ -1599,7 +1656,7 @@ struct CPU {
 
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((a & 0xF) + (value & 0xF)) & 0x10) == 0x10)
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 4
@@ -1614,7 +1671,7 @@ struct CPU {
 
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((a & 0xF) + (value & 0xF)) & 0x10) == 0x10)
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
@@ -1629,7 +1686,7 @@ struct CPU {
 
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((a & 0xF) + (value & 0xF)) & 0x10) == 0x10)
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
@@ -1637,14 +1694,18 @@ struct CPU {
     
     mutating func addSigned(to register: RegisterType16, cycles cyclesCount: Int32) {
         let sp = registers.read(register: .SP)
-        let value = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
+        let value = Int8(bitPattern: returnAndIncrement(indirect: .PC))
         let result = sp.addingReportingOverflow(UInt16(bitPattern: Int16(value)))
 
         registers.write(register: register, value: result.partialValue)
+        
+        let spMasked = Int8(bitPattern: UInt8(truncatingIfNeeded: sp)) & 0xF
+        let valueMasked = value & 0xF
+        
 
         registers.write(flag: .Zero, set: false)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (sp & 0xFFF) + (UInt16(bitPattern: Int16(value)) & 0xFFF) > 0xFFF)
+        registers.write(flag: .HalfCarry, set: ((spMasked + valueMasked) & 0x10) == 0x10) // (sp & 0xFFF) + (UInt16(bitPattern: Int16(value)) & 0xFFF) > 0xFFF)
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += cyclesCount
@@ -1663,7 +1724,7 @@ struct CPU {
 
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((a & 0xF) + (value & 0xF) + (carry & 0xF)) & 0x10) == 0x10)
         registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
 
         cycles += 4
@@ -1683,7 +1744,7 @@ struct CPU {
 
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((a & 0xF) + (value & 0xF) + (carry & 0xF)) & 0x10) == 0x10)
         registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
 
         cycles += 8
@@ -1703,7 +1764,7 @@ struct CPU {
 
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: (a & 0xF) + (value & 0xF) + (carry & 0xF) > 0xF)
+        registers.write(flag: .HalfCarry, set: (((a & 0xF) + (value & 0xF) + (carry & 0xF)) & 0x10) == 0x10)
         registers.write(flag: .Carry, set: resultCarry.overflow || result.overflow)
 
         cycles += 8
@@ -1719,7 +1780,7 @@ struct CPU {
 
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .Carry, set: overflow)
-        registers.write(flag: .HalfCarry, set: (initialValue & 0x0FFF) + (value & 0x0FFF) > 0x0FFF)
+        registers.write(flag: .HalfCarry, set: (((initialValue & 0xFFF) + (value & 0xFFF)) & 0x1000) == 0x1000)
 
         cycles += 8
     }
@@ -1776,8 +1837,8 @@ struct CPU {
         
         var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
         var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
-        var halfCarry = Int8(Int8(truncatingIfNeeded: a) & 0xF - Int8(truncatingIfNeeded: register) & 0xF)
-        halfCarry -= Int8(truncatingIfNeeded: carry) & 0xF
+        var halfCarry = Int8(Int8(bitPattern: a) & 0xF - Int8(bitPattern: register) & 0xF)
+        halfCarry -= Int8(bitPattern: carry) & 0xF
             
         registers.write(register: .A, value: resultTwo)
 
@@ -1796,8 +1857,8 @@ struct CPU {
         
         var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
         var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
-        var halfCarry = Int8(Int8(truncatingIfNeeded: a) & 0xF - Int8(truncatingIfNeeded: register) & 0xF)
-        halfCarry -= Int8(truncatingIfNeeded: carry) & 0xF
+        var halfCarry = Int8(Int8(bitPattern: a) & 0xF - Int8(bitPattern: register) & 0xF)
+        halfCarry -= Int8(bitPattern: carry) & 0xF
             
         registers.write(register: .A, value: resultTwo)
 
@@ -1816,8 +1877,8 @@ struct CPU {
         
         var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
         var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
-        var halfCarry = Int8(Int8(truncatingIfNeeded: a) & 0xF - Int8(truncatingIfNeeded: register) & 0xF)
-        halfCarry -= Int8(truncatingIfNeeded: carry) & 0xF
+        var halfCarry = Int8(Int8(bitPattern: a) & 0xF - Int8(bitPattern: register) & 0xF)
+        halfCarry -= Int8(bitPattern: carry) & 0xF
             
         registers.write(register: .A, value: resultTwo)
 
@@ -1836,7 +1897,7 @@ struct CPU {
         
         registers.write(flag: .Zero, set: result.partialValue == 0)
         registers.write(flag: .Subtraction, set: true)
-        registers.write(flag: .HalfCarry, set: Int8(truncatingIfNeeded: regValue & 0xF) - Int8(truncatingIfNeeded: value & 0xF) < 0)
+        registers.write(flag: .HalfCarry, set: Int8(bitPattern: regValue & 0xF) - Int8(bitPattern: value & 0xF) < 0)
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
@@ -1927,8 +1988,11 @@ struct CPU {
     mutating func shiftRightArithmatically(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
+        let sevenBit = getBit(data: value, bit: 7)
         
         value >>= 1
+        
+        value = setBit(data: value, bit: 7, state: sevenBit)
 
         bus.write(location: registers.read(register: register), value: value)
 

@@ -82,7 +82,7 @@ struct Bus {
         }
         
         if location == 0xFF44 {
-            return UInt8(truncatingIfNeeded: ppu.ly)
+            return 0x90 // UInt8(truncatingIfNeeded: ppu.ly)
         }
         
         return memory[location]
