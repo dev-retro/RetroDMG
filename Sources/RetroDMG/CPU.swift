@@ -81,6 +81,7 @@ struct CPU {
             load(from: .PC, to: .C)
         case 0x0F:
             rotateRightCarry(register: .A, zeroDependant: false)
+        //TODO: 0x10
         case 0x11:
             loadFromMemory(to: .DE)
         case 0x12:
@@ -448,7 +449,8 @@ struct CPU {
             push(register: .BC)
         case 0xC6:
             add()
-        //TODO: 0xC7
+        case 0xC7:
+            rst(value: 0x00)
         case 0xC8:
             retIfSet(flag: .Zero)
         case 0xC9:
@@ -461,7 +463,8 @@ struct CPU {
             call()
         case 0xCE:
             adc()
-        //TODO: 0xCF
+        case 0xCF:
+            rst(value: 0x08)
         case 0xD0:
             retIfNotSet(flag: .Carry)
         case 0xD1:
@@ -470,12 +473,14 @@ struct CPU {
             jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
         case 0xD3:
             return //Not Used
-        //TODO: 0xD4
+        case 0xD4:
+            callIfNot(flag: .Carry)
         case 0xD5:
             push(register: .DE)
         case 0xD6:
             sub()
-        //TODO: 0xD7
+        case 0xD7:
+            rst(value: 0x10)
         case 0xD8:
             retIfSet(flag: .Carry)
         //TODO: 0xD9
@@ -485,7 +490,8 @@ struct CPU {
         //TODO: 0xDC
         case 0xDE:
             sbc()
-        //TODO: 0xDF
+        case 0xDF:
+            rst(value: 0x18)
         case 0xE0:
             loadToMemory(from: .A, masked: true)
         case 0xE1:
@@ -500,7 +506,8 @@ struct CPU {
             push(register: .HL)
         case 0xE6:
             and()
-        //TODO: 0xE7
+        case 0xE7:
+            rst(value: 0x20)
         case 0xE8:
             addSigned(to: .SP, cycles: 16)
         case 0xE9:
@@ -515,12 +522,14 @@ struct CPU {
             return //Not Used
         case 0xEE:
             xor()
-        //TODO: 0xEF
+        case 0xEF:
+            rst(value: 0x28)
         case 0xF0:
             loadFromMemory(to: .A, masked: true)
         case 0xF1:
             pop(register: .AF)
-        //TODO: 0xF2
+        case 0xF2:
+            loadFromMemory(to: .A, from: .C)
         case 0xF3:
             set(ime: false)
         case 0xF4:
@@ -529,21 +538,24 @@ struct CPU {
             push(register: .AF)
         case 0xF6:
             or()
-        //TODO: 0xF7
+        case 0xF7:
+            rst(value: 0x30)
         case 0xF8:
             addSigned(to: .HL, cycles: 12)
         case 0xF9:
             load(from: .HL, to: .SP)
         case 0xFA:
             loadFromMemory(to: .A, masked: false)
-        //TODO: 0xFB
+        case 0xFB:
+            setIME()
         case 0xFC:
             return //Not Used
         case 0xFD:
             return //Not Used
         case 0xFE:
             copy()
-        //TODO: 0xFF
+        case 0xFF:
+            rst(value: 0x38)
         default:
             fatalError("opCode 0x\(opCode.hex) not supported")
         }
@@ -1184,6 +1196,16 @@ struct CPU {
         registers.write(register: register, value: value)
         
         cycles += 12
+    }
+    
+    mutating func loadFromMemory(to toRegister: RegisterType8, from fromRegister: RegisterType8) {
+        let lsb = UInt16(registers.read(register: fromRegister))
+        let msb = UInt16(0xFF)
+        let value = msb << 8 | lsb
+        
+        registers.write(register: toRegister, value: bus.read(location: value))
+        
+        cycles += 8
     }
     
     mutating func loadFromMemory(to register: RegisterType8, masked: Bool) {
@@ -2169,6 +2191,12 @@ struct CPU {
         cycles += 16
     }
     
+    mutating func setIME() {
+        registers.write(ime: true)
+        
+        cycles += 4
+    }
+    
     mutating func cpl() {
         var value = ~registers.read(register: .A)
         
@@ -2247,6 +2275,20 @@ struct CPU {
         registers.write(flag: .Carry, set: carry)
 
         cycles += 4
+    }
+    
+    mutating func rst(value: UInt8) {
+        let lsb = UInt8(truncatingIfNeeded: registers.read(register: .PC) >> 8)
+        let msb = UInt8(truncatingIfNeeded: registers.read(register: .PC))
+        
+        decrement(register: .SP)
+        bus.write(location: registers.read(register: .SP), value: msb)
+        decrement(register: .SP)
+        bus.write(location: registers.read(register: .SP), value: lsb)
+        
+        registers.write(register: .PC, value: (UInt16(0x00) << 8 | UInt16(value)))
+        
+        cycles += 16
     }
 }
 
