@@ -112,7 +112,7 @@ struct CPU {
         case 0x1F:
             rotateRight(register: .A, zeroDependant: false)
         case 0x20:
-            jumpIfNot(flag: .Zero)
+            jumpIfNot(type: .memorySigned8Bit, flag: .Zero)
         case 0x21:
             loadFromMemory(to: .HL)
         case 0x22:
@@ -126,7 +126,8 @@ struct CPU {
             decrement(register: .H)
         case 0x26:
             load(from: .PC, to: .H)
-        //TODO: 0x27
+        case 0x27:
+            daa()
         case 0x28:
             jumpIf(flag: .Zero)
         case 0x29:
@@ -145,7 +146,7 @@ struct CPU {
         case 0x2F:
             cpl()
         case 0x30:
-            jumpIfNot(flag: .Carry)
+            jumpIfNot(type: .memorySigned8Bit, flag: .Carry)
         case 0x31:
             loadFromMemory(to: .SP)
         case 0x32:
@@ -437,7 +438,8 @@ struct CPU {
             retIfNotSet(flag: .Zero)
         case 0xC1:
             pop(register: .BC)
-        //TODO: 0xC2
+        case 0xC2:
+            jumpIfNot(type: .memoryUnsigned16Bit, flag: .Zero)
         case 0xC3:
             jump(type: .memoryUnsigned16Bit)
         case 0xC4:
@@ -464,7 +466,8 @@ struct CPU {
             retIfNotSet(flag: .Carry)
         case 0xD1:
             pop(register: .DE)
-        //TODO: 0xD2
+        case 0xC2:
+            jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
         case 0xD3:
             return //Not Used
         //TODO: 0xD4
@@ -498,7 +501,8 @@ struct CPU {
         case 0xE6:
             and()
         //TODO: 0xE7
-        //TODO: 0xE8
+        case 0xE8:
+            addSigned(to: .SP, cycles: 16)
         case 0xE9:
             jump(to: .HL)
         case 0xEA:
@@ -526,7 +530,8 @@ struct CPU {
         case 0xF6:
             or()
         //TODO: 0xF7
-        //TODO: 0xF8
+        case 0xF8:
+            addSigned(to: .HL, cycles: 12)
         case 0xF9:
             load(from: .HL, to: .SP)
         case 0xFA:
@@ -1087,8 +1092,9 @@ struct CPU {
     
     mutating func increment(register: RegisterType16, partOfOtherOpCode: Bool = false) {
         var value = registers.read(register: register)
+        value = value.addingReportingOverflow(1).partialValue
         
-        registers.write(register: register, value: value.addingReportingOverflow(1).partialValue)
+        registers.write(register: register, value: value)
         
         if !partOfOtherOpCode {
             cycles += 8
@@ -1263,18 +1269,32 @@ struct CPU {
         }
     }
     
-    mutating func jumpIfNot(flag: FlagType) {
-        let address_raw = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
-        let address = Int16(address_raw)
-        
-        
-        if !registers.read(flag: flag) {
-            registers.write(register: .PC, value: UInt16(bitPattern: Int16(truncatingIfNeeded: registers.read(register: .PC)) + address))
-            cycles += 12
-        } else {
-            cycles += 8
+    mutating func jumpIfNot(type: JumpType, flag: FlagType) {
+        switch type {
+        case .memorySigned8Bit:
+            let address_raw = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
+            let address = Int16(address_raw)
+            
+            if !registers.read(flag: flag) {
+                registers.write(register: .PC, value: UInt16(bitPattern: Int16(truncatingIfNeeded: registers.read(register: .PC)) + address))
+                cycles += 12
+            } else {
+                cycles += 8
+            }
+        case .memoryUnsigned16Bit:
+            if !registers.read(flag: flag) {
+                let lsb = returnAndIncrement(indirect: .PC)
+                let msb = returnAndIncrement(indirect: .PC)
+                let value = UInt16(msb) << 8 | UInt16(lsb);
+                
+                registers.write(register: .PC, value: value)
+                
+                cycles += 16
+            } else {
+                cycles += 12
+            }
+
         }
-        
     }
     
     mutating func jumpIf(flag: FlagType) {
@@ -1393,16 +1413,21 @@ struct CPU {
         decrement(register: .SP, partOfOtherOpCode: true)
         bus.write(location: registers.read(register: .SP), value: UInt8(value >> 8))
         decrement(register: .SP, partOfOtherOpCode: true)
-        bus.write(location: registers.read(register: .SP), value: UInt8(truncatingIfNeeded: value))
+        bus.write(location: registers.read(register: .SP), value: UInt8(truncatingIfNeeded: register == .AF ? value & 0xF0 : value ))
 
         cycles += 16
     }
     
     mutating func pop(register: RegisterType16) {
-        let lsb = returnAndIncrement(indirect: .SP)
+        var lsb = returnAndIncrement(indirect: .SP)
         let msb = returnAndIncrement(indirect: .SP)
-        let value = UInt16(msb) << 8 | UInt16(lsb);
         
+        if register == .AF {
+            lsb = lsb & 0xF0
+        }
+        
+        let value = UInt16(msb) << 8 | UInt16(lsb);
+
         registers.write(register: register, value: value)
         
         cycles += 12
@@ -1586,6 +1611,21 @@ struct CPU {
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
+    }
+    
+    mutating func addSigned(to register: RegisterType16, cycles cyclesCount: Int32) {
+        let sp = registers.read(register: .SP)
+        let value = Int8(truncatingIfNeeded: returnAndIncrement(indirect: .PC))
+        let result = sp.addingReportingOverflow(UInt16(bitPattern: Int16(value)))
+
+        registers.write(register: register, value: result.partialValue)
+
+        registers.write(flag: .Zero, set: false)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: (sp & 0xFFF) + (UInt16(bitPattern: Int16(value)) & 0xFFF) > 0xFFF)
+        registers.write(flag: .Carry, set: result.overflow)
+
+        cycles += cyclesCount
     }
     
     mutating func adc(register: RegisterType8) {
@@ -2175,6 +2215,38 @@ struct CPU {
         registers.write(flag: .Carry, set: result.overflow)
 
         cycles += 8
+    }
+    
+    mutating func daa() {
+        let negativeFlag = registers.read(flag: .Subtraction)
+        let carryFlag = registers.read(flag: .Carry)
+        let halfCarryFlag = registers.read(flag: .HalfCarry)
+        
+        var carry = false
+        
+        if !negativeFlag {
+            if carryFlag || registers.read(register: .A) > 0x99 {
+                registers.write(register: .A, value: registers.read(register: .A).addingReportingOverflow(0x60).partialValue)
+                carry = true
+            }
+            
+            if halfCarryFlag || registers.read(register: .A) & 0x0F > 0x09 {
+                registers.write(register: .A, value: registers.read(register: .A).addingReportingOverflow(0x06).partialValue)
+            }
+        } else if carryFlag {
+        
+            carry = true
+            registers.write(register: .A, value: halfCarryFlag ? registers.read(register: .A).addingReportingOverflow(0x9a).partialValue : registers.read(register: .A).addingReportingOverflow(0xa0).partialValue)
+        } else if halfCarryFlag {
+            registers.write(register: .A, value: registers.read(register: .A).addingReportingOverflow(0xfa).partialValue)
+        }
+
+
+        registers.write(flag: .Zero, set: registers.read(register: .A) == 0)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: carry)
+
+        cycles += 4
     }
 }
 
