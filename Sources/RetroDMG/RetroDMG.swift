@@ -12,6 +12,14 @@ public struct RetroDMG {
         cpu.tick()
     }
     
+    public mutating func debug(enabled: Bool) {
+        cpu.debug = enabled
+    }
+    
+    public func getState() -> String {
+        cpu.currentState
+    }
+    
     public mutating func load(file: [UInt8]) {
         cpu.bus.write(rom: file)
         cpu.start()

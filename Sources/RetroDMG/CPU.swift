@@ -16,12 +16,16 @@ struct CPU {
     var cycles: Int32
     var state: CPUState
     var bus: Bus
+    var currentState: String
+    var debug: Bool
     
     init() {
         registers = Registers()
         cycles = 0
         state = .Running
         bus = Bus()
+        currentState = ""
+        debug = true
     }
     
     mutating func start() {
@@ -43,8 +47,9 @@ struct CPU {
     mutating func tick() {
         cycles = 0 //TODO: remove once cycles are needed
         
-//        print("A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))")
-        
+        if debug {
+            currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
+        }
         
         let opCode = returnAndIncrement(indirect: .PC)
         
@@ -1252,9 +1257,9 @@ struct CPU {
         
         var location = UInt16(msb) << 8 | UInt16(lsb)
         
-        bus.write(location: location, value: UInt8(value >> 8))
-        location += 1
         bus.write(location: location, value: UInt8(truncatingIfNeeded: value))
+        location += 1
+        bus.write(location: location, value: UInt8(value >> 8))
         
         cycles += 20
     }
@@ -1695,6 +1700,8 @@ struct CPU {
     mutating func addSigned(to register: RegisterType16, cycles cyclesCount: Int32) {
         let sp = registers.read(register: .SP)
         let value = Int8(bitPattern: returnAndIncrement(indirect: .PC))
+        
+        let carryResult = UInt8(truncatingIfNeeded: sp).addingReportingOverflow(UInt8(bitPattern: value))
         let result = sp.addingReportingOverflow(UInt16(bitPattern: Int16(value)))
 
         registers.write(register: register, value: result.partialValue)
@@ -1706,7 +1713,7 @@ struct CPU {
         registers.write(flag: .Zero, set: false)
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: ((spMasked + valueMasked) & 0x10) == 0x10) // (sp & 0xFFF) + (UInt16(bitPattern: Int16(value)) & 0xFFF) > 0xFFF)
-        registers.write(flag: .Carry, set: result.overflow)
+        registers.write(flag: .Carry, set: carryResult.overflow)
 
         cycles += cyclesCount
     }
