@@ -1129,7 +1129,7 @@ struct CPU {
         var newValue = value.addingReportingOverflow(1).partialValue
         bus.write(location: registerValue, value: newValue)
         
-        registers.write(flag: .Zero, set: value == 0)
+        registers.write(flag: .Zero, set: newValue == 0)
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: (((value & 0xF) + (1 & 0xF)) & 0x10) == 0x10)
     }
