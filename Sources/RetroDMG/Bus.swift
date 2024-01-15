@@ -81,6 +81,10 @@ struct Bus {
             ppu.tileMapTwo[Int(location - 0x9C00)]
         }
         
+        if location == 0xFF00 {
+            return 0xFF
+        }
+        
         if location == 0xFF44 {
             return 0x90 // UInt8(truncatingIfNeeded: ppu.ly)
         }
