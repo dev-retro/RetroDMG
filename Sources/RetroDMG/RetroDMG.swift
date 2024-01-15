@@ -27,7 +27,6 @@ public struct RetroDMG {
     
     public mutating func load(rom: [UInt8]) {
         cpu.bus.write(bootrom: rom)
-        cpu.bus.bootromLoaded = true
     }
     
     public func ppuTest() -> [Int] {

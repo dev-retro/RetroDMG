@@ -9,8 +9,8 @@ import Foundation
 
 struct PPU {
     var memory: [UInt8]
-    var tileMapOne: [UInt8]
-    var tileMapTwo: [UInt8]
+    var tilemap9800: [UInt8]
+    var tilemap9C00: [UInt8]
     var viewPort: [Int]
     var scx: UInt8
     var scy: UInt8
@@ -21,13 +21,13 @@ struct PPU {
     
     
     //MARK: PPU Registers
-    private var control: UInt8
+    var control: UInt8
     private var status: UInt8
     
     init() {
         memory = [UInt8](repeating: 0, count: 0x1800)
-        tileMapOne = [UInt8](repeating: 0, count: 0x0400)
-        tileMapTwo = [UInt8](repeating: 0, count: 0x0400)
+        tilemap9800 = [UInt8](repeating: 0, count: 0x0400)
+        tilemap9C00 = [UInt8](repeating: 0, count: 0x0400)
         viewPort = [Int](repeating: 0, count: 22400)
         cycle = 0
         
@@ -48,15 +48,17 @@ struct PPU {
         
         for line in 0..<144 {
             ly = UInt8(line)
-            let tilemap = read(flag: .BGTileMapSelect) ? tileMapTwo : tileMapOne
+            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
             var x = 0
             for _ in stride(from: 0, to: 160, by: 8) {
                 var fetcherX = x + (Int(scx) / 8) & 0x1F
                 var fetcherY = (line + Int(scy)) & 0xFF
                 
                 var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-                var tileNo = Int(tilemap[Int(tilemapAddress)])
-                var tileLocation = tileNo * 16
+                
+                var tileNo = tilemap[Int(tilemapAddress)]
+                
+                var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
                 tileLocation += (2 * (fetcherY % 8))
                 
                 
@@ -246,7 +248,7 @@ struct PPU {
     
     public func createTileMap() -> [Int] {
         var tiles = [Int]()
-        for tileNo in tileMapOne {
+        for tileNo in tilemap9800 {
             let byteArray = memory[Int(UInt16(tileNo) * 16)..<Int((UInt16(tileNo) * 16 + 16))]
             tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
         }
