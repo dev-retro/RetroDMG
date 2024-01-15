@@ -25,7 +25,7 @@ struct CPU {
         state = .Running
         bus = Bus()
         currentState = ""
-        debug = true
+        debug = false
     }
     
     mutating func start() {
@@ -48,8 +48,7 @@ struct CPU {
         cycles = 0 //TODO: remove once cycles are needed
         
         if debug {
-            currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
-        }
+            currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"        }
         
         let opCode = returnAndIncrement(indirect: .PC)
         
@@ -2349,8 +2348,8 @@ struct CPU {
     }
     
     mutating func rst(value: UInt8) {
-        let lsb = UInt8(truncatingIfNeeded: registers.read(register: .PC) >> 8)
-        let msb = UInt8(truncatingIfNeeded: registers.read(register: .PC))
+        let msb = UInt8(truncatingIfNeeded: registers.read(register: .PC) >> 8)
+        let lsb = UInt8(truncatingIfNeeded: registers.read(register: .PC))
         
         decrement(register: .SP)
         bus.write(location: registers.read(register: .SP), value: msb)
