@@ -27,6 +27,7 @@ public struct RetroDMG {
     
     public mutating func load(rom: [UInt8]) {
         cpu.bus.write(bootrom: rom)
+        
     }
     
     public func ppuTest() -> [Int] {
@@ -43,6 +44,11 @@ public struct RetroDMG {
     
     public mutating func viewPort() -> [Int] {
         cpu.bus.ppu.fetch()
+        return cpu.bus.ppu.viewPort
+    }
+    
+    public mutating func viewPort(cycles: UInt16) -> [Int] {
+        cpu.bus.ppu.fetch(cycles: cycles)
         return cpu.bus.ppu.viewPort
     }
 }

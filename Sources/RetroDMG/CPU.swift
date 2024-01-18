@@ -42,533 +42,544 @@ struct CPU {
 
             registers.write(register: .PC, value: 0x0100)
             registers.write(register: .SP, value: 0xFFFE)
+            
+            bus.div = 0xAB
         }
     }
     
     mutating func tick() {
-        bus.updateDiv(cycles: cycles)
-        if debug {
-            currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"        }
-        
-        
-        let opCode = returnAndIncrement(indirect: .PC)
-        
-        switch opCode {
-        case 0x00: //NOP
-            cycles = cycles.addingReportingOverflow(4).partialValue
-        case 0x01:
-            loadFromMemory(to: .BC)
-        case 0x02:
-            load(indirect: .BC, register: .A)
-        case 0x03:
-            increment(register: .BC)
-        case 0x04:
-            increment(register: .B)
-        case 0x05:
-            decrement(register: .B)
-        case 0x06:
-            load(from: .PC, to: .B)
-        case 0x07:
-            rotateLeftCarry(register: .A, zeroDependant: false)
-        case 0x08:
-            loadToMemory(from: .SP)
-        case 0x09:
-            add(register: .BC)
-        case 0x0A:
-            load(register: .A, indirect: .BC)
-        case 0x0B:
-            decrement(register: .BC)
-        case 0x0C:
-            increment(register: .C)
-        case 0x0D:
-            decrement(register: .C)
-        case 0x0E:
-            load(from: .PC, to: .C)
-        case 0x0F:
-            rotateRightCarry(register: .A, zeroDependant: false)
-        //TODO: 0x10
-        case 0x11:
-            loadFromMemory(to: .DE)
-        case 0x12:
-            load(indirect: .DE, register: .A)
-        case 0x13:
-            increment(register: .DE)
-        case 0x14:
-            increment(register: .D)
-        case 0x15:
-            decrement(register: .D)
-        case 0x16:
-            load(from: .PC, to: .D)
-        case 0x17:
-            rotateLeft(register: .A, zeroDependant: false)
-        case 0x18:
-            jump(type: .memorySigned8Bit)
-        case 0x19:
-            add(register: .DE)
-        case 0x1A:
-            load(register: .A, indirect: .DE)
-        case 0x1B:
-            decrement(register: .DE)
-        case 0x1C:
-            increment(register: .E)
-        case 0x1D:
-            decrement(register: .E)
-        case 0x1E:
-            load(from: .PC, to: .E)
-        case 0x1F:
-            rotateRight(register: .A, zeroDependant: false)
-        case 0x20:
-            jumpIfNot(type: .memorySigned8Bit, flag: .Zero)
-        case 0x21:
-            loadFromMemory(to: .HL)
-        case 0x22:
-            load(indirect: .HL, register: .A)
-            increment(register: .HL, partOfOtherOpCode: true)
-        case 0x23:
-            increment(register: .HL)
-        case 0x24:
-            increment(register: .H)
-        case 0x25:
-            decrement(register: .H)
-        case 0x26:
-            load(from: .PC, to: .H)
-        case 0x27:
-            daa()
-        case 0x28:
-            jumpIf(type: .memorySigned8Bit, flag: .Zero)
-        case 0x29:
-            add(register: .HL)
-        case 0x2A:
-            load(register: .A, indirect: .HL)
-            increment(register: .HL, partOfOtherOpCode: true)
-        case 0x2B:
-            decrement(register: .HL)
-        case 0x2C:
-            increment(register: .L)
-        case 0x2D:
-            decrement(register: .L)
-        case 0x2E:
-            load(from: .PC, to: .L)
-        case 0x2F:
-            cpl()
-        case 0x30:
-            jumpIfNot(type: .memorySigned8Bit, flag: .Carry)
-        case 0x31:
-            loadFromMemory(to: .SP)
-        case 0x32:
-            load(indirect: .HL, register: .A)
-            decrement(register: .HL, partOfOtherOpCode: true)
-        case 0x33:
-            increment(register: .SP)
-        case 0x34:
-            increment(indirect: .HL)
-        case 0x35:
-            decrement(indirect: .HL)
-        case 0x36:
-            load(indirect: .HL)
-        case 0x37:
-            setCarryFlag()
-        case 0x38:
-            jumpIf(type: .memorySigned8Bit, flag: .Carry)
-        case 0x39:
-            add(register: .SP)
-        case 0x3A:
-            load(register: .A, indirect: .HL)
-            decrement(register: .HL, partOfOtherOpCode: true)
-        case 0x3B:
-            decrement(register: .SP)
-        case 0x3C:
-            increment(register: .A)
-        case 0x3D:
-            decrement(register: .A)
-        case 0x3E:
-            load(from: .PC, to: .A)
-        case 0x3F:
-            ccf()
-        case 0x40:
-            load(from: .B, to: .B)
-        case 0x41:
-            load(from: .C, to: .B)
-        case 0x42:
-            load(from: .D, to: .B)
-        case 0x43:
-            load(from: .E, to: .B)
-        case 0x44:
-            load(from: .H, to: .B)
-        case 0x45:
-            load(from: .L, to: .B)
-        case 0x46:
-            load(register: .B, indirect: .HL)
-        case 0x47:
-            load(from: .A, to: .B)
-        case 0x48:
-            load(from: .B, to: .C)
-        case 0x49:
-            load(from: .C, to: .C)
-        case 0x4A:
-            load(from: .D, to: .C)
-        case 0x4B:
-            load(from: .E, to: .C)
-        case 0x4C:
-            load(from: .H, to: .C)
-        case 0x4D:
-            load(from: .L, to: .C)
-        case 0x4E:
-            load(register: .C, indirect: .HL)
-        case 0x4F:
-            load(from: .A, to: .C)
-        case 0x50:
-            load(from: .B, to: .D)
-        case 0x51:
-            load(from: .C, to: .D)
-        case 0x52:
-            load(from: .D, to: .D)
-        case 0x53:
-            load(from: .E, to: .D)
-        case 0x54:
-            load(from: .H, to: .D)
-        case 0x55:
-            load(from: .L, to: .D)
-        case 0x56:
-            load(register: .D, indirect: .HL)
-        case 0x57:
-            load(from: .A, to: .D)
-        case 0x58:
-            load(from: .B, to: .E)
-        case 0x59:
-            load(from: .C, to: .E)
-        case 0x5A:
-            load(from: .D, to: .E)
-        case 0x5B:
-            load(from: .E, to: .E)
-        case 0x5C:
-            load(from: .H, to: .E)
-        case 0x5D:
-            load(from: .L, to: .E)
-        case 0x5E:
-            load(register: .E, indirect: .HL)
-        case 0x5F:
-            load(from: .A, to: .E)
-        case 0x60:
-            load(from: .B, to: .H)
-        case 0x61:
-            load(from: .C, to: .H)
-        case 0x62:
-            load(from: .D, to: .H)
-        case 0x63:
-            load(from: .E, to: .H)
-        case 0x64:
-            load(from: .H, to: .H)
-        case 0x65:
-            load(from: .L, to: .H)
-        case 0x66:
-            load(register: .H, indirect: .HL)
-        case 0x67:
-            load(from: .A, to: .H)
-        case 0x68:
-            load(from: .B, to: .L)
-        case 0x69:
-            load(from: .C, to: .L)
-        case 0x6A:
-            load(from: .D, to: .L)
-        case 0x6B:
-            load(from: .E, to: .L)
-        case 0x6C:
-            load(from: .H, to: .L)
-        case 0x6D:
-            load(from: .L, to: .L)
-        case 0x6E:
-            load(register: .L, indirect: .HL)
-        case 0x6F:
-            load(from: .A, to: .L)
-        case 0x70:
-            load(indirect: .HL, register: .B)
-        case 0x71:
-            load(indirect: .HL, register: .C)
-        case 0x72:
-            load(indirect: .HL, register: .D)
-        case 0x73:
-            load(indirect: .HL, register: .E)
-        case 0x74:
-            load(indirect: .HL, register: .H)
-        case 0x75:
-            load(indirect: .HL, register: .L)
-        //TODO: 0x76
-        case 0x77:
-            load(indirect: .HL, register: .A)
-        case 0x78:
-            load(from: .B, to: .A)
-        case 0x79:
-            load(from: .C, to: .A)
-        case 0x7A:
-            load(from: .D, to: .A)
-        case 0x7B:
-            load(from: .E, to: .A)
-        case 0x7C:
-            load(from: .H, to: .A)
-        case 0x7D:
-            load(from: .L, to: .A)
-        case 0x7E:
-            load(register: .A, indirect: .HL)
-        case 0x7F:
-            load(from: .A, to: .A)
-        case 0x80:
-            add(register: .B)
-        case 0x81:
-            add(register: .C)
-        case 0x82:
-            add(register: .D)
-        case 0x83:
-            add(register: .E)
-        case 0x84:
-            add(register: .H)
-        case 0x85:
-            add(register: .L)
-        case 0x86:
-            add(indirect: .HL)
-        case 0x87:
-            add(register: .A)
-        case 0x88:
-            adc(register: .B)
-        case 0x89:
-            adc(register: .C)
-        case 0x8A:
-            adc(register: .D)
-        case 0x8B:
-            adc(register: .E)
-        case 0x8C:
-            adc(register: .H)
-        case 0x8D:
-            adc(register: .L)
-        case 0x8E:
-            adc(indirect: .HL)
-        case 0x8F:
-            adc(register: .A)
-        case 0x90:
-            sub(register: .B)
-        case 0x91:
-            sub(register: .C)
-        case 0x92:
-            sub(register: .D)
-        case 0x93:
-            sub(register: .E)
-        case 0x94:
-            sub(register: .H)
-        case 0x95:
-            sub(register: .L)
-        case 0x96:
-            sub(indirect: .HL)
-        case 0x97:
-            sub(register: .A)
-        case 0x98:
-            sbc(register: .B)
-        case 0x99:
-            sbc(register: .C)
-        case 0x9A:
-            sbc(register: .D)
-        case 0x9B:
-            sbc(register: .E)
-        case 0x9C:
-            sbc(register: .H)
-        case 0x9D:
-            sbc(register: .L)
-        case 0x9E:
-            sbc(indirect: .HL)
-        case 0x9F:
-            sbc(register: .A)
-        case 0xA0:
-            and(register: .B)
-        case 0xA1:
-            and(register: .C)
-        case 0xA2:
-            and(register: .D)
-        case 0xA3:
-            and(register: .E)
-        case 0xA4:
-            and(register: .H)
-        case 0xA5:
-            and(register: .L)
-        case 0xA6:
-            and(indirect: .HL)
-        case 0xA7:
-            and(register: .A)
-        case 0xA8:
-            xor(register: .B)
-        case 0xA9:
-            xor(register: .C)
-        case 0xAA:
-            xor(register: .D)
-        case 0xAB:
-            xor(register: .E)
-        case 0xAC:
-            xor(register: .H)
-        case 0xAD:
-            xor(register: .L)
-        case 0xAE:
-            xor(indirect: .HL)
-        case 0xAF:
-            xor(register: .A)
-        case 0xB0:
-            or(register: .B)
-        case 0xB1:
-            or(register: .C)
-        case 0xB2:
-            or(register: .D)
-        case 0xB3:
-            or(register: .E)
-        case 0xB4:
-            or(register: .H)
-        case 0xB5:
-            or(register: .L)
-        case 0xB6:
-            or(indirect: .HL)
-        case 0xB7:
-            or(register: .A)
-        case 0xB8:
-            cp(register: .B)
-        case 0xB9:
-            cp(register: .C)
-        case 0xBA:
-            cp(register: .D)
-        case 0xBB:
-            cp(register: .E)
-        case 0xBC:
-            cp(register: .H)
-        case 0xBD:
-            cp(register: .L)
-        case 0xBE:
-            cp(indirect: .HL)
-        case 0xBF:
-            cp(register: .A)
-        case 0xC0:
-            retIfNotSet(flag: .Zero)
-        case 0xC1:
-            pop(register: .BC)
-        case 0xC2:
-            jumpIfNot(type: .memoryUnsigned16Bit, flag: .Zero)
-        case 0xC3:
-            jump(type: .memoryUnsigned16Bit)
-        case 0xC4:
-            callIfNot(flag: .Zero)
-        case 0xC5:
-            push(register: .BC)
-        case 0xC6:
-            add()
-        case 0xC7:
-            rst(value: 0x00)
-        case 0xC8:
-            retIfSet(flag: .Zero)
-        case 0xC9:
-            ret()
-        case 0xCA:
-            jumpIf(type: .memoryUnsigned16Bit, flag: .Zero)
-        case 0xCB:
-            extendedOpCodes()
-        case 0xCC:
-            callIf(flag: .Zero)
-        case 0xCD:
-            call()
-        case 0xCE:
-            adc()
-        case 0xCF:
-            rst(value: 0x08)
-        case 0xD0:
-            retIfNotSet(flag: .Carry)
-        case 0xD1:
-            pop(register: .DE)
-        case 0xD2:
-            jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
-        case 0xD3:
-            return //Not Used
-        case 0xD4:
-            callIfNot(flag: .Carry)
-        case 0xD5:
-            push(register: .DE)
-        case 0xD6:
-            sub()
-        case 0xD7:
-            rst(value: 0x10)
-        case 0xD8:
-            retIfSet(flag: .Carry)
-        case 0xD9:
-            reti()
-        case 0xDA:
-            jumpIf(type: .memoryUnsigned16Bit, flag: .Carry)
-        case 0xDB:
-            return //Not Used
-        case 0xDC:
-            callIf(flag: .Carry)
-        case 0xDE:
-            sbc()
-        case 0xDF:
-            rst(value: 0x18)
-        case 0xE0:
-            loadToMemory(from: .A, masked: true)
-        case 0xE1:
-            pop(register: .HL)
-        case 0xE2:
-            loadToMemory(masked: .C)
-        case 0xE3:
-            return //Not Used
-        case 0xE4:
-            return //Not Used
-        case 0xE5:
-            push(register: .HL)
-        case 0xE6:
-            and()
-        case 0xE7:
-            rst(value: 0x20)
-        case 0xE8:
-            addSigned(to: .SP, cycles: 16)
-        case 0xE9:
-            jump(to: .HL)
-        case 0xEA:
-            loadToMemory(from: .A)
-        case 0xEB:
-            return //Not Used
-        case 0xEC:
-            return //Not Used
-        case 0xED:
-            return //Not Used
-        case 0xEE:
-            xor()
-        case 0xEF:
-            rst(value: 0x28)
-        case 0xF0:
-            loadFromMemory(to: .A, masked: true)
-        case 0xF1:
-            pop(register: .AF)
-        case 0xF2:
-            loadFromMemory(to: .A, from: .C)
-        case 0xF3:
-            set(ime: false)
-        case 0xF4:
-            return //Not Used
-        case 0xF5:
-            push(register: .AF)
-        case 0xF6:
-            or()
-        case 0xF7:
-            rst(value: 0x30)
-        case 0xF8:
-            addSigned(to: .HL, cycles: 12)
-        case 0xF9:
-            load(from: .HL, to: .SP)
-        case 0xFA:
-            loadFromMemory(to: .A, masked: false)
-        case 0xFB:
-            setIME()
-        case 0xFC:
-            return //Not Used
-        case 0xFD:
-            return //Not Used
-        case 0xFE:
-            copy()
-        case 0xFF:
-            rst(value: 0x38)
-        default:
-            fatalError("opCode 0x\(opCode.hex) not supported")
+        cycles = 0x0000
+        if state == .Running {
+            if debug {
+                currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"        }
+            
+            
+            let opCode = returnAndIncrement(indirect: .PC)
+            
+            switch opCode {
+            case 0x00: //NOP
+                cycles = cycles.addingReportingOverflow(4).partialValue
+            case 0x01:
+                loadFromMemory(to: .BC)
+            case 0x02:
+                load(indirect: .BC, register: .A)
+            case 0x03:
+                increment(register: .BC)
+            case 0x04:
+                increment(register: .B)
+            case 0x05:
+                decrement(register: .B)
+            case 0x06:
+                load(from: .PC, to: .B)
+            case 0x07:
+                rotateLeftCarry(register: .A, zeroDependant: false)
+            case 0x08:
+                loadToMemory(from: .SP)
+            case 0x09:
+                add(register: .BC)
+            case 0x0A:
+                load(register: .A, indirect: .BC)
+            case 0x0B:
+                decrement(register: .BC)
+            case 0x0C:
+                increment(register: .C)
+            case 0x0D:
+                decrement(register: .C)
+            case 0x0E:
+                load(from: .PC, to: .C)
+            case 0x0F:
+                rotateRightCarry(register: .A, zeroDependant: false)
+            //TODO: 0x10
+            case 0x11:
+                loadFromMemory(to: .DE)
+            case 0x12:
+                load(indirect: .DE, register: .A)
+            case 0x13:
+                increment(register: .DE)
+            case 0x14:
+                increment(register: .D)
+            case 0x15:
+                decrement(register: .D)
+            case 0x16:
+                load(from: .PC, to: .D)
+            case 0x17:
+                rotateLeft(register: .A, zeroDependant: false)
+            case 0x18:
+                jump(type: .memorySigned8Bit)
+            case 0x19:
+                add(register: .DE)
+            case 0x1A:
+                load(register: .A, indirect: .DE)
+            case 0x1B:
+                decrement(register: .DE)
+            case 0x1C:
+                increment(register: .E)
+            case 0x1D:
+                decrement(register: .E)
+            case 0x1E:
+                load(from: .PC, to: .E)
+            case 0x1F:
+                rotateRight(register: .A, zeroDependant: false)
+            case 0x20:
+                jumpIfNot(type: .memorySigned8Bit, flag: .Zero)
+            case 0x21:
+                loadFromMemory(to: .HL)
+            case 0x22:
+                load(indirect: .HL, register: .A)
+                increment(register: .HL, partOfOtherOpCode: true)
+            case 0x23:
+                increment(register: .HL)
+            case 0x24:
+                increment(register: .H)
+            case 0x25:
+                decrement(register: .H)
+            case 0x26:
+                load(from: .PC, to: .H)
+            case 0x27:
+                daa()
+            case 0x28:
+                jumpIf(type: .memorySigned8Bit, flag: .Zero)
+            case 0x29:
+                add(register: .HL)
+            case 0x2A:
+                load(register: .A, indirect: .HL)
+                increment(register: .HL, partOfOtherOpCode: true)
+            case 0x2B:
+                decrement(register: .HL)
+            case 0x2C:
+                increment(register: .L)
+            case 0x2D:
+                decrement(register: .L)
+            case 0x2E:
+                load(from: .PC, to: .L)
+            case 0x2F:
+                cpl()
+            case 0x30:
+                jumpIfNot(type: .memorySigned8Bit, flag: .Carry)
+            case 0x31:
+                loadFromMemory(to: .SP)
+            case 0x32:
+                load(indirect: .HL, register: .A)
+                decrement(register: .HL, partOfOtherOpCode: true)
+            case 0x33:
+                increment(register: .SP)
+            case 0x34:
+                increment(indirect: .HL)
+            case 0x35:
+                decrement(indirect: .HL)
+            case 0x36:
+                load(indirect: .HL)
+            case 0x37:
+                setCarryFlag()
+            case 0x38:
+                jumpIf(type: .memorySigned8Bit, flag: .Carry)
+            case 0x39:
+                add(register: .SP)
+            case 0x3A:
+                load(register: .A, indirect: .HL)
+                decrement(register: .HL, partOfOtherOpCode: true)
+            case 0x3B:
+                decrement(register: .SP)
+            case 0x3C:
+                increment(register: .A)
+            case 0x3D:
+                decrement(register: .A)
+            case 0x3E:
+                load(from: .PC, to: .A)
+            case 0x3F:
+                ccf()
+            case 0x40:
+                load(from: .B, to: .B)
+            case 0x41:
+                load(from: .C, to: .B)
+            case 0x42:
+                load(from: .D, to: .B)
+            case 0x43:
+                load(from: .E, to: .B)
+            case 0x44:
+                load(from: .H, to: .B)
+            case 0x45:
+                load(from: .L, to: .B)
+            case 0x46:
+                load(register: .B, indirect: .HL)
+            case 0x47:
+                load(from: .A, to: .B)
+            case 0x48:
+                load(from: .B, to: .C)
+            case 0x49:
+                load(from: .C, to: .C)
+            case 0x4A:
+                load(from: .D, to: .C)
+            case 0x4B:
+                load(from: .E, to: .C)
+            case 0x4C:
+                load(from: .H, to: .C)
+            case 0x4D:
+                load(from: .L, to: .C)
+            case 0x4E:
+                load(register: .C, indirect: .HL)
+            case 0x4F:
+                load(from: .A, to: .C)
+            case 0x50:
+                load(from: .B, to: .D)
+            case 0x51:
+                load(from: .C, to: .D)
+            case 0x52:
+                load(from: .D, to: .D)
+            case 0x53:
+                load(from: .E, to: .D)
+            case 0x54:
+                load(from: .H, to: .D)
+            case 0x55:
+                load(from: .L, to: .D)
+            case 0x56:
+                load(register: .D, indirect: .HL)
+            case 0x57:
+                load(from: .A, to: .D)
+            case 0x58:
+                load(from: .B, to: .E)
+            case 0x59:
+                load(from: .C, to: .E)
+            case 0x5A:
+                load(from: .D, to: .E)
+            case 0x5B:
+                load(from: .E, to: .E)
+            case 0x5C:
+                load(from: .H, to: .E)
+            case 0x5D:
+                load(from: .L, to: .E)
+            case 0x5E:
+                load(register: .E, indirect: .HL)
+            case 0x5F:
+                load(from: .A, to: .E)
+            case 0x60:
+                load(from: .B, to: .H)
+            case 0x61:
+                load(from: .C, to: .H)
+            case 0x62:
+                load(from: .D, to: .H)
+            case 0x63:
+                load(from: .E, to: .H)
+            case 0x64:
+                load(from: .H, to: .H)
+            case 0x65:
+                load(from: .L, to: .H)
+            case 0x66:
+                load(register: .H, indirect: .HL)
+            case 0x67:
+                load(from: .A, to: .H)
+            case 0x68:
+                load(from: .B, to: .L)
+            case 0x69:
+                load(from: .C, to: .L)
+            case 0x6A:
+                load(from: .D, to: .L)
+            case 0x6B:
+                load(from: .E, to: .L)
+            case 0x6C:
+                load(from: .H, to: .L)
+            case 0x6D:
+                load(from: .L, to: .L)
+            case 0x6E:
+                load(register: .L, indirect: .HL)
+            case 0x6F:
+                load(from: .A, to: .L)
+            case 0x70:
+                load(indirect: .HL, register: .B)
+            case 0x71:
+                load(indirect: .HL, register: .C)
+            case 0x72:
+                load(indirect: .HL, register: .D)
+            case 0x73:
+                load(indirect: .HL, register: .E)
+            case 0x74:
+                load(indirect: .HL, register: .H)
+            case 0x75:
+                load(indirect: .HL, register: .L)
+            case 0x76:
+                halt()
+            case 0x77:
+                load(indirect: .HL, register: .A)
+            case 0x78:
+                load(from: .B, to: .A)
+            case 0x79:
+                load(from: .C, to: .A)
+            case 0x7A:
+                load(from: .D, to: .A)
+            case 0x7B:
+                load(from: .E, to: .A)
+            case 0x7C:
+                load(from: .H, to: .A)
+            case 0x7D:
+                load(from: .L, to: .A)
+            case 0x7E:
+                load(register: .A, indirect: .HL)
+            case 0x7F:
+                load(from: .A, to: .A)
+            case 0x80:
+                add(register: .B)
+            case 0x81:
+                add(register: .C)
+            case 0x82:
+                add(register: .D)
+            case 0x83:
+                add(register: .E)
+            case 0x84:
+                add(register: .H)
+            case 0x85:
+                add(register: .L)
+            case 0x86:
+                add(indirect: .HL)
+            case 0x87:
+                add(register: .A)
+            case 0x88:
+                adc(register: .B)
+            case 0x89:
+                adc(register: .C)
+            case 0x8A:
+                adc(register: .D)
+            case 0x8B:
+                adc(register: .E)
+            case 0x8C:
+                adc(register: .H)
+            case 0x8D:
+                adc(register: .L)
+            case 0x8E:
+                adc(indirect: .HL)
+            case 0x8F:
+                adc(register: .A)
+            case 0x90:
+                sub(register: .B)
+            case 0x91:
+                sub(register: .C)
+            case 0x92:
+                sub(register: .D)
+            case 0x93:
+                sub(register: .E)
+            case 0x94:
+                sub(register: .H)
+            case 0x95:
+                sub(register: .L)
+            case 0x96:
+                sub(indirect: .HL)
+            case 0x97:
+                sub(register: .A)
+            case 0x98:
+                sbc(register: .B)
+            case 0x99:
+                sbc(register: .C)
+            case 0x9A:
+                sbc(register: .D)
+            case 0x9B:
+                sbc(register: .E)
+            case 0x9C:
+                sbc(register: .H)
+            case 0x9D:
+                sbc(register: .L)
+            case 0x9E:
+                sbc(indirect: .HL)
+            case 0x9F:
+                sbc(register: .A)
+            case 0xA0:
+                and(register: .B)
+            case 0xA1:
+                and(register: .C)
+            case 0xA2:
+                and(register: .D)
+            case 0xA3:
+                and(register: .E)
+            case 0xA4:
+                and(register: .H)
+            case 0xA5:
+                and(register: .L)
+            case 0xA6:
+                and(indirect: .HL)
+            case 0xA7:
+                and(register: .A)
+            case 0xA8:
+                xor(register: .B)
+            case 0xA9:
+                xor(register: .C)
+            case 0xAA:
+                xor(register: .D)
+            case 0xAB:
+                xor(register: .E)
+            case 0xAC:
+                xor(register: .H)
+            case 0xAD:
+                xor(register: .L)
+            case 0xAE:
+                xor(indirect: .HL)
+            case 0xAF:
+                xor(register: .A)
+            case 0xB0:
+                or(register: .B)
+            case 0xB1:
+                or(register: .C)
+            case 0xB2:
+                or(register: .D)
+            case 0xB3:
+                or(register: .E)
+            case 0xB4:
+                or(register: .H)
+            case 0xB5:
+                or(register: .L)
+            case 0xB6:
+                or(indirect: .HL)
+            case 0xB7:
+                or(register: .A)
+            case 0xB8:
+                cp(register: .B)
+            case 0xB9:
+                cp(register: .C)
+            case 0xBA:
+                cp(register: .D)
+            case 0xBB:
+                cp(register: .E)
+            case 0xBC:
+                cp(register: .H)
+            case 0xBD:
+                cp(register: .L)
+            case 0xBE:
+                cp(indirect: .HL)
+            case 0xBF:
+                cp(register: .A)
+            case 0xC0:
+                retIfNotSet(flag: .Zero)
+            case 0xC1:
+                pop(register: .BC)
+            case 0xC2:
+                jumpIfNot(type: .memoryUnsigned16Bit, flag: .Zero)
+            case 0xC3:
+                jump(type: .memoryUnsigned16Bit)
+            case 0xC4:
+                callIfNot(flag: .Zero)
+            case 0xC5:
+                push(register: .BC)
+            case 0xC6:
+                add()
+            case 0xC7:
+                rst(value: 0x00)
+            case 0xC8:
+                retIfSet(flag: .Zero)
+            case 0xC9:
+                ret()
+            case 0xCA:
+                jumpIf(type: .memoryUnsigned16Bit, flag: .Zero)
+            case 0xCB:
+                extendedOpCodes()
+            case 0xCC:
+                callIf(flag: .Zero)
+            case 0xCD:
+                call()
+            case 0xCE:
+                adc()
+            case 0xCF:
+                rst(value: 0x08)
+            case 0xD0:
+                retIfNotSet(flag: .Carry)
+            case 0xD1:
+                pop(register: .DE)
+            case 0xD2:
+                jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
+            case 0xD3:
+                return //Not Used
+            case 0xD4:
+                callIfNot(flag: .Carry)
+            case 0xD5:
+                push(register: .DE)
+            case 0xD6:
+                sub()
+            case 0xD7:
+                rst(value: 0x10)
+            case 0xD8:
+                retIfSet(flag: .Carry)
+            case 0xD9:
+                reti()
+            case 0xDA:
+                jumpIf(type: .memoryUnsigned16Bit, flag: .Carry)
+            case 0xDB:
+                return //Not Used
+            case 0xDC:
+                callIf(flag: .Carry)
+            case 0xDE:
+                sbc()
+            case 0xDF:
+                rst(value: 0x18)
+            case 0xE0:
+                loadToMemory(from: .A, masked: true)
+            case 0xE1:
+                pop(register: .HL)
+            case 0xE2:
+                loadToMemory(masked: .C)
+            case 0xE3:
+                return //Not Used
+            case 0xE4:
+                return //Not Used
+            case 0xE5:
+                push(register: .HL)
+            case 0xE6:
+                and()
+            case 0xE7:
+                rst(value: 0x20)
+            case 0xE8:
+                addSigned(to: .SP, cycles: 16)
+            case 0xE9:
+                jump(to: .HL)
+            case 0xEA:
+                loadToMemory(from: .A)
+            case 0xEB:
+                return //Not Used
+            case 0xEC:
+                return //Not Used
+            case 0xED:
+                return //Not Used
+            case 0xEE:
+                xor()
+            case 0xEF:
+                rst(value: 0x28)
+            case 0xF0:
+                loadFromMemory(to: .A, masked: true)
+            case 0xF1:
+                pop(register: .AF)
+            case 0xF2:
+                loadFromMemory(to: .A, from: .C)
+            case 0xF3:
+                DI()
+            case 0xF4:
+                return //Not Used
+            case 0xF5:
+                push(register: .AF)
+            case 0xF6:
+                or()
+            case 0xF7:
+                rst(value: 0x30)
+            case 0xF8:
+                addSigned(to: .HL, cycles: 12)
+            case 0xF9:
+                load(from: .HL, to: .SP)
+            case 0xFA:
+                loadFromMemory(to: .A, masked: false)
+            case 0xFB:
+                EI()
+            case 0xFC:
+                return //Not Used
+            case 0xFD:
+                return //Not Used
+            case 0xFE:
+                copy()
+            case 0xFF:
+                rst(value: 0x38)
+            default:
+                fatalError("opCode 0x\(opCode.hex) not supported")
+            }
         }
+        
+        
+        //processInterrupts()
+        bus.updateDiv(cycles: cycles)
+        //bus.ppu.fetch(cycles: cycles)
+        
     }
     
     mutating func extendedOpCodes() {
@@ -1089,6 +1100,36 @@ struct CPU {
             set(bit: 7, register: .A, value: true)
         default:
             fatalError("extended opCode 0x\(opCode.hex) not supported")
+        }
+    }
+    
+    mutating func processInterrupts() {
+        if bus.ppu.setVBlankInterrupt {
+            bus.write(interruptFlagType: .VBlank, value: true)
+            bus.ppu.setVBlankInterrupt = false
+        }
+        //TODO: set other InterruptFlag
+        
+        if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
+            state = .Running
+        }
+        
+        if registers.readIme() {
+            if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
+                set(ime: false)
+                bus.write(interruptFlagType: .VBlank, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x40)
+            }
         }
     }
     
@@ -2262,7 +2303,13 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func setIME() {
+    mutating func DI() {
+        registers.write(ime: false)
+        
+        cycles = cycles.addingReportingOverflow(4).partialValue
+    }
+    
+    mutating func EI() {
         registers.write(ime: true)
         
         cycles = cycles.addingReportingOverflow(4).partialValue
@@ -2360,6 +2407,10 @@ struct CPU {
         registers.write(register: .PC, value: (UInt16(0x00) << 8 | UInt16(value)))
         
         cycles = cycles.addingReportingOverflow(16).partialValue
+    }
+    
+    mutating func halt() {
+        state = .Halted
     }
 }
 

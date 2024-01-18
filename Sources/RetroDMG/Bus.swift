@@ -46,9 +46,15 @@ struct Bus {
         if location >= 0x8000 && location <= 0x97FF {
             ppu.memory[Int(location - 0x8000)] = value
         } else if location >= 0x9800 && location <= 0x9BFF {
-            ppu.tilemap9800[Int(location - 0x9800)] = value
+            if ppu.mode != .Draw {
+                ppu.tilemap9800[Int(location - 0x9800)] = value
+            }
         } else if location >= 0x9C00 && location <= 0x9FFF {
-            ppu.tilemap9C00[Int(location - 0x9C00)] = value
+            if ppu.mode != .Draw {
+                ppu.tilemap9C00[Int(location - 0x9C00)] = value
+            }
+        } else if location == 0xFF0F {
+            interruptFlag = value
         } else if location == 0xFF04 {
             div = 0x0000
             lastDivCycle = 0x0000
@@ -60,6 +66,8 @@ struct Bus {
             ppu.scx = value
         } else if location == 0xFF44 {
             return
+        } else if location == 0xFFFF {
+            interruptEnabled = value
         }
 //        else if location == 0xFF02 && value == 0x81 {
 //            print(Character(UnicodeScalar(memory[0xFF01])), terminator: "")
@@ -78,6 +86,40 @@ struct Bus {
         memory.replaceSubrange(0...rom.count, with: rom)
     }
     
+    mutating func write(interruptEnableType: InterruptType, value: Bool) {
+        switch interruptEnableType {
+         case .VBlank:
+            interruptEnabled.set(bit: 0, value: value)
+         case .LCD:
+            interruptEnabled.set(bit: 1, value: value)
+         case .Timer:
+            interruptEnabled.set(bit: 2, value: value)
+         case .Serial:
+            interruptEnabled.set(bit: 3, value: value)
+         case .Joypad:
+            interruptEnabled.set(bit: 4, value: value)
+        default:
+            fatalError("Interrupt Type not implemented \(interruptEnableType)")
+        }
+    }
+    
+    mutating func write(interruptFlagType: InterruptType, value: Bool) {
+        switch interruptFlagType {
+         case .VBlank:
+            interruptFlag.set(bit: 0, value: value)
+         case .LCD:
+            interruptFlag.set(bit: 1, value: value)
+         case .Timer:
+            interruptFlag.set(bit: 2, value: value)
+         case .Serial:
+            interruptFlag.set(bit: 3, value: value)
+         case .Joypad:
+            interruptFlag.set(bit: 4, value: value)
+        default:
+            fatalError("Interrupt Type not implemented \(interruptFlagType)")
+        }
+    }
+    
     mutating func read(location: UInt16) -> UInt8 {
         let location = Int(location)
         if location > memory.count {
@@ -93,10 +135,16 @@ struct Bus {
         }
         
         if location >= 0x8000 && location <= 0x97FF {
+            if ppu.mode == .Draw {
+                return 0xFF
+            }
             return ppu.memory[Int(location - 0x8000)]
         }
         
         if location >= 0x9800 && location <= 0x9BFF {
+            if ppu.mode == .Draw {
+                return 0xFF
+            }
             return ppu.tilemap9800[Int(location - 0x9800)]
         }
         
@@ -108,16 +156,74 @@ struct Bus {
             return 0xFF
         }
         
-        
+        if location == 0xFF0F {
+            return interruptFlag
+        }
         
         if location == 0xFF40 {
             return ppu.control
+        }
+        
+        if location == 0xFF42 {
+            return ppu.scx
+        }
+        
+        if location == 0xFF43 {
+            return ppu.scy
         }
         
         if location == 0xFF44 {
             return ppu.ly
         }
         
+        if location == 0xFFFF {
+            return interruptEnabled
+        }
+        
         return memory[location]
     }
+    
+    func read(interruptEnableType: InterruptType) -> Bool {
+        switch interruptEnableType {
+         case .VBlank:
+            interruptEnabled.get(bit: 0)
+         case .LCD:
+            interruptEnabled.get(bit: 1)
+         case .Timer:
+            interruptEnabled.get(bit: 2)
+         case .Serial:
+            interruptEnabled.get(bit: 3)
+         case .Joypad:
+            interruptEnabled.get(bit: 4)
+        default:
+            fatalError("Interrupt Type not implemented \(interruptEnableType)")
+        }
+    }
+    
+    func read(interruptFlagType: InterruptType) {
+        switch interruptFlagType {
+        case .VBlank:
+            interruptFlag.get(bit: 0)
+        case .LCD:
+            interruptFlag.get(bit: 1)
+        case .Timer:
+            interruptFlag.get(bit: 2)
+        case .Serial:
+            interruptFlag.get(bit: 3)
+        case .Joypad:
+            interruptFlag.get(bit: 4)
+        default:
+            fatalError("Interrupt Type not implemented \(interruptFlagType)")
+        }
+    }
 }
+
+enum InterruptType {
+    case VBlank
+    case LCD
+    case Timer
+    case Serial
+    case Joypad
+}
+
+

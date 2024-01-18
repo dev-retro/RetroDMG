@@ -12,13 +12,16 @@ struct PPU {
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var viewPort: [Int]
+    var tempViewPort: [Int]
     var scx: UInt8
     var scy: UInt8
     var ly: UInt8
+    var mode: PPUMode
+    var setVBlankInterrupt: Bool
     
-    private var cycle: Int
-    private var mode: PPUMode
-    
+    private var cycles: UInt16
+    private var x: Int
+    private var drawn: Bool
     
     //MARK: PPU Registers
     var control: UInt8
@@ -29,7 +32,8 @@ struct PPU {
         tilemap9800 = [UInt8](repeating: 0, count: 0x0400)
         tilemap9C00 = [UInt8](repeating: 0, count: 0x0400)
         viewPort = [Int](repeating: 0, count: 22400)
-        cycle = 0
+        tempViewPort = [Int](repeating: 0, count: 22400)
+        cycles = 0
         
         control = 0x00
         status = 0x80
@@ -39,9 +43,74 @@ struct PPU {
         scy = 0x00
         
         ly = 0x00
+        
+        mode = .OAM
+        
+        x = 0
+        drawn = false
+        setVBlankInterrupt = false
     }
         
     //MARK: Line based rendering
+    
+    public mutating func fetch(cycles: UInt16) {
+        self.cycles += cycles
+    
+        if mode != .VerticalBlank && self.cycles >= 0 && self.cycles < 80 {
+            
+        } else if mode != .VerticalBlank && self.cycles < 289 {
+            mode = .Draw
+            
+            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
+            if !drawn {
+                x = 0
+                for _ in stride(from: 0, to: 160, by: 8) {
+                    var fetcherX = x + (Int(scx) / 8) & 0x1F
+                    var fetcherY = (Int(ly) + Int(scy)) & 0xFF
+                    
+                    var tilemapAddress = x + ((fetcherY / 8) * 0x20)
+                    
+                    var tileNo = tilemap[Int(tilemapAddress)]
+                    
+                    var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+                    tileLocation += (2 * (fetcherY % 8))
+                    
+                    
+                    let byte1 = memory[Int(tileLocation)]
+                    let byte2 = memory[Int(tileLocation + 0x1)]
+                    var tile = createPixelRow(byte1: byte1, byte2: byte2)
+                    
+                    tempViewPort.append(contentsOf: tile)
+                    x += 1
+                }
+            }
+            
+            drawn = true
+            
+        } else if mode != .VerticalBlank && self.cycles < 456 {
+            mode = .HorizontalBlank
+            
+        } else {
+            ly += 1
+            if ly < 144 {
+                mode = .OAM
+            } else if ly >= 144 && ly <= 153  {
+                mode = .VerticalBlank
+                setVBlankInterrupt = true
+            } else {
+                mode = .OAM
+                ly = 0
+                viewPort.removeAll()
+                viewPort = tempViewPort
+                tempViewPort.removeAll()
+            }
+            
+            if self.cycles > 456 {
+                drawn = false
+                self.cycles = self.cycles - 456
+            }
+        }
+    }
     
     public mutating func fetch() {
         viewPort.removeAll()
