@@ -2412,6 +2412,99 @@ struct CPU {
     mutating func halt() {
         state = .Halted
     }
+    
+    mutating func processInterrupt() {
+        if registers.readIme() {
+            
+            cycles = cycles.addingReportingOverflow(8).partialValue
+            
+            if bus.read(interruptEnableType: .VBlank) && bus.read(interruptFlagType: .VBlank) {
+                registers.write(ime: false)
+                bus.write(interruptFlagType: .VBlank, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x40)
+                
+                cycles = cycles.addingReportingOverflow(12).partialValue
+                
+            } else if bus.read(interruptEnableType: .LCD) && bus.read(interruptFlagType: .LCD) {
+                registers.write(ime: false)
+                bus.write(interruptFlagType: .LCD, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x48)
+                
+                cycles = cycles.addingReportingOverflow(12).partialValue
+                
+            } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptFlagType: .Timer) {
+                registers.write(ime: false)
+                bus.write(interruptFlagType: .Timer, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x50)
+                
+                cycles = cycles.addingReportingOverflow(12).partialValue
+                
+            } else if bus.read(interruptEnableType: .Serial) && bus.read(interruptFlagType: .Serial) {
+                registers.write(ime: false)
+                bus.write(interruptFlagType: .Serial, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x58)
+                
+                cycles = cycles.addingReportingOverflow(12).partialValue
+                
+            } else if bus.read(interruptEnableType: .Joypad) && bus.read(interruptFlagType: .Joypad) {
+                registers.write(ime: false)
+                bus.write(interruptFlagType: .Joypad, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x60)
+                
+                cycles = cycles.addingReportingOverflow(12).partialValue
+            }
+        }
+    }
 }
 
 enum JumpType {

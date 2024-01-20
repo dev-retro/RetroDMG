@@ -200,18 +200,18 @@ struct Bus {
         }
     }
     
-    func read(interruptFlagType: InterruptType) {
+    func read(interruptFlagType: InterruptType) -> Bool {
         switch interruptFlagType {
         case .VBlank:
-            interruptFlag.get(bit: 0)
+            return interruptFlag.get(bit: 0)
         case .LCD:
-            interruptFlag.get(bit: 1)
+            return interruptFlag.get(bit: 1)
         case .Timer:
-            interruptFlag.get(bit: 2)
+            return interruptFlag.get(bit: 2)
         case .Serial:
-            interruptFlag.get(bit: 3)
+            return interruptFlag.get(bit: 3)
         case .Joypad:
-            interruptFlag.get(bit: 4)
+            return interruptFlag.get(bit: 4)
         default:
             fatalError("Interrupt Type not implemented \(interruptFlagType)")
         }

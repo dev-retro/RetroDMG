@@ -12,6 +12,10 @@ public struct RetroDMG {
         cpu.tick()
     }
     
+    public mutating func processInterrupt() {
+        cpu.processInterrupt()
+    }
+    
     public mutating func debug(enabled: Bool) {
         cpu.debug = enabled
     }
