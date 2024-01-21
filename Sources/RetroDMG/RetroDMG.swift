@@ -16,6 +16,10 @@ public struct RetroDMG {
         cpu.processInterrupt()
     }
     
+    public mutating func updateTimer() {
+        cpu.updateTimer()
+    }
+    
     public mutating func debug(enabled: Bool) {
         cpu.debug = enabled
     }

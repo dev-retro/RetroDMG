@@ -13,11 +13,14 @@ case Halted, Running
 
 struct CPU {
     var registers: Registers
-    var cycles: UInt16
+    var cycles: UInt8
     var state: CPUState
     var bus: Bus
     var currentState: String
     var debug: Bool
+    var printDebug: Bool
+    var previousAndResult: Bool
+    var delayedImeWrite: Bool
     
     init() {
         registers = Registers()
@@ -26,7 +29,9 @@ struct CPU {
         bus = Bus()
         currentState = ""
         debug = false
-        
+        printDebug = false
+        previousAndResult = false
+        delayedImeWrite = false
     }
     
     mutating func start() {
@@ -43,15 +48,23 @@ struct CPU {
             registers.write(register: .PC, value: 0x0100)
             registers.write(register: .SP, value: 0xFFFE)
             
-            bus.div = 0xAB
+            bus.write(location: 0xFF04, value: 0xAB)
         }
     }
     
     mutating func tick() {
+        if delayedImeWrite {
+            registers.write(ime: true)
+            delayedImeWrite = false
+        }
         cycles = 0x0000
         if state == .Running {
             if debug {
-                currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"        }
+                currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
+                if printDebug {
+                    print(currentState)
+                }
+            }
             
             
             let opCode = returnAndIncrement(indirect: .PC)
@@ -575,9 +588,6 @@ struct CPU {
             }
         }
         
-        
-        //processInterrupts()
-        bus.updateDiv(cycles: cycles)
         //bus.ppu.fetch(cycles: cycles)
         
     }
@@ -1108,6 +1118,7 @@ struct CPU {
             bus.write(interruptFlagType: .VBlank, value: true)
             bus.ppu.setVBlankInterrupt = false
         }
+        
         //TODO: set other InterruptFlag
         
         if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
@@ -1129,6 +1140,20 @@ struct CPU {
                 bus.write(location: registers.read(register: .SP), value: pcLsb)
                 
                 registers.write(register: .PC, value: 0x40)
+            } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptEnableType: .Timer) {
+                set(ime: false)
+                bus.write(interruptFlagType: .Timer, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x50)
             }
         }
     }
@@ -1738,7 +1763,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func addSigned(to register: RegisterType16, cycles cyclesCount: UInt16) {
+    mutating func addSigned(to register: RegisterType16, cycles cyclesCount: UInt8) {
         let sp = registers.read(register: .SP)
         let value = Int8(bitPattern: returnAndIncrement(indirect: .PC))
         
@@ -2310,7 +2335,7 @@ struct CPU {
     }
     
     mutating func EI() {
-        registers.write(ime: true)
+        delayedImeWrite = true
         
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
@@ -2504,6 +2529,44 @@ struct CPU {
                 cycles = cycles.addingReportingOverflow(12).partialValue
             }
         }
+    }
+        
+        
+    mutating func updateTimer() {
+        bus.div = bus.div.addingReportingOverflow(UInt16(cycles)).partialValue
+        var timaEnabled = bus.read(tacType: .enable)
+
+        var tacLow = bus.read(tacType: .low)
+        var tacHigh = bus.read(tacType: .high)
+
+        var andResult = false
+        var div = bus.read(location: 0xFF04)
+        if tacLow {
+            if tacHigh {
+                andResult = timaEnabled && div.get(bit: 7)
+            } else {
+                andResult = timaEnabled && div.get(bit: 3)
+            }
+        } else {
+            if tacHigh {
+                andResult = timaEnabled && div.get(bit: 5)
+            } else {
+                andResult = timaEnabled && div.get(bit: 9)
+            }
+        }
+
+        if previousAndResult && !andResult {
+            var tima = bus.read(location: 0xFF05).addingReportingOverflow(1)
+            
+            if tima.overflow {
+                tima.partialValue = bus.read(location: 0xFF06)
+                bus.write(interruptFlagType: .Timer, value: true)
+            }
+            
+            bus.write(location: 0xFF05, value: tima.partialValue)
+        }
+        
+        previousAndResult = andResult
     }
 }
 

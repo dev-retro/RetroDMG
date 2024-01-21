@@ -15,8 +15,9 @@ struct Bus {
     var bootromLoaded: Bool
     public var ppu: PPU
     var div: UInt16
-    var lastDivCycle: UInt16
-    
+    var tac: UInt8
+    var tima: UInt8
+    var tma: UInt8
     
     init() {
         memory = [UInt8](repeating: 0, count: 65537)
@@ -26,15 +27,9 @@ struct Bus {
         interruptFlag = 0x00
         ppu = PPU()
         div = 0x0000
-        lastDivCycle = 0x0000
-    }
-    
-    mutating func updateDiv(cycles: UInt16) {
-        var divOverflowCheck = lastDivCycle.addingReportingOverflow(256)
-        if divOverflowCheck.overflow || divOverflowCheck.partialValue <= cycles {
-            div = div.addingReportingOverflow(0x1).partialValue
-            lastDivCycle = cycles
-        }
+        tac = 0x00
+        tima = 0x00
+        tma = 0x00
     }
     
     mutating func write(location: UInt16, value: UInt8) {
@@ -57,7 +52,12 @@ struct Bus {
             interruptFlag = value
         } else if location == 0xFF04 {
             div = 0x0000
-            lastDivCycle = 0x0000
+        } else if location == 0xFF05 {
+            tima = value
+        } else if location == 0xFF06 {
+            tma = value
+        } else if location == 0xFF07 {
+            tac = value
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF42 {
@@ -156,6 +156,23 @@ struct Bus {
             return 0xFF
         }
         
+        if location == 0xFF04 {
+            var upper = UInt8(div >> 8)
+            return upper
+        }
+        
+        if location == 0xFF05 {
+            return tima
+        }
+        
+        if location == 0xFF06 {
+            return tma
+        }
+        
+        if location == 0xFF07 {
+            return tac
+        }
+        
         if location == 0xFF0F {
             return interruptFlag
         }
@@ -173,7 +190,7 @@ struct Bus {
         }
         
         if location == 0xFF44 {
-            return ppu.ly
+            return 0x90 // ppu.ly
         }
         
         if location == 0xFFFF {
@@ -216,6 +233,17 @@ struct Bus {
             fatalError("Interrupt Type not implemented \(interruptFlagType)")
         }
     }
+    
+    func read(tacType: TacType) -> Bool {
+        switch tacType {
+        case .low:
+            return tac.get(bit: 0)
+        case .high:
+            return tac.get(bit: 1)
+        case .enable:
+            return tac.get(bit: 2)
+        }
+    }
 }
 
 enum InterruptType {
@@ -226,4 +254,8 @@ enum InterruptType {
     case Joypad
 }
 
-
+enum TacType {
+    case enable
+    case low
+    case high
+}
