@@ -190,7 +190,7 @@ struct Bus {
         }
         
         if location == 0xFF44 {
-            return 0x90 // ppu.ly
+            return ppu.ly //0x90 
         }
         
         if location == 0xFFFF {

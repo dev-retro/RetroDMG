@@ -13,7 +13,7 @@ case Halted, Running
 
 struct CPU {
     var registers: Registers
-    var cycles: UInt8
+    var cycles: UInt16
     var state: CPUState
     var bus: Bus
     var currentState: String
@@ -52,7 +52,7 @@ struct CPU {
         }
     }
     
-    mutating func tick() {
+    mutating func tick() -> UInt16 {
         if delayedImeWrite {
             registers.write(ime: true)
             delayedImeWrite = false
@@ -496,7 +496,7 @@ struct CPU {
             case 0xD2:
                 jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
             case 0xD3:
-                return //Not Used
+                return 0//Not Used
             case 0xD4:
                 callIfNot(flag: .Carry)
             case 0xD5:
@@ -512,7 +512,7 @@ struct CPU {
             case 0xDA:
                 jumpIf(type: .memoryUnsigned16Bit, flag: .Carry)
             case 0xDB:
-                return //Not Used
+                return 0//Not Used
             case 0xDC:
                 callIf(flag: .Carry)
             case 0xDE:
@@ -526,9 +526,9 @@ struct CPU {
             case 0xE2:
                 loadToMemory(masked: .C)
             case 0xE3:
-                return //Not Used
+                return 0//Not Used
             case 0xE4:
-                return //Not Used
+                return 0//Not Used
             case 0xE5:
                 push(register: .HL)
             case 0xE6:
@@ -542,11 +542,11 @@ struct CPU {
             case 0xEA:
                 loadToMemory(from: .A)
             case 0xEB:
-                return //Not Used
+                return 0//Not Used
             case 0xEC:
-                return //Not Used
+                return 0//Not Used
             case 0xED:
-                return //Not Used
+                return 0//Not Used
             case 0xEE:
                 xor()
             case 0xEF:
@@ -560,7 +560,7 @@ struct CPU {
             case 0xF3:
                 DI()
             case 0xF4:
-                return //Not Used
+                return 0//Not Used
             case 0xF5:
                 push(register: .AF)
             case 0xF6:
@@ -576,9 +576,9 @@ struct CPU {
             case 0xFB:
                 EI()
             case 0xFC:
-                return //Not Used
+                return 0//Not Used
             case 0xFD:
-                return //Not Used
+                return 0//Not Used
             case 0xFE:
                 copy()
             case 0xFF:
@@ -588,7 +588,7 @@ struct CPU {
             }
         }
         
-        //bus.ppu.fetch(cycles: cycles)
+        return cycles
         
     }
     
@@ -1763,7 +1763,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func addSigned(to register: RegisterType16, cycles cyclesCount: UInt8) {
+    mutating func addSigned(to register: RegisterType16, cycles cyclesCount: UInt16) {
         let sp = registers.read(register: .SP)
         let value = Int8(bitPattern: returnAndIncrement(indirect: .PC))
         

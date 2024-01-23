@@ -8,8 +8,8 @@ public struct RetroDMG {
         self.cpu = CPU()
     }
     
-    public mutating func tick() {
-        cpu.tick()
+    public mutating func tick() -> UInt16 {
+        return cpu.tick()
     }
     
     public mutating func processInterrupt() {
@@ -18,6 +18,10 @@ public struct RetroDMG {
     
     public mutating func updateTimer() {
         cpu.updateTimer()
+    }
+    
+    public mutating func updateGraphics(cycles: UInt16) {
+        cpu.bus.ppu.updateGraphics(cycles: cycles)
     }
     
     public mutating func debug(enabled: Bool) {
@@ -38,6 +42,10 @@ public struct RetroDMG {
         
     }
     
+    public func shouldRender() -> Bool {
+        cpu.bus.ppu.mode == .VerticalBlank
+    }
+    
     public func ppuTest() -> [Int] {
         return cpu.bus.ppu.createTile()
     }
@@ -51,7 +59,7 @@ public struct RetroDMG {
     }
     
     public mutating func viewPort() -> [Int] {
-        cpu.bus.ppu.fetch()
+        //cpu.bus.ppu.fetch()
         return cpu.bus.ppu.viewPort
     }
     

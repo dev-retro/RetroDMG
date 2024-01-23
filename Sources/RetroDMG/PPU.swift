@@ -22,6 +22,7 @@ struct PPU {
     private var cycles: UInt16
     private var x: Int
     private var drawn: Bool
+    private var drawEnd: Int
     
     //MARK: PPU Registers
     var control: UInt8
@@ -29,10 +30,10 @@ struct PPU {
     
     init() {
         memory = [UInt8](repeating: 0, count: 0x1800)
-        tilemap9800 = [UInt8](repeating: 0, count: 0x0400)
-        tilemap9C00 = [UInt8](repeating: 0, count: 0x0400)
-        viewPort = [Int](repeating: 0, count: 22400)
-        tempViewPort = [Int](repeating: 0, count: 22400)
+        tilemap9800 = [UInt8](repeating: 0, count: 0x400)
+        tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
+        viewPort = [Int]()
+        tempViewPort = [Int]()
         cycles = 0
         
         control = 0x00
@@ -49,9 +50,72 @@ struct PPU {
         x = 0
         drawn = false
         setVBlankInterrupt = false
+        drawEnd = 252
     }
         
     //MARK: Line based rendering
+    
+    public mutating func updateGraphics(cycles: UInt16) {
+        self.cycles += cycles
+        
+        
+        if ly == 144 {
+            mode = .VerticalBlank
+            setVBlankInterrupt = true
+        } else if ly > 153 {
+            mode = .OAM
+            ly = 0
+            viewPort.removeAll()
+        }
+        
+        if mode != .VerticalBlank {
+            if self.cycles >= 0 && self.cycles < 80 {
+                mode = .OAM
+                
+            } else if self.cycles >= 80 && self.cycles < drawEnd {
+                mode = .Draw
+
+            } else if self.cycles >= drawEnd && self.cycles < 456 {
+                mode = .HorizontalBlank
+                if !drawn {
+                    var x = 0
+                    for _ in stride(from: 0, to: 160, by: 8) {
+                        let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
+                        var fetcherX = ((Int(scx) / 8) + x) & 0x1F
+                        var fetcherY = (Int(ly) + Int(scy)) & 255
+                        
+                        var tilemapAddress = fetcherX + ((fetcherY / 8) * 0x20)
+                        
+                        var tileNo = tilemap[Int(tilemapAddress)]
+                        
+                        var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+                        tileLocation += (2 * (fetcherY % 8))
+                        
+                        
+                        let byte1 = memory[Int(tileLocation)]
+                        let byte2 = memory[Int(tileLocation + 0x1)]
+                        var tile = createPixelRow(byte1: byte1, byte2: byte2)
+                        
+                        viewPort.append(contentsOf: tile)
+                        x += 1
+                    }
+                    drawn = true
+                }
+            } else {
+                ly += 1
+                self.cycles = 0
+                drawEnd = 252
+                drawn = false
+            }
+        } else {
+            if self.cycles >= 456 {
+                ly += 1
+                self.cycles = 0
+            }
+        }
+        
+    }
+    
     
     public mutating func fetch(cycles: UInt16) {
         self.cycles += cycles
