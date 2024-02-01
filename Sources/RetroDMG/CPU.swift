@@ -21,6 +21,15 @@ struct CPU {
     var printDebug: Bool
     var previousAndResult: Bool
     var delayedImeWrite: Bool
+    var setTimerInterrupt: Bool
+    
+    
+    ///Timer state
+    var lastTimerBit: Int
+    var TIMAReloadCycle: Bool
+    var TMAReloadCycle: Bool
+    var cyclesTilTIMAIRQ: Int
+    var raiseIRQ: Bool
     
     init() {
         registers = Registers()
@@ -32,6 +41,15 @@ struct CPU {
         printDebug = false
         previousAndResult = false
         delayedImeWrite = false
+        setTimerInterrupt = false
+        
+        bus.debug = debug
+        
+        lastTimerBit = 0
+        TIMAReloadCycle = false
+        TMAReloadCycle = false
+        cyclesTilTIMAIRQ = 0
+        raiseIRQ = false
     }
     
     mutating func start() {
@@ -56,16 +74,18 @@ struct CPU {
         if delayedImeWrite {
             registers.write(ime: true)
             delayedImeWrite = false
+            state = .Running
         }
+        
+        if debug {
+            currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
+            if printDebug {
+                print(currentState)
+            }
+        }
+
         cycles = 0x0000
         if state == .Running {
-            if debug {
-                currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
-                if printDebug {
-                    print(currentState)
-                }
-            }
-            
             
             let opCode = returnAndIncrement(indirect: .PC)
             
@@ -102,7 +122,7 @@ struct CPU {
                 load(from: .PC, to: .C)
             case 0x0F:
                 rotateRightCarry(register: .A, zeroDependant: false)
-            //TODO: 0x10
+                //TODO: 0x10
             case 0x11:
                 loadFromMemory(to: .DE)
             case 0x12:
@@ -586,10 +606,14 @@ struct CPU {
             default:
                 fatalError("opCode 0x\(opCode.hex) not supported")
             }
+            
+            
+            if cycles == 0 {
+                print(opCode)
+                print(cycles)
+            }
         }
-        
         return cycles
-        
     }
     
     mutating func extendedOpCodes() {
@@ -1176,6 +1200,8 @@ struct CPU {
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: (((registerValue & 0xF) + (1 & 0xF)) & 0x10) == 0x10)
         
+        cycles = cycles.addingReportingOverflow(4).partialValue
+        
     }
     
     mutating func increment(register: RegisterType16, partOfOtherOpCode: Bool = false) {
@@ -1220,6 +1246,8 @@ struct CPU {
         registers.write(flag: .Zero, set: newValue == 0)
         registers.write(flag: .Subtraction, set: true)
         registers.write(flag: .HalfCarry, set: Int8(currentValue & 0xF) - Int8(1 & 0xF) < 0)
+        
+        cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
     mutating func decrement(register: RegisterType16, partOfOtherOpCode: Bool = false) {
@@ -2435,12 +2463,19 @@ struct CPU {
     }
     
     mutating func halt() {
-        state = .Halted
+        var ieRegister = bus.read(location: 0xFFFF)
+        var ifRegister = bus.read(location: 0xFF0F)
+        
+        if ieRegister & ifRegister == 0 {
+            state = .Halted
+        } else {
+            state = .Running
+            returnAndIncrement(indirect: .PC)
+        }
     }
     
     mutating func processInterrupt() {
         if registers.readIme() {
-            
             cycles = cycles.addingReportingOverflow(8).partialValue
             
             if bus.read(interruptEnableType: .VBlank) && bus.read(interruptFlagType: .VBlank) {
@@ -2531,27 +2566,81 @@ struct CPU {
         }
     }
         
+    
+    mutating func updateTimer1() {
+        TIMAReloadCycle = false
+        if cyclesTilTIMAIRQ > 0 {
+            cyclesTilTIMAIRQ -= 1
+            if cyclesTilTIMAIRQ == 0 {
+                bus.write(interruptFlagType: .Timer, value: true)
+                bus.tima = bus.tma
+                TIMAReloadCycle = true
+            }
+        }
         
-    mutating func updateTimer() {
-        bus.div = bus.div.addingReportingOverflow(UInt16(cycles)).partialValue
-        var timaEnabled = bus.read(tacType: .enable)
-
+        bus.div = bus.div.addingReportingOverflow(4).partialValue
+        
         var tacLow = bus.read(tacType: .low)
         var tacHigh = bus.read(tacType: .high)
-
+        
         var andResult = false
-        var div = bus.read(location: 0xFF04)
         if tacLow {
             if tacHigh {
-                andResult = timaEnabled && div.get(bit: 7)
+                andResult = bus.div.get(bit: 7)
             } else {
-                andResult = timaEnabled && div.get(bit: 3)
+                andResult = bus.div.get(bit: 3)
             }
         } else {
             if tacHigh {
-                andResult = timaEnabled && div.get(bit: 5)
+                andResult = bus.div.get(bit: 5)
             } else {
-                andResult = timaEnabled && div.get(bit: 9)
+                andResult = bus.div.get(bit: 9)
+            }
+        }
+        
+        andResult = andResult && bus.read(tacType: .enable)
+
+        if previousAndResult && !andResult {
+            bus.write(location: 0xFF05, value: bus.read(location: 0xFF05).addingReportingOverflow(1).partialValue)
+            
+            var tima = bus.read(location: 0xFF05)
+            
+            print("Timer: \(tima)")
+            
+            if tima == 0 {
+                cyclesTilTIMAIRQ == 1
+            }
+        }
+        
+        previousAndResult = andResult
+    }
+        
+    mutating func updateTimer() {
+        if bus.read(location: 0xFF05) == 0 && setTimerInterrupt{
+            bus.write(location: 0xFF05, value: bus.read(location: 0xFF06))
+            setTimerInterrupt = false
+            bus.write(interruptFlagType: .Timer, value: true)
+        }
+        
+        bus.div = bus.div.addingReportingOverflow(4).partialValue
+
+        var timaEnabled = bus.read(tacType: .enable)
+        
+        var tacLow = bus.read(tacType: .low)
+        var tacHigh = bus.read(tacType: .high)
+        
+        var andResult = false 
+        if tacLow {
+            if tacHigh {
+                andResult = timaEnabled && bus.div.get(bit: 7)
+            } else {
+                andResult = timaEnabled && bus.div.get(bit: 3)
+            }
+        } else {
+            if tacHigh {
+                andResult = timaEnabled && bus.div.get(bit: 5)
+            } else {
+                andResult = timaEnabled && bus.div.get(bit: 9)
             }
         }
 
@@ -2559,8 +2648,7 @@ struct CPU {
             var tima = bus.read(location: 0xFF05).addingReportingOverflow(1)
             
             if tima.overflow {
-                tima.partialValue = bus.read(location: 0xFF06)
-                bus.write(interruptFlagType: .Timer, value: true)
+                setTimerInterrupt = true
             }
             
             bus.write(location: 0xFF05, value: tima.partialValue)

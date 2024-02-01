@@ -10,14 +10,20 @@ import Foundation
 struct Bus {
     var memory: [UInt8]
     var bootrom: [UInt8]
-    var interruptEnabled: UInt8
-    var interruptFlag: UInt8
     var bootromLoaded: Bool
     public var ppu: PPU
+    
+    ///Interrupt registers
+    var interruptEnabled: UInt8
+    var interruptFlag: UInt8
+    
+    /// Timer registers
     var div: UInt16
     var tac: UInt8
     var tima: UInt8
     var tma: UInt8
+    
+    var debug = false
     
     init() {
         memory = [UInt8](repeating: 0, count: 65537)
@@ -38,6 +44,9 @@ struct Bus {
             return
         }
         
+        if location >= 0x0000 && location <= 0x3FFF {
+            return
+        }
         if location >= 0x8000 && location <= 0x97FF {
             ppu.memory[Int(location - 0x8000)] = value
         } else if location >= 0x9800 && location <= 0x9BFF {
@@ -48,8 +57,6 @@ struct Bus {
             if ppu.mode != .Draw {
                 ppu.tilemap9C00[Int(location - 0x9C00)] = value
             }
-        } else if location == 0xFF0F {
-            interruptFlag = value
         } else if location == 0xFF04 {
             div = 0x0000
         } else if location == 0xFF05 {
@@ -58,6 +65,8 @@ struct Bus {
             tma = value
         } else if location == 0xFF07 {
             tac = value
+        } else if location == 0xFF0F {
+                interruptFlag = value
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF42 {
@@ -190,7 +199,7 @@ struct Bus {
         }
         
         if location == 0xFF44 {
-            return ppu.ly //0x90 
+            return ppu.ly
         }
         
         if location == 0xFFFF {

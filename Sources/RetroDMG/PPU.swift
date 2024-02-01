@@ -96,8 +96,13 @@ struct PPU {
                         let byte2 = memory[Int(tileLocation + 0x1)]
                         var tile = createPixelRow(byte1: byte1, byte2: byte2)
                         
+                        if x == 0 {
+                            tile.removeSubrange(0..<Int(scx % 8))
+                        }
+                        
                         viewPort.append(contentsOf: tile)
                         x += 1
+                        
                     }
                     drawn = true
                 }
