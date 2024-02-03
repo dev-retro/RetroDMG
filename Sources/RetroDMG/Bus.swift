@@ -158,6 +158,9 @@ struct Bus {
         }
         
         if location >= 0x9C00 && location <= 0x9FFF {
+            if ppu.mode == .Draw {
+                return 0xFF
+            }
             return ppu.tilemap9C00[Int(location - 0x9C00)]
         }
         
@@ -191,11 +194,11 @@ struct Bus {
         }
         
         if location == 0xFF42 {
-            return ppu.scx
+            return ppu.scy
         }
         
         if location == 0xFF43 {
-            return ppu.scy
+            return ppu.scx
         }
         
         if location == 0xFF44 {

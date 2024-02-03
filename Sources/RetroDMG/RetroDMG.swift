@@ -59,12 +59,6 @@ public struct RetroDMG {
     }
     
     public mutating func viewPort() -> [Int] {
-        //cpu.bus.ppu.fetch()
-        return cpu.bus.ppu.viewPort
-    }
-    
-    public mutating func viewPort(cycles: UInt16) -> [Int] {
-        cpu.bus.ppu.fetch(cycles: cycles)
         return cpu.bus.ppu.viewPort
     }
 }
