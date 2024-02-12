@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "retroswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dev-retro/RetroSwift.git",
+      "state" : {
+        "revision" : "73413e118b27dbf003b5aee39697cb0d715dea9f",
+        "version" : "1.0.1"
+      }
+    }
+  ],
+  "version" : 2
+}

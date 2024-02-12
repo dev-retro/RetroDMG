@@ -1,7 +1,17 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
-public struct RetroDMG {
+import RetroSwift
+import Foundation
+
+public struct RetroDMG: RetroPlatform {
+    public var name = "Nintendo Game Boy"
+    public var description = "The Game Boy is an 8-bit fourth generation handheld game console developed and manufactured by Nintendo."
+    public var releaseDate = 1989
+    public var noOfPlayers = 1
+    public var platformName = "RetroDMG"
+    public var platformDescription = "Retro platform library for the Nintendo Game Boy"
+    
     var cpu: CPU
     
     public init() {
