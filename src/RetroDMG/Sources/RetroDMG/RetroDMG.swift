@@ -13,10 +13,61 @@ public struct RetroDMG: RetroPlatform {
     public var platformDescription = "Retro platform library for the Nintendo Game Boy"
     
     var cpu: CPU
+    var inputs: [RetroInput]
+    var loopRunning: Bool
     
     public init() {
         self.cpu = CPU()
+        self.inputs = [
+            RetroInput("Up"),
+            RetroInput("Down"),
+            RetroInput("Left"),
+            RetroInput("Right"),
+            RetroInput("A"),
+            RetroInput("B"),
+            RetroInput("Start"),
+            RetroInput("Select")
+        ]
+        
+        self.loopRunning = false
     }
+    
+    public func listInputs() -> [RetroInput] {
+        return inputs
+    }
+    
+    public mutating func update(inputs: [RetroInput]) {
+        self.inputs = inputs
+    }
+    
+    public mutating func setup() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    public mutating func start() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    public mutating func pause() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    public mutating func stop() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    mutating func loop() async {
+        while true {
+            //Input
+            cpu.tick()
+        }
+    }
+    
+    
     
     public mutating func tick() -> UInt16 {
         return cpu.tick()

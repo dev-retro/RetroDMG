@@ -1145,13 +1145,10 @@ struct CPU {
         
         //TODO: set other InterruptFlag
         
-        if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
-            state = .Running
-        }
-        
         if registers.readIme() {
             if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
                 set(ime: false)
+                state = .Running
                 bus.write(interruptFlagType: .VBlank, value: false)
                 
                 let pc = registers.read(register: .PC)
@@ -1166,6 +1163,7 @@ struct CPU {
                 registers.write(register: .PC, value: 0x40)
             } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptEnableType: .Timer) {
                 set(ime: false)
+                state = .Running
                 bus.write(interruptFlagType: .Timer, value: false)
                 
                 let pc = registers.read(register: .PC)
@@ -2475,6 +2473,22 @@ struct CPU {
     }
     
     mutating func processInterrupt() {
+        if bus.read(interruptEnableType: .VBlank) && bus.read(interruptFlagType: .VBlank) {
+            state = .Running
+            
+        } else if bus.read(interruptEnableType: .LCD) && bus.read(interruptFlagType: .LCD) {
+            state = .Running
+            
+        } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptFlagType: .Timer) {
+            state = .Running
+            
+        } else if bus.read(interruptEnableType: .Serial) && bus.read(interruptFlagType: .Serial) {
+            state = .Running
+            
+        } else if bus.read(interruptEnableType: .Joypad) && bus.read(interruptFlagType: .Joypad) {
+            state = .Running
+        }
+        
         if registers.readIme() {
             cycles = cycles.addingReportingOverflow(8).partialValue
             
