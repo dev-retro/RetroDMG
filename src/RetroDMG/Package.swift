@@ -14,11 +14,16 @@ let package = Package(
             name: "RetroDMG",
             targets: ["RetroDMG"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/dev-retro/RetroSwift.git", from: "1.0.0"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "RetroDMG"),
+            name: "RetroDMG", dependencies: [
+                .product(name: "RetroSwift", package: "RetroSwift")
+            ]),
         .testTarget(
             name: "RetroDMGTests",
             dependencies: ["RetroDMG"]),

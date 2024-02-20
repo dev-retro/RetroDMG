@@ -56,154 +56,161 @@ struct PPU {
     //MARK: Line based rendering
     
     public mutating func updateGraphics(cycles: UInt16) {
-        self.cycles += cycles
-        
-        
-        if ly == 144 {
-            mode = .VerticalBlank
-            setVBlankInterrupt = true
-        } else if ly > 153 {
-            mode = .OAM
+        if !read(flag: .LCDDisplayEnable) {
             ly = 0
-            viewPort.removeAll()
-        }
-        
-        if mode != .VerticalBlank {
-            if self.cycles >= 0 && self.cycles < 80 {
-                mode = .OAM
-                
-            } else if self.cycles >= 80 && self.cycles < drawEnd {
-                mode = .Draw
-
-            } else if self.cycles >= drawEnd && self.cycles < 456 {
-                mode = .HorizontalBlank
-                if !drawn {
-                    var x = 0
-                    for _ in stride(from: 0, to: 160, by: 8) {
-                        let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-                        var fetcherX = ((Int(scx) / 8) + x) & 0x1F
-                        var fetcherY = (Int(ly) + Int(scy)) & 255
-                        
-                        var tilemapAddress = fetcherX + ((fetcherY / 8) * 0x20)
-                        
-                        var tileNo = tilemap[Int(tilemapAddress)]
-                        
-                        var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-                        tileLocation += (2 * (fetcherY % 8))
-                        
-                        
-                        let byte1 = memory[Int(tileLocation)]
-                        let byte2 = memory[Int(tileLocation + 0x1)]
-                        var tile = createPixelRow(byte1: byte1, byte2: byte2)
-                        
-                        viewPort.append(contentsOf: tile)
-                        x += 1
-                    }
-                    drawn = true
-                }
-            } else {
-                ly += 1
-                self.cycles = 0
-                drawEnd = 252
-                drawn = false
-            }
-        } else {
-            if self.cycles >= 456 {
-                ly += 1
-                self.cycles = 0
-            }
-        }
-        
-    }
-    
-    
-    public mutating func fetch(cycles: UInt16) {
-        self.cycles += cycles
-    
-        if mode != .VerticalBlank && self.cycles >= 0 && self.cycles < 80 {
-            
-        } else if mode != .VerticalBlank && self.cycles < 289 {
-            mode = .Draw
-            
-            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-            if !drawn {
-                x = 0
-                for _ in stride(from: 0, to: 160, by: 8) {
-                    var fetcherX = x + (Int(scx) / 8) & 0x1F
-                    var fetcherY = (Int(ly) + Int(scy)) & 0xFF
-                    
-                    var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-                    
-                    var tileNo = tilemap[Int(tilemapAddress)]
-                    
-                    var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-                    tileLocation += (2 * (fetcherY % 8))
-                    
-                    
-                    let byte1 = memory[Int(tileLocation)]
-                    let byte2 = memory[Int(tileLocation + 0x1)]
-                    var tile = createPixelRow(byte1: byte1, byte2: byte2)
-                    
-                    tempViewPort.append(contentsOf: tile)
-                    x += 1
-                }
-            }
-            
-            drawn = true
-            
-        } else if mode != .VerticalBlank && self.cycles < 456 {
             mode = .HorizontalBlank
-            
         } else {
-            ly += 1
-            if ly < 144 {
-                mode = .OAM
-            } else if ly >= 144 && ly <= 153  {
+            self.cycles += cycles
+            if ly == 144 {
                 mode = .VerticalBlank
                 setVBlankInterrupt = true
-            } else {
+            } else if ly > 153 {
                 mode = .OAM
                 ly = 0
                 viewPort.removeAll()
-                viewPort = tempViewPort
-                tempViewPort.removeAll()
             }
             
-            if self.cycles > 456 {
-                drawn = false
-                self.cycles = self.cycles - 456
+            if mode != .VerticalBlank {
+                if self.cycles >= 0 && self.cycles < 80 {
+                    mode = .OAM
+                    
+                } else if self.cycles >= 80 && self.cycles < drawEnd {
+                    mode = .Draw
+
+                } else if self.cycles >= drawEnd && self.cycles < 456 {
+                    if !drawn {
+                        var x = 0
+                        for _ in stride(from: 0, to: 160, by: 8) {
+                            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
+                            var fetcherX = x + (Int(scx) / 8) & 0x1F
+                            var fetcherY = (Int(ly) + Int(scy)) & 0xFF
+                            
+                            var tilemapAddress = x + ((fetcherY / 8) * 0x20)
+                            
+                            var tileNo = tilemap[Int(tilemapAddress)]
+                            
+                            var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+                            tileLocation += (2 * (fetcherY % 8))
+                            
+                            
+                            let byte1 = memory[Int(tileLocation)]
+                            let byte2 = memory[Int(tileLocation + 0x1)]
+                            var tile = createPixelRow(byte1: byte1, byte2: byte2)
+                            
+                            if x == 0 {
+                                tile.removeSubrange(0..<Int(scx % 8))
+                            }
+                            
+                            viewPort.append(contentsOf: tile)
+                            x += 1
+                            
+                        }
+                        drawn = true
+                        mode = .HorizontalBlank
+                    }
+                } else {
+                    ly += 1
+                    self.cycles = 0
+                    drawEnd = 252
+                    drawn = false
+                }
+            } else {
+                if self.cycles >= 456 {
+                    ly += 1
+                    self.cycles = 0
+                }
             }
         }
     }
     
-    public mutating func fetch() {
-        viewPort.removeAll()
-        
-        for line in 0..<144 {
-            ly = UInt8(line)
-            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-            var x = 0
-            for _ in stride(from: 0, to: 160, by: 8) {
-                var fetcherX = x + (Int(scx) / 8) & 0x1F
-                var fetcherY = (line + Int(scy)) & 0xFF
-                
-                var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-                
-                var tileNo = tilemap[Int(tilemapAddress)]
-                
-                var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-                tileLocation += (2 * (fetcherY % 8))
-                
-                
-                let byte1 = memory[Int(tileLocation)]
-                let byte2 = memory[Int(tileLocation + 0x1)]
-                var tile = createPixelRow(byte1: byte1, byte2: byte2)
-                
-                viewPort.append(contentsOf: tile)
-                x += 1
-            }
-        }
-    }
+    
+//    public mutating func fetch(cycles: UInt16) {
+//        self.cycles += cycles
+//    
+//        if mode != .VerticalBlank && self.cycles >= 0 && self.cycles < 80 {
+//            
+//        } else if mode != .VerticalBlank && self.cycles < 289 {
+//            mode = .Draw
+//            
+//            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
+//            if !drawn {
+//                x = 0
+//                for _ in stride(from: 0, to: 160, by: 8) {
+//                    var fetcherX = x + (Int(scx) / 8) & 0x1F
+//                    var fetcherY = (Int(ly) + Int(scy)) & 0xFF
+//                    
+//                    var tilemapAddress = x + ((fetcherY / 8) * 0x20)
+//                    
+//                    var tileNo = tilemap[Int(tilemapAddress)]
+//                    
+//                    var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+//                    tileLocation += (2 * (fetcherY % 8))
+//                    
+//                    
+//                    let byte1 = memory[Int(tileLocation)]
+//                    let byte2 = memory[Int(tileLocation + 0x1)]
+//                    var tile = createPixelRow(byte1: byte1, byte2: byte2)
+//                    
+//                    tempViewPort.append(contentsOf: tile)
+//                    x += 1
+//                }
+//            }
+//            
+//            drawn = true
+//            
+//        } else if mode != .VerticalBlank && self.cycles < 456 {
+//            mode = .HorizontalBlank
+//            
+//        } else {
+//            ly += 1
+//            if ly < 144 {
+//                mode = .OAM
+//            } else if ly >= 144 && ly <= 153  {
+//                mode = .VerticalBlank
+//                setVBlankInterrupt = true
+//            } else {
+//                mode = .OAM
+//                ly = 0
+//                viewPort.removeAll()
+//                viewPort = tempViewPort
+//                tempViewPort.removeAll()
+//            }
+//            
+//            if self.cycles > 456 {
+//                drawn = false
+//                self.cycles = self.cycles - 456
+//            }
+//        }
+//    }
+//    
+//    public mutating func fetch() {
+//        viewPort.removeAll()
+//        
+//        for line in 0..<144 {
+//            ly = UInt8(line)
+//            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
+//            var x = 0
+//            for _ in stride(from: 0, to: 160, by: 8) {
+//                var fetcherX = x + (Int(scx) / 8) & 0x1F
+//                var fetcherY = (line + Int(scy)) & 0xFF
+//                
+//                var tilemapAddress = x + ((fetcherY / 8) * 0x20)
+//                
+//                var tileNo = tilemap[Int(tilemapAddress)]
+//                
+//                var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+//                tileLocation += (2 * (fetcherY % 8))
+//                
+//                
+//                let byte1 = memory[Int(tileLocation)]
+//                let byte2 = memory[Int(tileLocation + 0x1)]
+//                var tile = createPixelRow(byte1: byte1, byte2: byte2)
+//                
+//                viewPort.append(contentsOf: tile)
+//                x += 1
+//            }
+//        }
+//    }
     
     mutating func write(mode: PPUMode) {
         self.mode = mode

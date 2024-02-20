@@ -1,12 +1,73 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 
-public struct RetroDMG {
+import RetroSwift
+import Foundation
+
+public struct RetroDMG: RetroPlatform {
+    public var name = "Nintendo Game Boy"
+    public var description = "The Game Boy is an 8-bit fourth generation handheld game console developed and manufactured by Nintendo."
+    public var releaseDate = 1989
+    public var noOfPlayers = 1
+    public var platformName = "RetroDMG"
+    public var platformDescription = "Retro platform library for the Nintendo Game Boy"
+    
     var cpu: CPU
+    var inputs: [RetroInput]
+    var loopRunning: Bool
     
     public init() {
         self.cpu = CPU()
+        self.inputs = [
+            RetroInput("Up"),
+            RetroInput("Down"),
+            RetroInput("Left"),
+            RetroInput("Right"),
+            RetroInput("A"),
+            RetroInput("B"),
+            RetroInput("Start"),
+            RetroInput("Select")
+        ]
+        
+        self.loopRunning = false
     }
+    
+    public func listInputs() -> [RetroInput] {
+        return inputs
+    }
+    
+    public mutating func update(inputs: [RetroInput]) {
+        self.inputs = inputs
+    }
+    
+    public mutating func setup() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    public mutating func start() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    public mutating func pause() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    public mutating func stop() -> Bool {
+        //TODO: to add
+        return false
+    }
+    
+    mutating func loop() async {
+        while true {
+            //Input
+            cpu.tick()
+        }
+    }
+    
+    
     
     public mutating func tick() -> UInt16 {
         return cpu.tick()
@@ -59,12 +120,6 @@ public struct RetroDMG {
     }
     
     public mutating func viewPort() -> [Int] {
-        //cpu.bus.ppu.fetch()
-        return cpu.bus.ppu.viewPort
-    }
-    
-    public mutating func viewPort(cycles: UInt16) -> [Int] {
-        cpu.bus.ppu.fetch(cycles: cycles)
         return cpu.bus.ppu.viewPort
     }
 }

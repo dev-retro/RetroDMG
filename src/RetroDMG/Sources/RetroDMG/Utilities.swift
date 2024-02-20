@@ -22,3 +22,12 @@ extension UInt8 {
         }
     }
 }
+
+
+extension UInt16 {
+    func get(bit: UInt16) -> Bool {
+        let value = (self >> bit) & 1
+        
+        return value != 0
+    }
+}
