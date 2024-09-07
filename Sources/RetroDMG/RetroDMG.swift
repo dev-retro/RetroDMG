@@ -67,9 +67,17 @@ public struct RetroDMG: RetroPlatform {
         }
     }
     
-    
+    mutating func checkInput() {
+        for (index, input) in inputs.enumerated() {
+            if input.updated {
+                cpu.bus.write(inputType: InputType(rawValue: input.name)!, value: input.active)
+                inputs[index].updated = false
+            }
+        }
+    }
     
     public mutating func tick() -> UInt16 {
+        checkInput()
         return cpu.tick()
     }
     

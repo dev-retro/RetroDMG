@@ -606,12 +606,6 @@ struct CPU {
             default:
                 fatalError("opCode 0x\(opCode.hex) not supported")
             }
-            
-            
-            if cycles == 0 {
-                print(opCode)
-                print(cycles)
-            }
         }
         return cycles
     }
@@ -1176,6 +1170,21 @@ struct CPU {
                 bus.write(location: registers.read(register: .SP), value: pcLsb)
                 
                 registers.write(register: .PC, value: 0x50)
+            } else if bus.read(interruptEnableType: .Joypad) && bus.read(interruptEnableType: .Joypad) {
+                set(ime: false)
+                state = .Running
+                bus.write(interruptFlagType: .Joypad, value: false)
+                
+                let pc = registers.read(register: .PC)
+                let pcMsb = UInt8(pc >> 8)
+                let pcLsb = UInt8(truncatingIfNeeded: pc)
+                
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcMsb)
+                decrement(register: .SP, partOfOtherOpCode: true)
+                bus.write(location: registers.read(register: .SP), value: pcLsb)
+                
+                registers.write(register: .PC, value: 0x60)
             }
         }
     }

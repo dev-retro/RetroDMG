@@ -23,6 +23,9 @@ struct Bus {
     var tima: UInt8
     var tma: UInt8
     
+    /// Input
+    var joyp: UInt8
+    
     var debug = false
     
     init() {
@@ -36,6 +39,7 @@ struct Bus {
         tac = 0x00
         tima = 0x00
         tma = 0x00
+        joyp = 0xFF
     }
     
     mutating func write(location: UInt16, value: UInt8) {
@@ -129,6 +133,41 @@ struct Bus {
         }
     }
     
+    mutating func write(inputType: InputType, value: Bool) {
+        if value {
+            switch inputType {
+            case .a:
+                joyp.set(bit: 5, value: !value)
+                joyp.set(bit: 0, value: !value)
+            case .b:
+                joyp.set(bit: 5, value: !value)
+                joyp.set(bit: 1, value: !value)
+            case .select:
+                joyp.set(bit: 5, value: !value)
+                joyp.set(bit: 2, value: !value)
+            case .start:
+                joyp.set(bit: 5, value: !value)
+                joyp.set(bit: 3, value: !value)
+            case .right:
+                joyp.set(bit: 4, value: !value)
+                joyp.set(bit: 0, value: !value)
+            case .left:
+                joyp.set(bit: 4, value: !value)
+                joyp.set(bit: 1, value: !value)
+            case .up:
+                joyp.set(bit: 4, value: !value)
+                joyp.set(bit: 2, value: !value)
+            case .down:
+                joyp.set(bit: 4, value: !value)
+                joyp.set(bit: 3, value: !value)
+            default:
+                fatalError("Input Type not implemented \(inputType)")
+            }
+        } else {
+            
+        }
+    }
+    
     mutating func read(location: UInt16) -> UInt8 {
         let location = Int(location)
         if location > memory.count {
@@ -165,7 +204,7 @@ struct Bus {
         }
         
         if location == 0xFF00 {
-            return 0xFF
+            return joyp
         }
         
         if location == 0xFF04 {
@@ -270,4 +309,15 @@ enum TacType {
     case enable
     case low
     case high
+}
+
+enum InputType: String {
+    case up = "Up"
+    case down = "Down"
+    case left = "Left"
+    case right = "Right"
+    case a = "A"
+    case b = "B"
+    case start = "Start"
+    case select = "Select"
 }
