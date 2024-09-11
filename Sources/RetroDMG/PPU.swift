@@ -64,10 +64,11 @@ struct PPU {
             if ly == 144 {
                 mode = .VerticalBlank
                 setVBlankInterrupt = true
+                viewPort = tempViewPort
             } else if ly > 153 {
                 mode = .OAM
                 ly = 0
-                viewPort.removeAll()
+                tempViewPort.removeAll()
             }
             
             if mode != .VerticalBlank {
@@ -101,7 +102,7 @@ struct PPU {
                                 tile.removeSubrange(0..<Int(scx % 8))
                             }
                             
-                            viewPort.append(contentsOf: tile)
+                            tempViewPort.append(contentsOf: tile)
                             x += 1
                             
                         }

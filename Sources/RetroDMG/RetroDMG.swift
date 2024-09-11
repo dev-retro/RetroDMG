@@ -4,7 +4,7 @@
 import RetroSwift
 import Foundation
 
-public struct RetroDMG: RetroPlatform {
+public class RetroDMG: RetroPlatform {
     public var name = "Nintendo Game Boy"
     public var description = "The Game Boy is an 8-bit fourth generation handheld game console developed and manufactured by Nintendo."
     public var releaseDate = 1989
@@ -36,64 +36,85 @@ public struct RetroDMG: RetroPlatform {
         return inputs
     }
     
-    public mutating func update(inputs: [RetroInput]) {
+    public func update(inputs: [RetroInput]) {
         self.inputs = inputs
     }
     
-    public mutating func setup() -> Bool {
+    public func setup() -> Bool {
         //TODO: to add
         return false
     }
     
-    public mutating func start() -> Bool {
+    public func start() -> Bool {
+        loopRunning = true
+        
+        loop()
+        return true
+    }
+    
+    public func pause() -> Bool {
         //TODO: to add
         return false
     }
     
-    public mutating func pause() -> Bool {
-        //TODO: to add
+    public func stop() -> Bool {
+        loopRunning = false
         return false
     }
     
-    public mutating func stop() -> Bool {
-        //TODO: to add
-        return false
-    }
-    
-    mutating func loop() async {
-        while true {
-            //Input
-            cpu.tick()
-        }
-    }
-    
-    mutating func checkInput() {
-        for (index, input) in inputs.enumerated() {
-            if input.updated {
-                cpu.bus.write(inputType: InputType(rawValue: input.name)!, value: input.active)
-                inputs[index].updated = false
+    func loop() {
+        Task {
+            var time1 = SuspendingClock().now
+            var time2 = SuspendingClock().now
+            while loopRunning {
+                time2 = SuspendingClock().now
+                var elapsed = time2 - time1
+                var reaminingTime = .milliseconds(16.67) - elapsed
+                if reaminingTime > .milliseconds(1) {
+                    await try? Task.sleep(for: reaminingTime, tolerance: .zero)
+                }
+                for _ in 0..<70224 / 16 { //Number is clock cycles per frame
+                    let currentCycles = cpu.tick()
+                    for _ in 0...(currentCycles / 4) {
+                        cpu.updateTimer()
+                    }
+                    cpu.bus.ppu.updateGraphics(cycles: currentCycles)
+                    cpu.processInterrupt()
+                }
+                time1 = time2
             }
         }
     }
     
-    public mutating func tick() -> UInt16 {
+    func checkInput() {
+        for (index, input) in inputs.enumerated() {
+            if input.updated {
+                cpu.bus.write(inputType: InputType(rawValue: input.name)!, value: input.active)
+                inputs[index].updated = false
+                cpu.bus.write(interruptFlagType: .Joypad, value: true)
+                cpu.bus.write(interruptEnableType: .Joypad, value: true)
+            }
+        }
+    }
+    
+    public func tick() -> UInt16 {
         checkInput()
         return cpu.tick()
     }
     
-    public mutating func processInterrupt() {
+    public func processInterrupt() {
         cpu.processInterrupt()
     }
     
-    public mutating func updateTimer() {
+    public func updateTimer() {
         cpu.updateTimer()
     }
     
-    public mutating func updateGraphics(cycles: UInt16) {
+    public func updateGraphics(cycles: UInt16) {
         cpu.bus.ppu.updateGraphics(cycles: cycles)
     }
     
-    public mutating func debug(enabled: Bool) {
+    public func debug(enabled: Bool) {
         cpu.debug = enabled
     }
     
@@ -101,12 +122,12 @@ public struct RetroDMG: RetroPlatform {
         cpu.currentState
     }
     
-    public mutating func load(file: [UInt8]) {
+    public func load(file: [UInt8]) {
         cpu.bus.write(rom: file)
         cpu.start()
     }
     
-    public mutating func load(rom: [UInt8]) {
+    public func load(rom: [UInt8]) {
         cpu.bus.write(bootrom: rom)
         
     }
@@ -127,7 +148,7 @@ public struct RetroDMG: RetroPlatform {
         return cpu.bus.ppu.createTileMap()
     }
     
-    public mutating func viewPort() -> [Int] {
+    public func viewPort() -> [Int] {
         return cpu.bus.ppu.viewPort
     }
 }
