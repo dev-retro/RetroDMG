@@ -67,6 +67,7 @@ public class RetroDMG: RetroPlatform {
             var time1 = SuspendingClock().now
             var time2 = SuspendingClock().now
             while loopRunning {
+                checkInput()
                 time2 = SuspendingClock().now
                 var elapsed = time2 - time1
                 var reaminingTime = .milliseconds(16.67) - elapsed
@@ -90,20 +91,18 @@ public class RetroDMG: RetroPlatform {
         for (index, input) in inputs.enumerated() {
             if input.updated {
                 cpu.bus.write(inputType: InputType(rawValue: input.name)!, value: input.active)
+                cpu.setInputInterrupt = true
                 inputs[index].updated = false
-                cpu.bus.write(interruptFlagType: .Joypad, value: true)
-                cpu.bus.write(interruptEnableType: .Joypad, value: true)
             }
         }
     }
     
     public func tick() -> UInt16 {
-        checkInput()
         return cpu.tick()
     }
     
     public func processInterrupt() {
-        cpu.processInterrupt()
+        cpu.processInterrupts()
     }
     
     public func updateTimer() {

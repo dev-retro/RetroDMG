@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import RetroSwift
 
 enum CPUState {
 case Halted, Running
@@ -22,6 +23,7 @@ struct CPU {
     var previousAndResult: Bool
     var delayedImeWrite: Bool
     var setTimerInterrupt: Bool
+    var setInputInterrupt: Bool
     
     
     ///Timer state
@@ -42,6 +44,7 @@ struct CPU {
         previousAndResult = false
         delayedImeWrite = false
         setTimerInterrupt = false
+        setInputInterrupt = false
         
         bus.debug = debug
         
@@ -1135,6 +1138,11 @@ struct CPU {
         if bus.ppu.setVBlankInterrupt {
             bus.write(interruptFlagType: .VBlank, value: true)
             bus.ppu.setVBlankInterrupt = false
+        }
+        
+        if setInputInterrupt {
+            bus.write(interruptFlagType: .Joypad, value: true)
+            setInputInterrupt = false
         }
         
         //TODO: set other InterruptFlag
@@ -2590,53 +2598,53 @@ struct CPU {
     }
         
     
-    mutating func updateTimer1() {
-        TIMAReloadCycle = false
-        if cyclesTilTIMAIRQ > 0 {
-            cyclesTilTIMAIRQ -= 1
-            if cyclesTilTIMAIRQ == 0 {
-                bus.write(interruptFlagType: .Timer, value: true)
-                bus.tima = bus.tma
-                TIMAReloadCycle = true
-            }
-        }
-        
-        bus.div = bus.div.addingReportingOverflow(4).partialValue
-        
-        var tacLow = bus.read(tacType: .low)
-        var tacHigh = bus.read(tacType: .high)
-        
-        var andResult = false
-        if tacLow {
-            if tacHigh {
-                andResult = bus.div.get(bit: 7)
-            } else {
-                andResult = bus.div.get(bit: 3)
-            }
-        } else {
-            if tacHigh {
-                andResult = bus.div.get(bit: 5)
-            } else {
-                andResult = bus.div.get(bit: 9)
-            }
-        }
-        
-        andResult = andResult && bus.read(tacType: .enable)
-
-        if previousAndResult && !andResult {
-            bus.write(location: 0xFF05, value: bus.read(location: 0xFF05).addingReportingOverflow(1).partialValue)
-            
-            var tima = bus.read(location: 0xFF05)
-            
-            print("Timer: \(tima)")
-            
-            if tima == 0 {
-                cyclesTilTIMAIRQ == 1
-            }
-        }
-        
-        previousAndResult = andResult
-    }
+//    mutating func updateTimer1() {
+//        TIMAReloadCycle = false
+//        if cyclesTilTIMAIRQ > 0 {
+//            cyclesTilTIMAIRQ -= 1
+//            if cyclesTilTIMAIRQ == 0 {
+//                bus.write(interruptFlagType: .Timer, value: true)
+//                bus.tima = bus.tma
+//                TIMAReloadCycle = true
+//            }
+//        }
+//        
+//        bus.div = bus.div.addingReportingOverflow(4).partialValue
+//        
+//        var tacLow = bus.read(tacType: .low)
+//        var tacHigh = bus.read(tacType: .high)
+//        
+//        var andResult = false
+//        if tacLow {
+//            if tacHigh {
+//                andResult = bus.div.get(bit: 7)
+//            } else {
+//                andResult = bus.div.get(bit: 3)
+//            }
+//        } else {
+//            if tacHigh {
+//                andResult = bus.div.get(bit: 5)
+//            } else {
+//                andResult = bus.div.get(bit: 9)
+//            }
+//        }
+//        
+//        andResult = andResult && bus.read(tacType: .enable)
+//
+//        if previousAndResult && !andResult {
+//            bus.write(location: 0xFF05, value: bus.read(location: 0xFF05).addingReportingOverflow(1).partialValue)
+//            
+//            var tima = bus.read(location: 0xFF05)
+//            
+//            print("Timer: \(tima)")
+//            
+//            if tima == 0 {
+//                cyclesTilTIMAIRQ == 1
+//            }
+//        }
+//        
+//        previousAndResult = andResult
+//    }
         
     mutating func updateTimer() {
         if bus.read(location: 0xFF05) == 0 && setTimerInterrupt{
