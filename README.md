@@ -1,5 +1,5 @@
 # RetroDMG
-RetroCade Platform Library for the Nintendo Gameboy
+Retro Platform Library for the Nintendo Gameboy
 
 
 | Blargg Test  | Passed |           
