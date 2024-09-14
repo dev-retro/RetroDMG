@@ -15,6 +15,7 @@ public class RetroDMG: RetroPlatform {
     var cpu: CPU
     var inputs: [RetroInput]
     var loopRunning: Bool
+    var settings: DMGSettings
     
     public init() {
         self.cpu = CPU()
@@ -30,6 +31,7 @@ public class RetroDMG: RetroPlatform {
         ]
         
         self.loopRunning = false
+        self.settings = DMGSettings()
     }
     
     public func listInputs() -> [RetroInput] {
@@ -40,9 +42,16 @@ public class RetroDMG: RetroPlatform {
         self.inputs = inputs
     }
     
-    public func setup() -> Bool {
-        //TODO: to add
-        return false
+    public func setup(settings: String) throws -> Bool {
+        let decoder = JSONDecoder()
+        
+        let settings = try decoder.decode(DMGSettings.self, from: settings.data(using: .utf8)!)
+        
+        if let bios = settings.bios {
+            cpu.bus.write(bootrom: bios)
+        }
+        
+        return true
     }
     
     public func start() -> Bool {
@@ -74,7 +83,7 @@ public class RetroDMG: RetroPlatform {
                 if reaminingTime > .milliseconds(1) {
                     await try? Task.sleep(for: reaminingTime, tolerance: .zero)
                 }
-                for _ in 0..<70224 / 16 { //Number is clock cycles per frame
+                for _ in 0..<70224 / 16 {
                     let currentCycles = cpu.tick()
                     for _ in 0...(currentCycles / 4) {
                         cpu.updateTimer()
@@ -87,6 +96,15 @@ public class RetroDMG: RetroPlatform {
         }
     }
     
+    public func listSettings() throws -> String {
+        let encoder = JSONEncoder()
+        
+        let settings = try encoder.encode(settings)
+        
+        return String(data: settings, encoding: .utf8)!
+        
+    }
+    
     func checkInput() {
         for (index, input) in inputs.enumerated() {
             if input.updated {
@@ -97,74 +115,29 @@ public class RetroDMG: RetroPlatform {
         }
     }
     
-    public func tick() -> UInt16 {
-        return cpu.tick()
-    }
-    
-    public func processInterrupt() {
-        cpu.processInterrupts()
-    }
-    
-    public func updateTimer() {
-        cpu.updateTimer()
-    }
-    
-    public func updateGraphics(cycles: UInt16) {
-        cpu.bus.ppu.updateGraphics(cycles: cycles)
-    }
-    
-    public func debug(enabled: Bool) {
+    func debug(enabled: Bool) {
         cpu.debug = enabled
     }
     
-    public func getState() -> String {
-        cpu.currentState
-    }
     
     public func load(file: [UInt8]) {
         cpu.bus.write(rom: file)
         cpu.start()
     }
     
-    public func load(rom: [UInt8]) {
-        cpu.bus.write(bootrom: rom)
-        
-    }
-    
-    public func shouldRender() -> Bool {
-        cpu.bus.ppu.mode == .VerticalBlank
-    }
-    
-    public func ppuTest() -> [Int] {
-        return cpu.bus.ppu.createTile()
-    }
-    
-    public func tileData() -> [Int] {
-        return cpu.bus.ppu.createTileData()
-    }
-    
-    public func tileMap() -> [Int] {
-        return cpu.bus.ppu.createTileMap()
-    }
+//    func ppuTest() -> [Int] {
+//        return cpu.bus.ppu.createTile()
+//    }
+//    
+//    func tileData() -> [Int] {
+//        return cpu.bus.ppu.createTileData()
+//    }
+//    
+//    func tileMap() -> [Int] {
+//        return cpu.bus.ppu.createTileMap()
+//    }
     
     public func viewPort() -> [Int] {
         return cpu.bus.ppu.viewPort
-    }
-}
-
-extension UInt8 {
-    var hex: String {
-        String(format:"%02X", self)
-    }
-    
-    init(_ boolean: Bool) {
-         
-        self = boolean ? 1 : 0
-    }
-}
-
-extension UInt16 {
-    var hex: String {
-        String(format:"%04X", self)
     }
 }
