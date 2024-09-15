@@ -11,6 +11,7 @@ struct PPU {
     var memory: [UInt8]
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
+    var oam: [UInt8]
     var viewPort: [Int]
     var tempViewPort: [Int]
     var scx: UInt8
@@ -32,6 +33,7 @@ struct PPU {
         memory = [UInt8](repeating: 0, count: 0x1800)
         tilemap9800 = [UInt8](repeating: 0, count: 0x400)
         tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
+        oam = [UInt8](repeating: 0, count: 0x100)
         viewPort = [Int]()
         tempViewPort = [Int]()
         cycles = 0
@@ -77,11 +79,12 @@ struct PPU {
                     
                 } else if self.cycles >= 80 && self.cycles < drawEnd {
                     mode = .Draw
-
-                } else if self.cycles >= drawEnd && self.cycles < 456 {
                     if !drawn {
                         var x = 0
-                        for _ in stride(from: 0, to: 160, by: 8) {
+                        let remove = Int(scx % 8)
+                        drawEnd += remove
+                        
+                        for pixel in stride(from: 0, to: 160, by: 8) {
                             let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
                             var fetcherX = x + (Int(scx) / 8) & 0x1F
                             var fetcherY = (Int(ly) + Int(scy)) & 0xFF
@@ -99,7 +102,7 @@ struct PPU {
                             var tile = createPixelRow(byte1: byte1, byte2: byte2)
                             
                             if x == 0 {
-                                tile.removeSubrange(0..<Int(scx % 8))
+                                tile.removeSubrange(0..<remove)
                             }
                             
                             tempViewPort.append(contentsOf: tile)
@@ -107,8 +110,9 @@ struct PPU {
                             
                         }
                         drawn = true
-                        mode = .HorizontalBlank
                     }
+                } else if self.cycles >= drawEnd && self.cycles < 456 {
+                    mode = .HorizontalBlank
                 } else {
                     ly += 1
                     self.cycles = 0

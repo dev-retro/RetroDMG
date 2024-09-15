@@ -61,6 +61,12 @@ struct Bus {
             if ppu.mode != .Draw {
                 ppu.tilemap9C00[Int(location - 0x9C00)] = value
             }
+        } else if location >= 0xFE00 && location <= 0xFE9F {
+            if ppu.mode != .OAM && ppu.mode != .Draw {
+                ppu.oam[Int(location - 0xFE00)] = value
+            }
+        } else if location == 0xFF00 {
+            return
         } else if location == 0xFF04 {
             div = 0x0000
         } else if location == 0xFF05 {
@@ -197,6 +203,13 @@ struct Bus {
                 return 0xFF
             }
             return ppu.tilemap9C00[Int(location - 0x9C00)]
+        }
+        
+        if location >= 0xFE00 && location <= 0xFE9F {
+            if ppu.mode == .OAM || ppu.mode == .Draw {
+                return 0xFF
+            }
+            return ppu.oam[Int(location - 0xFE00)]
         }
         
         if location == 0xFF00 {
