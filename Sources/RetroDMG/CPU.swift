@@ -609,6 +609,8 @@ struct CPU {
             default:
                 fatalError("opCode 0x\(opCode.hex) not supported")
             }
+        } else if state == .Halted {
+            cycles += 1
         }
         return cycles
     }
@@ -1134,68 +1136,68 @@ struct CPU {
         }
     }
     
-    mutating func processInterrupts() {
-        if bus.ppu.setVBlankInterrupt {
-            bus.write(interruptFlagType: .VBlank, value: true)
-            bus.ppu.setVBlankInterrupt = false
-        }
-        
-        if setInputInterrupt {
-            bus.write(interruptFlagType: .Joypad, value: true)
-            setInputInterrupt = false
-        }
-        
-        //TODO: set other InterruptFlag
-        
-        if registers.readIme() {
-            if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
-                set(ime: false)
-                state = .Running
-                bus.write(interruptFlagType: .VBlank, value: false)
-                
-                let pc = registers.read(register: .PC)
-                let pcMsb = UInt8(pc >> 8)
-                let pcLsb = UInt8(truncatingIfNeeded: pc)
-
-                decrement(register: .SP, partOfOtherOpCode: true)
-                bus.write(location: registers.read(register: .SP), value: pcMsb)
-                decrement(register: .SP, partOfOtherOpCode: true)
-                bus.write(location: registers.read(register: .SP), value: pcLsb)
-                
-                registers.write(register: .PC, value: 0x40)
-            } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptEnableType: .Timer) {
-                set(ime: false)
-                state = .Running
-                bus.write(interruptFlagType: .Timer, value: false)
-                
-                let pc = registers.read(register: .PC)
-                let pcMsb = UInt8(pc >> 8)
-                let pcLsb = UInt8(truncatingIfNeeded: pc)
-                
-                decrement(register: .SP, partOfOtherOpCode: true)
-                bus.write(location: registers.read(register: .SP), value: pcMsb)
-                decrement(register: .SP, partOfOtherOpCode: true)
-                bus.write(location: registers.read(register: .SP), value: pcLsb)
-                
-                registers.write(register: .PC, value: 0x50)
-            } else if bus.read(interruptEnableType: .Joypad) && bus.read(interruptEnableType: .Joypad) {
-                set(ime: false)
-                state = .Running
-                bus.write(interruptFlagType: .Joypad, value: false)
-                
-                let pc = registers.read(register: .PC)
-                let pcMsb = UInt8(pc >> 8)
-                let pcLsb = UInt8(truncatingIfNeeded: pc)
-                
-                decrement(register: .SP, partOfOtherOpCode: true)
-                bus.write(location: registers.read(register: .SP), value: pcMsb)
-                decrement(register: .SP, partOfOtherOpCode: true)
-                bus.write(location: registers.read(register: .SP), value: pcLsb)
-                
-                registers.write(register: .PC, value: 0x60)
-            }
-        }
-    }
+//    mutating func processInterrupts() {
+//        if bus.ppu.setVBlankInterrupt {
+//            bus.write(interruptFlagType: .VBlank, value: true)
+//            bus.ppu.setVBlankInterrupt = false
+//        }
+//        
+//        if setInputInterrupt {
+//            bus.write(interruptFlagType: .Joypad, value: true)
+//            setInputInterrupt = false
+//        }
+//        
+//        //TODO: set other InterruptFlag
+//        
+//        if registers.readIme() {
+//            if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
+//                set(ime: false)
+//                state = .Running
+//                bus.write(interruptFlagType: .VBlank, value: false)
+//                
+//                let pc = registers.read(register: .PC)
+//                let pcMsb = UInt8(pc >> 8)
+//                let pcLsb = UInt8(truncatingIfNeeded: pc)
+//
+//                decrement(register: .SP, partOfOtherOpCode: true)
+//                bus.write(location: registers.read(register: .SP), value: pcMsb)
+//                decrement(register: .SP, partOfOtherOpCode: true)
+//                bus.write(location: registers.read(register: .SP), value: pcLsb)
+//                
+//                registers.write(register: .PC, value: 0x40)
+//            } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptEnableType: .Timer) {
+//                set(ime: false)
+//                state = .Running
+//                bus.write(interruptFlagType: .Timer, value: false)
+//                
+//                let pc = registers.read(register: .PC)
+//                let pcMsb = UInt8(pc >> 8)
+//                let pcLsb = UInt8(truncatingIfNeeded: pc)
+//                
+//                decrement(register: .SP, partOfOtherOpCode: true)
+//                bus.write(location: registers.read(register: .SP), value: pcMsb)
+//                decrement(register: .SP, partOfOtherOpCode: true)
+//                bus.write(location: registers.read(register: .SP), value: pcLsb)
+//                
+//                registers.write(register: .PC, value: 0x50)
+//            } else if bus.read(interruptEnableType: .Joypad) && bus.read(interruptEnableType: .Joypad) {
+//                set(ime: false)
+//                state = .Running
+//                bus.write(interruptFlagType: .Joypad, value: false)
+//                
+//                let pc = registers.read(register: .PC)
+//                let pcMsb = UInt8(pc >> 8)
+//                let pcLsb = UInt8(truncatingIfNeeded: pc)
+//                
+//                decrement(register: .SP, partOfOtherOpCode: true)
+//                bus.write(location: registers.read(register: .SP), value: pcMsb)
+//                decrement(register: .SP, partOfOtherOpCode: true)
+//                bus.write(location: registers.read(register: .SP), value: pcLsb)
+//                
+//                registers.write(register: .PC, value: 0x60)
+//            }
+//        }
+//    }
     
     mutating func returnAndIncrement(indirect register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
@@ -2490,6 +2492,17 @@ struct CPU {
     }
     
     mutating func processInterrupt() {
+        if bus.ppu.setVBlankInterrupt {
+            bus.write(interruptFlagType: .VBlank, value: true)
+            bus.ppu.setVBlankInterrupt = false
+        }
+        
+        if setInputInterrupt {
+            bus.write(interruptFlagType: .Joypad, value: true)
+            bus.write(interruptFlagType: .Joypad, value: true)
+            setInputInterrupt = false
+        }
+        
         if bus.read(interruptEnableType: .VBlank) && bus.read(interruptFlagType: .VBlank) {
             state = .Running
             
