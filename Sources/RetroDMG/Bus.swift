@@ -134,7 +134,6 @@ struct Bus {
     }
     
     mutating func write(inputType: InputType, value: Bool) {
-        if value {
             switch inputType {
             case .a:
                 joyp.set(bit: 5, value: !value)
@@ -163,9 +162,6 @@ struct Bus {
             default:
                 fatalError("Input Type not implemented \(inputType)")
             }
-        } else {
-            
-        }
     }
     
     mutating func read(location: UInt16) -> UInt8 {
