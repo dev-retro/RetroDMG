@@ -1,17 +1,20 @@
 //
 //  PPU.swift
+//  RetroDMG
 //
-//
-//  Created by Glenn Hevey on 4/1/2024.
+//  Created by Glenn Hevey on 17/9/2024.
 //
 
-import Foundation
 
 struct PPU {
     var memory: [UInt8]
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var oam: [UInt8]
+    var oamBuffer: [(Int, UInt8)]
+    var oamChecked: Bool
+    var oamCount: Int
+    
     var viewPort: [Int]
     var tempViewPort: [Int]
     var scx: UInt8
@@ -33,7 +36,11 @@ struct PPU {
         memory = [UInt8](repeating: 0, count: 0x1800)
         tilemap9800 = [UInt8](repeating: 0, count: 0x400)
         tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
-        oam = [UInt8](repeating: 0, count: 0x100)
+        oam = [UInt8](repeating: 0, count: 0xA0)
+        oamBuffer = [(Int, UInt8)]()
+        oamChecked = false
+        oamCount = 0
+        
         viewPort = [Int]()
         tempViewPort = [Int]()
         cycles = 0
@@ -77,6 +84,22 @@ struct PPU {
                 if self.cycles >= 0 && self.cycles < 80 {
                     mode = .OAM
                     
+                    if !oamChecked {
+                        for location in stride(from: 0, to: 160, by: 4) {
+                            let yPos = Int(oam[location]) - 16
+                            let xPos = Int(oam[location + 1]) - 8
+                            let index = oam[location + 2]
+                            let attributes = oam[location + 3]
+                            
+                            if xPos > 0 && ly >= yPos && ly < yPos + 8 && oamCount < 10 {
+                                oamBuffer.append((xPos,index))
+                                oamCount += 1
+                            }
+                        }
+                        
+                        oamChecked = true
+                    }
+                    
                 } else if self.cycles >= 80 && self.cycles < drawEnd {
                     mode = .Draw
                     if !drawn {
@@ -96,13 +119,28 @@ struct PPU {
                             var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
                             tileLocation += (2 * (fetcherY % 8))
                             
-                            
                             let byte1 = memory[Int(tileLocation)]
                             let byte2 = memory[Int(tileLocation + 0x1)]
-                            var tile = createPixelRow(byte1: byte1, byte2: byte2)
+                            var tile = createRow(byte1: byte1, byte2: byte2)
                             
                             if x == 0 {
                                 tile.removeSubrange(0..<remove)
+                            }
+                            
+                            if !read(flag: .BGWindowEnable) {
+                                tile = createRow(byte1: UInt8(), byte2: UInt8())
+                            }
+                            
+                            for obj in oamBuffer {
+                                if pixel == obj.0 {
+                                    
+                                    var tileLocation = Int(obj.1) * 16
+                                    tileLocation += (2 * (fetcherY % 8))
+                                    
+                                    let byte1 = memory[tileLocation]
+                                    let byte2 = memory[tileLocation + 0x1]
+                                    tile = createRow(byte1: byte1, byte2: byte2)
+                                }
                             }
                             
                             tempViewPort.append(contentsOf: tile)
@@ -117,6 +155,9 @@ struct PPU {
                     ly += 1
                     self.cycles = 0
                     drawEnd = 252
+                    oamCount = 0
+                    oamChecked = false
+                    oamBuffer.removeAll()
                     drawn = false
                 }
             } else {
@@ -128,6 +169,30 @@ struct PPU {
         }
     }
     
+    func createRow(byte1: UInt8, byte2: UInt8) -> [Int] {
+        var colourIds = [Int](repeating: 0, count: 8)
+
+        for bit in 0..<8 {
+            let msb = byte2.get(bit: UInt8(bit))
+            let lsb = byte1.get(bit: UInt8(bit))
+
+            if msb {
+                if lsb {
+                    colourIds[7-bit] = 3
+                } else {
+                    colourIds[7-bit] = 2
+                }
+            } else {
+                if lsb {
+                    colourIds[7-bit] = 1
+                } else {
+                    colourIds[7-bit] = 0
+                }
+            }
+        }
+
+        return colourIds
+    }
     
 //    public mutating func fetch(cycles: UInt16) {
 //        self.cycles += cycles
@@ -362,6 +427,7 @@ struct PPU {
             return control & mask == mask
         case .LYCLYInterruptEnable:
             let mask: UInt8 = 0b01000000
+            
             return status & mask == mask
         case .Mode2InterruptEnable:
             let mask: UInt8 = 0b00100000
@@ -381,80 +447,46 @@ struct PPU {
     
     //MARK: Tile based rendering
     
-    public func createTileData() -> [Int] {
-        var tiles = [Int]()
-        for byte in stride(from: 0, to: memory.count, by: 16) {
-            let byteArray = memory[byte..<byte+16]
-            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
-        }
-        
-        return tiles
-    }
+//    public func createTileData() -> [Int] {
+//        var tiles = [Int]()
+//        for byte in stride(from: 0, to: memory.count, by: 16) {
+//            let byteArray = memory[byte..<byte+16]
+//            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
+//        }
+//        
+//        return tiles
+//    }
     
-    public func createTileMap() -> [Int] {
-        var tiles = [Int]()
-        for tileNo in tilemap9800 {
-            let byteArray = memory[Int(UInt16(tileNo) * 16)..<Int((UInt16(tileNo) * 16 + 16))]
-            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
-        }
-        
-        return tiles
-    }
+//    public func createTileMap() -> [Int] {
+//        var tiles = [Int]()
+//        for tileNo in tilemap9800 {
+//            let byteArray = memory[Int(UInt16(tileNo) * 16)..<Int((UInt16(tileNo) * 16 + 16))]
+//            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
+//        }
+//        
+//        return tiles
+//    }
     
-    public func createTile(bytes: [UInt8]) -> [Int] {
-        var pixelRows = [Int]()
-        
-        for row in stride(from: 0, to: bytes.count, by: 2) {
-            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
-        }
-        
-       return pixelRows
-    }
+//    public func createTile(bytes: [UInt8]) -> [Int] {
+//        var pixelRows = [Int]()
+//        
+//        for row in stride(from: 0, to: bytes.count, by: 2) {
+//            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
+//        }
+//        
+//       return pixelRows
+//    }
     
-    public func createTile() -> [Int] {
-        let bytes: [UInt8] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C]
-        var pixelRows = [Int]()
-        
-        for row in stride(from: 0, to: bytes.count, by: 2) {
-            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
-        }
-        
-       return pixelRows
-    }
-    
-    func createPixelRow(byte1: UInt8, byte2: UInt8) -> [Int] {
-        var colourIds = [Int](repeating: 0, count: 8)
-        
-        for bit in 0..<8 {
-            let msb = byte2.get(bit: UInt8(bit))
-            let lsb = byte1.get(bit: UInt8(bit))
-            
-            if msb {
-                if lsb {
-                    colourIds[7-bit] = 3
-                } else {
-                    colourIds[7-bit] = 2
-                }
-            } else {
-                if lsb {
-                    colourIds[7-bit] = 1
-                } else {
-                    colourIds[7-bit] = 0
-                }
-            }
-        }
-        
-        return colourIds
-    }
-}
-
-//MARK: Internal information
-
-enum Palette {
-    case white
-    case light
-    case dark
-    case black
+//    public func createTile() -> [Int] {
+//        let bytes: [UInt8] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C]
+//        var pixelRows = [Int]()
+//        
+//        for row in stride(from: 0, to: bytes.count, by: 2) {
+//            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
+//        }
+//        
+//       return pixelRows
+//    }
 }
 
 enum PPUMode {
@@ -464,7 +496,7 @@ enum PPUMode {
     case Draw
 }
 
-enum PPURegisterType {
+public enum PPURegisterType {
     case LCDDisplayEnable
     case WindowTileMapSelect
     case WindowDisplayEnable
@@ -473,7 +505,7 @@ enum PPURegisterType {
     case SpriteSize
     case SpriteEnable
     case BGWindowEnable
-    
+
     case LYCLYInterruptEnable
     case Mode2InterruptEnable
     case Mode1InterruptEnable
