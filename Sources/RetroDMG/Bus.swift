@@ -79,12 +79,16 @@ struct Bus {
                 interruptFlag = value
         } else if location == 0xFF40 {
             ppu.control = value
+        } else if location == 0xFF41 {
+            ppu.status = value //FIXME: block writes to bit 0, 1 ans 2 see: https://gbdev.io/pandocs/STAT.html
         } else if location == 0xFF42 {
             ppu.scy = value
         } else if location == 0xFF43 {
             ppu.scx = value
         } else if location == 0xFF44 {
             return
+        } else if location == 0xFF45 {
+            ppu.lyc = value
         } else if location == 0xFFFF {
             interruptEnabled = value
         }
@@ -241,6 +245,10 @@ struct Bus {
             return ppu.control
         }
         
+        if location == 0xFF41 {
+            return ppu.status
+        }
+        
         if location == 0xFF42 {
             return ppu.scy
         }
@@ -251,6 +259,10 @@ struct Bus {
         
         if location == 0xFF44 {
             return ppu.ly
+        }
+        
+        if location == 0xFF45 {
+            return ppu.lyc
         }
         
         if location == 0xFFFF {

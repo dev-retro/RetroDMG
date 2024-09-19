@@ -11,7 +11,7 @@ struct PPU {
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var oam: [UInt8]
-    var oamBuffer: [(Int, UInt8)]
+    var oamBuffer: [(Int, UInt8, UInt8)]
     var oamChecked: Bool
     var oamCount: Int
     
@@ -22,6 +22,8 @@ struct PPU {
     var ly: UInt8
     var mode: PPUMode
     var setVBlankInterrupt: Bool
+    var setLCDInterrupt: Bool
+    var lyc: UInt8
     
     private var cycles: UInt16
     private var x: Int
@@ -30,14 +32,14 @@ struct PPU {
     
     //MARK: PPU Registers
     var control: UInt8
-    private var status: UInt8
+    var status: UInt8
     
     init() {
         memory = [UInt8](repeating: 0, count: 0x1800)
         tilemap9800 = [UInt8](repeating: 0, count: 0x400)
         tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
         oam = [UInt8](repeating: 0, count: 0xA0)
-        oamBuffer = [(Int, UInt8)]()
+        oamBuffer = [(Int, UInt8, UInt8)]()
         oamChecked = false
         oamCount = 0
         
@@ -53,12 +55,14 @@ struct PPU {
         scy = 0x00
         
         ly = 0x00
+        lyc = 0x00
         
         mode = .OAM
         
         x = 0
         drawn = false
         setVBlankInterrupt = false
+        setLCDInterrupt = false
         drawEnd = 252
     }
         
@@ -68,14 +72,20 @@ struct PPU {
         if !read(flag: .LCDDisplayEnable) {
             ly = 0
             mode = .HorizontalBlank
+            write(flag: .Mode0, set: true)
+            write(flag: .Mode0InterruptEnable, set: true)
+            write(flag: .Mode1InterruptEnable, set: false)
+            
         } else {
             self.cycles += cycles
             if ly == 144 {
                 mode = .VerticalBlank
+                write(flag: .Mode1, set: true)
                 setVBlankInterrupt = true
                 viewPort = tempViewPort
             } else if ly > 153 {
                 mode = .OAM
+                write(flag: .Mode2, set: true)
                 ly = 0
                 tempViewPort.removeAll()
             }
@@ -83,7 +93,7 @@ struct PPU {
             if mode != .VerticalBlank {
                 if self.cycles >= 0 && self.cycles < 80 {
                     mode = .OAM
-                    
+                    write(flag: .Mode2, set: true)
                     if !oamChecked {
                         for location in stride(from: 0, to: 160, by: 4) {
                             let yPos = Int(oam[location]) - 16
@@ -92,7 +102,7 @@ struct PPU {
                             let attributes = oam[location + 3]
                             
                             if xPos > 0 && ly >= yPos && ly < yPos + 8 && oamCount < 10 {
-                                oamBuffer.append((xPos,index))
+                                oamBuffer.append((xPos,index, attributes))
                                 oamCount += 1
                             }
                         }
@@ -102,6 +112,8 @@ struct PPU {
                     
                 } else if self.cycles >= 80 && self.cycles < drawEnd {
                     mode = .Draw
+                    write(flag: .Mode3, set: true)
+
                     if !drawn {
                         var x = 0
                         let remove = Int(scx % 8)
@@ -135,11 +147,20 @@ struct PPU {
                                 if pixel == obj.0 {
                                     
                                     var tileLocation = Int(obj.1) * 16
-                                    tileLocation += (2 * (fetcherY % 8))
+                                    if obj.2.get(bit: 6) {
+                                        tileLocation += 2 * (7 - fetcherY % 8)
+                                    } else {
+                                        tileLocation += 2 * (fetcherY % 8)
+                                    }
+                                    
                                     
                                     let byte1 = memory[tileLocation]
                                     let byte2 = memory[tileLocation + 0x1]
                                     tile = createRow(byte1: byte1, byte2: byte2)
+                                    if obj.2.get(bit: 5) {
+                                        tile.reverse()
+                                    }
+                                    drawEnd += 6
                                 }
                             }
                             
@@ -151,8 +172,13 @@ struct PPU {
                     }
                 } else if self.cycles >= drawEnd && self.cycles < 456 {
                     mode = .HorizontalBlank
+                    write(flag: .Mode0, set: true)
                 } else {
                     ly += 1
+                    write(flag: .CoincidenceFlag, set: ly == lyc)
+                    if read(flag: .LYCLYInterruptEnable) {
+                        setLCDInterrupt = ly == lyc
+                    }
                     self.cycles = 0
                     drawEnd = 252
                     oamCount = 0
@@ -163,6 +189,8 @@ struct PPU {
             } else {
                 if self.cycles >= 456 {
                     ly += 1
+                    write(flag: .CoincidenceFlag, set: ly == lyc)
+                    
                     self.cycles = 0
                 }
             }
@@ -196,41 +224,41 @@ struct PPU {
     
 //    public mutating func fetch(cycles: UInt16) {
 //        self.cycles += cycles
-//    
+//
 //        if mode != .VerticalBlank && self.cycles >= 0 && self.cycles < 80 {
-//            
+//
 //        } else if mode != .VerticalBlank && self.cycles < 289 {
 //            mode = .Draw
-//            
+//
 //            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
 //            if !drawn {
 //                x = 0
 //                for _ in stride(from: 0, to: 160, by: 8) {
 //                    var fetcherX = x + (Int(scx) / 8) & 0x1F
 //                    var fetcherY = (Int(ly) + Int(scy)) & 0xFF
-//                    
+//
 //                    var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-//                    
+//
 //                    var tileNo = tilemap[Int(tilemapAddress)]
-//                    
+//
 //                    var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
 //                    tileLocation += (2 * (fetcherY % 8))
-//                    
-//                    
+//
+//
 //                    let byte1 = memory[Int(tileLocation)]
 //                    let byte2 = memory[Int(tileLocation + 0x1)]
 //                    var tile = createPixelRow(byte1: byte1, byte2: byte2)
-//                    
+//
 //                    tempViewPort.append(contentsOf: tile)
 //                    x += 1
 //                }
 //            }
-//            
+//
 //            drawn = true
-//            
+//
 //        } else if mode != .VerticalBlank && self.cycles < 456 {
 //            mode = .HorizontalBlank
-//            
+//
 //        } else {
 //            ly += 1
 //            if ly < 144 {
@@ -245,17 +273,17 @@ struct PPU {
 //                viewPort = tempViewPort
 //                tempViewPort.removeAll()
 //            }
-//            
+//
 //            if self.cycles > 456 {
 //                drawn = false
 //                self.cycles = self.cycles - 456
 //            }
 //        }
 //    }
-//    
+//
 //    public mutating func fetch() {
 //        viewPort.removeAll()
-//        
+//
 //        for line in 0..<144 {
 //            ly = UInt8(line)
 //            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
@@ -263,19 +291,19 @@ struct PPU {
 //            for _ in stride(from: 0, to: 160, by: 8) {
 //                var fetcherX = x + (Int(scx) / 8) & 0x1F
 //                var fetcherY = (line + Int(scy)) & 0xFF
-//                
+//
 //                var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-//                
+//
 //                var tileNo = tilemap[Int(tilemapAddress)]
-//                
+//
 //                var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
 //                tileLocation += (2 * (fetcherY % 8))
-//                
-//                
+//
+//
 //                let byte1 = memory[Int(tileLocation)]
 //                let byte2 = memory[Int(tileLocation + 0x1)]
 //                var tile = createPixelRow(byte1: byte1, byte2: byte2)
-//                
+//
 //                viewPort.append(contentsOf: tile)
 //                x += 1
 //            }
@@ -396,6 +424,30 @@ struct PPU {
             } else {
                 status &= mask ^ 0xFF
             }
+        case .Mode0:
+            let mask: UInt8 = 0b00000000
+            
+            if set {
+                status |= mask
+            }
+        case .Mode1:
+            let mask: UInt8 = 0b0000001
+            
+            if set {
+                status |= mask
+            }
+        case .Mode2:
+            let mask: UInt8 = 0b00000010
+            
+            if set {
+                status |= mask
+            }
+        case .Mode3:
+            let mask: UInt8 = 0b00000011
+            
+            if set {
+                status |= mask
+            }
         }
     }
     
@@ -425,9 +477,9 @@ struct PPU {
         case .BGWindowEnable:
             let mask: UInt8 = 0b00000001
             return control & mask == mask
+            
         case .LYCLYInterruptEnable:
             let mask: UInt8 = 0b01000000
-            
             return status & mask == mask
         case .Mode2InterruptEnable:
             let mask: UInt8 = 0b00100000
@@ -440,6 +492,18 @@ struct PPU {
             return status & mask == mask
         case .CoincidenceFlag:
             let mask: UInt8 = 0b00000100
+            return status & mask == mask
+        case .Mode0:
+            let mask: UInt8 = 0b00000000
+            return status & mask == mask
+        case .Mode1:
+            let mask: UInt8 = 0b00000001
+            return status & mask == mask
+        case .Mode2:
+            let mask: UInt8 = 0b00000010
+            return status & mask == mask
+        case .Mode3:
+            let mask: UInt8 = 0b00000011
             return status & mask == mask
         }
     }
@@ -511,4 +575,9 @@ public enum PPURegisterType {
     case Mode1InterruptEnable
     case Mode0InterruptEnable
     case CoincidenceFlag
+    
+    case Mode0
+    case Mode1
+    case Mode2
+    case Mode3
 }
