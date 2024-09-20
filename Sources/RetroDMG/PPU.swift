@@ -24,11 +24,16 @@ struct PPU {
     var setVBlankInterrupt: Bool
     var setLCDInterrupt: Bool
     var lyc: UInt8
+    var wy: UInt8
+    var wx: UInt8
+    var windowLineCounter: UInt8
+    var fetchWindow: Bool
     
     private var cycles: UInt16
     private var x: Int
     private var drawn: Bool
     private var drawEnd: Int
+    private var windowYSet: Bool
     
     //MARK: PPU Registers
     var control: UInt8
@@ -57,6 +62,11 @@ struct PPU {
         ly = 0x00
         lyc = 0x00
         
+        wx = 0x00
+        wy = 0x00
+        windowLineCounter = 0x00
+        fetchWindow = false
+        
         mode = .OAM
         
         x = 0
@@ -64,6 +74,7 @@ struct PPU {
         setVBlankInterrupt = false
         setLCDInterrupt = false
         drawEnd = 252
+        windowYSet = false
     }
         
     //MARK: Line based rendering
@@ -83,11 +94,13 @@ struct PPU {
                 write(flag: .Mode1, set: true)
                 setVBlankInterrupt = true
                 viewPort = tempViewPort
+                windowLineCounter = 0x00
             } else if ly > 153 {
                 mode = .OAM
                 write(flag: .Mode2, set: true)
                 ly = 0
                 tempViewPort.removeAll()
+                windowYSet = false
             }
             
             if mode != .VerticalBlank {
@@ -95,6 +108,9 @@ struct PPU {
                     mode = .OAM
                     write(flag: .Mode2, set: true)
                     if !oamChecked {
+                        if !windowYSet {
+                            windowYSet = ly == wy
+                        }
                         for location in stride(from: 0, to: 160, by: 4) {
                             let yPos = Int(oam[location]) - 16
                             let xPos = Int(oam[location + 1]) - 8
@@ -120,16 +136,30 @@ struct PPU {
                         drawEnd += remove
                         
                         for pixel in stride(from: 0, to: 160, by: 8) {
-                            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-                            var fetcherX = x + (Int(scx) / 8) & 0x1F
-                            var fetcherY = (Int(ly) + Int(scy)) & 0xFF
+                            if !fetchWindow { // FIXME: Don't like this. It is hacky and needs to be done better
+                                fetchWindow = read(flag: .WindowDisplayEnable) && windowYSet && pixel >= wx - 7
+                                x = fetchWindow ? 0 : x
+                            }
+                            fetchWindow = read(flag: .WindowDisplayEnable) && windowYSet && pixel >= wx - 7
                             
-                            var tilemapAddress = x + ((fetcherY / 8) * 0x20)
+                            var tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
+                            var fetcher = (Int(ly) + Int(scy)) & 0xFF
+                            
+
+                            if fetchWindow {
+                                tilemap = read(flag: .WindowTileMapSelect) ? tilemap9C00 : tilemap9800
+                                fetcher = Int(windowLineCounter)
+                            }
+                            
+
+                            
+                            var tilemapAddress = x + ((fetcher / 8) * 0x20)
                             
                             var tileNo = tilemap[Int(tilemapAddress)]
                             
                             var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-                            tileLocation += (2 * (fetcherY % 8))
+                            tileLocation += 2 * (fetcher % 8)
+                            
                             
                             let byte1 = memory[Int(tileLocation)]
                             let byte2 = memory[Int(tileLocation + 0x1)]
@@ -147,10 +177,10 @@ struct PPU {
                                 if pixel == obj.0 {
                                     
                                     var tileLocation = Int(obj.1) * 16
-                                    if obj.2.get(bit: 6) {
-                                        tileLocation += 2 * (7 - fetcherY % 8)
+                                    if obj.2.get(bit: 6) { // Y Flip
+                                        tileLocation += 2 * (7 - fetcher % 8) //Flip vertical
                                     } else {
-                                        tileLocation += 2 * (fetcherY % 8)
+                                        tileLocation += 2 * (fetcher % 8)
                                     }
                                     
                                     
@@ -176,6 +206,9 @@ struct PPU {
                 } else {
                     ly += 1
                     write(flag: .CoincidenceFlag, set: ly == lyc)
+                    if fetchWindow {
+                        windowLineCounter += 1
+                    }
                     if read(flag: .LYCLYInterruptEnable) {
                         setLCDInterrupt = ly == lyc
                     }
@@ -189,8 +222,6 @@ struct PPU {
             } else {
                 if self.cycles >= 456 {
                     ly += 1
-                    write(flag: .CoincidenceFlag, set: ly == lyc)
-                    
                     self.cycles = 0
                 }
             }

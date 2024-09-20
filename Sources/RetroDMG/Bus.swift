@@ -89,6 +89,10 @@ struct Bus {
             return
         } else if location == 0xFF45 {
             ppu.lyc = value
+        } else if location == 0xFF4A {
+            ppu.wy = value
+        } else if location == 0xFF4B {
+            ppu.wx = value
         } else if location == 0xFFFF {
             interruptEnabled = value
         }
@@ -263,6 +267,14 @@ struct Bus {
         
         if location == 0xFF45 {
             return ppu.lyc
+        }
+        
+        if location == 0xFF4A {
+            return ppu.wy
+        }
+        
+        if location == 0xFF4B {
+            return ppu.wx
         }
         
         if location == 0xFFFF {
