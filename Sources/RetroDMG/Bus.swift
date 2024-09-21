@@ -76,7 +76,7 @@ struct Bus {
         } else if location == 0xFF07 {
             tac = value
         } else if location == 0xFF0F {
-                interruptFlag = value
+            interruptFlag = value
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF41 {
@@ -89,6 +89,14 @@ struct Bus {
             return
         } else if location == 0xFF45 {
             ppu.lyc = value
+        } else if location == 0xFF47 {
+            ppu.bgp = value
+        } else if location == 0xFF48 {
+            let mask: UInt8 = 0b11111100
+            ppu.obp0 = value & mask
+        } else if location == 0xFF49 {
+            let mask: UInt8 = 0b11111100
+            ppu.obp1 = value & mask
         } else if location == 0xFF4A {
             ppu.wy = value
         } else if location == 0xFF4B {
@@ -267,6 +275,18 @@ struct Bus {
         
         if location == 0xFF45 {
             return ppu.lyc
+        }
+        
+        if location == 0xFF47 {
+            return ppu.bgp
+        }
+        
+        if location == 0xFF48 {
+            return ppu.obp0
+        }
+        
+        if location == 0xFF49 {
+            return ppu.obp1
         }
         
         if location == 0xFF4A {

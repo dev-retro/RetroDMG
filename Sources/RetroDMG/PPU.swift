@@ -11,9 +11,15 @@ struct PPU {
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var oam: [UInt8]
-    var oamBuffer: [(Int, UInt8, UInt8)]
+    var oamBuffer: [(xPos: Int, index: UInt8, attributes:UInt8)]
     var oamChecked: Bool
     var oamCount: Int
+    
+    
+    ///Pallets
+    var bgp: UInt8
+    var obp0: UInt8
+    var obp1: UInt8
     
     var viewPort: [Int]
     var tempViewPort: [Int]
@@ -47,6 +53,10 @@ struct PPU {
         oamBuffer = [(Int, UInt8, UInt8)]()
         oamChecked = false
         oamCount = 0
+        
+        bgp = 0x00
+        obp0 = 0x00
+        obp1 = 0x00
         
         viewPort = [Int]()
         tempViewPort = [Int]()
@@ -118,7 +128,7 @@ struct PPU {
                             let attributes = oam[location + 3]
                             
                             if xPos > 0 && ly >= yPos && ly < yPos + 8 && oamCount < 10 {
-                                oamBuffer.append((xPos,index, attributes))
+                                oamBuffer.append((xPos: xPos, index: index, attributes))
                                 oamCount += 1
                             }
                         }
@@ -163,38 +173,47 @@ struct PPU {
                             
                             let byte1 = memory[Int(tileLocation)]
                             let byte2 = memory[Int(tileLocation + 0x1)]
-                            var tile = createRow(byte1: byte1, byte2: byte2)
+                            var tile = createRow(byte1: byte1, byte2: byte2, isBackground: true, objectPallete1: nil)
                             
                             if x == 0 {
                                 tile.removeSubrange(0..<remove)
                             }
                             
                             if !read(flag: .BGWindowEnable) {
-                                tile = createRow(byte1: UInt8(), byte2: UInt8())
+                                tile = createRow(byte1: UInt8(), byte2: UInt8(), isBackground: true, objectPallete1: nil)
                             }
                             
+                            var objTile = [Int]()
+                            var bgObjPriority = false
+                            var horizontalFlip = false
+                            
                             for obj in oamBuffer {
-                                if pixel == obj.0 {
+                                if pixel == obj.xPos {
                                     
-                                    var tileLocation = Int(obj.1) * 16
-                                    if obj.2.get(bit: 6) { // Y Flip
+                                    var tileLocation = Int(obj.index) * 16
+                                    if obj.attributes.get(bit: 6) { // Y Flip
                                         tileLocation += 2 * (7 - fetcher % 8) //Flip vertical
                                     } else {
                                         tileLocation += 2 * (fetcher % 8)
                                     }
                                     
+                                    bgObjPriority = obj.attributes.get(bit: 7)
                                     
                                     let byte1 = memory[tileLocation]
                                     let byte2 = memory[tileLocation + 0x1]
-                                    tile = createRow(byte1: byte1, byte2: byte2)
-                                    if obj.2.get(bit: 5) {
-                                        tile.reverse()
+                                    objTile = createRow(byte1: byte1, byte2: byte2, isBackground: false, objectPallete1: obj.attributes.get(bit: 4))
+                                    if obj.attributes.get(bit: 5) {
+                                        horizontalFlip = true
                                     }
                                     drawEnd += 6
                                 }
                             }
                             
-                            tempViewPort.append(contentsOf: tile)
+                            objTile = objTile.count > 0 ? objTile : [Int](repeating: 0, count: 8)
+                            
+                            var pixelsToAppend = comparePixels(tile, objTile, BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip)
+                            
+                            tempViewPort.append(contentsOf: pixelsToAppend)
                             x += 1
                             
                         }
@@ -228,24 +247,45 @@ struct PPU {
         }
     }
     
-    func createRow(byte1: UInt8, byte2: UInt8) -> [Int] {
+    func createRow(byte1: UInt8, byte2: UInt8, isBackground: Bool, objectPallete1: Bool?) -> [Int] {
         var colourIds = [Int](repeating: 0, count: 8)
+        
+        var ids = [Shade.White, Shade.LightGray, Shade.DarkGray, Shade.Black]
 
         for bit in 0..<8 {
             let msb = byte2.get(bit: UInt8(bit))
             let lsb = byte1.get(bit: UInt8(bit))
+            
 
+            let pallete = isBackground ? bgp : objectPallete1! ? obp1 : obp0
+            
+            for palleteBit in stride(from: isBackground ? 0 : 2, to: 8, by: 2) {
+                if pallete.get(bit: UInt8(palleteBit + 1)) {
+                    if pallete.get(bit: UInt8(palleteBit)) {
+                        ids[palleteBit / 2] = Shade.Black
+                    } else {
+                        ids[palleteBit / 2] = Shade.DarkGray
+                    }
+                } else {
+                    if pallete.get(bit: UInt8(palleteBit)) {
+                        ids[palleteBit / 2] = Shade.LightGray
+                    } else {
+                        ids[palleteBit / 2] = Shade.White
+                    }
+                }
+            }
+            
             if msb {
                 if lsb {
-                    colourIds[7-bit] = 3
+                    colourIds[7-bit] = ids[3].rawValue
                 } else {
-                    colourIds[7-bit] = 2
+                    colourIds[7-bit] = ids[2].rawValue
                 }
             } else {
                 if lsb {
-                    colourIds[7-bit] = 1
+                    colourIds[7-bit] = ids[1].rawValue
                 } else {
-                    colourIds[7-bit] = 0
+                    colourIds[7-bit] = ids[0].rawValue
                 }
             }
         }
@@ -253,94 +293,31 @@ struct PPU {
         return colourIds
     }
     
-//    public mutating func fetch(cycles: UInt16) {
-//        self.cycles += cycles
-//
-//        if mode != .VerticalBlank && self.cycles >= 0 && self.cycles < 80 {
-//
-//        } else if mode != .VerticalBlank && self.cycles < 289 {
-//            mode = .Draw
-//
-//            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-//            if !drawn {
-//                x = 0
-//                for _ in stride(from: 0, to: 160, by: 8) {
-//                    var fetcherX = x + (Int(scx) / 8) & 0x1F
-//                    var fetcherY = (Int(ly) + Int(scy)) & 0xFF
-//
-//                    var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-//
-//                    var tileNo = tilemap[Int(tilemapAddress)]
-//
-//                    var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-//                    tileLocation += (2 * (fetcherY % 8))
-//
-//
-//                    let byte1 = memory[Int(tileLocation)]
-//                    let byte2 = memory[Int(tileLocation + 0x1)]
-//                    var tile = createPixelRow(byte1: byte1, byte2: byte2)
-//
-//                    tempViewPort.append(contentsOf: tile)
-//                    x += 1
-//                }
-//            }
-//
-//            drawn = true
-//
-//        } else if mode != .VerticalBlank && self.cycles < 456 {
-//            mode = .HorizontalBlank
-//
-//        } else {
-//            ly += 1
-//            if ly < 144 {
-//                mode = .OAM
-//            } else if ly >= 144 && ly <= 153  {
-//                mode = .VerticalBlank
-//                setVBlankInterrupt = true
-//            } else {
-//                mode = .OAM
-//                ly = 0
-//                viewPort.removeAll()
-//                viewPort = tempViewPort
-//                tempViewPort.removeAll()
-//            }
-//
-//            if self.cycles > 456 {
-//                drawn = false
-//                self.cycles = self.cycles - 456
-//            }
-//        }
-//    }
-//
-//    public mutating func fetch() {
-//        viewPort.removeAll()
-//
-//        for line in 0..<144 {
-//            ly = UInt8(line)
-//            let tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-//            var x = 0
-//            for _ in stride(from: 0, to: 160, by: 8) {
-//                var fetcherX = x + (Int(scx) / 8) & 0x1F
-//                var fetcherY = (line + Int(scy)) & 0xFF
-//
-//                var tilemapAddress = x + ((fetcherY / 8) * 0x20)
-//
-//                var tileNo = tilemap[Int(tilemapAddress)]
-//
-//                var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-//                tileLocation += (2 * (fetcherY % 8))
-//
-//
-//                let byte1 = memory[Int(tileLocation)]
-//                let byte2 = memory[Int(tileLocation + 0x1)]
-//                var tile = createPixelRow(byte1: byte1, byte2: byte2)
-//
-//                viewPort.append(contentsOf: tile)
-//                x += 1
-//            }
-//        }
-//    }
+    func comparePixels(_ BGWinPixels: [Int], _ ObjPixels: [Int], BGOBJPriority: Bool, horizontalFlip: Bool) -> [Int] {
+        var pixels = [Int]()
+        
+        var ObjPixels = ObjPixels
+        if horizontalFlip {
+            ObjPixels.reverse()
+        }
+        
+        for pixelNo in 0..<BGWinPixels.count {
+            var ObjPixel = ObjPixels[pixelNo]
+            var BGWinPixel = BGWinPixels[pixelNo]
+            
+            if ObjPixel == 0 {
+                pixels.append(BGWinPixel)
+            } else if BGOBJPriority && BGWinPixel != 0 {
+                pixels.append(BGWinPixel)
+            } else {
+                pixels.append(ObjPixel)
+            }
+        }
+        
+        return pixels
+    }
     
+
     mutating func write(mode: PPUMode) {
         self.mode = mode
     }
@@ -582,6 +559,13 @@ struct PPU {
 //        
 //       return pixelRows
 //    }
+}
+
+enum Shade: Int {
+    case White = 0
+    case LightGray = 1
+    case DarkGray = 2
+    case Black = 3
 }
 
 enum PPUMode {
