@@ -11,7 +11,7 @@ struct PPU {
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var oam: [UInt8]
-    var oamBuffer: [(xPos: Int, index: UInt8, attributes:UInt8)]
+    var oamBuffer: [(xPos: Int, yPos: Int, index: UInt8, attributes:UInt8)]
     var oamChecked: Bool
     var oamCount: Int
     
@@ -50,7 +50,7 @@ struct PPU {
         tilemap9800 = [UInt8](repeating: 0, count: 0x400)
         tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
         oam = [UInt8](repeating: 0, count: 0xA0)
-        oamBuffer = [(Int, UInt8, UInt8)]()
+        oamBuffer = [(Int, Int, UInt8, UInt8)]()
         oamChecked = false
         oamCount = 0
         
@@ -117,6 +117,7 @@ struct PPU {
                 if self.cycles >= 0 && self.cycles < 80 {
                     mode = .OAM
                     write(flag: .Mode2, set: true)
+                    var spriteHeight = read(flag: .SpriteSize) ? 16 : 8
                     if !oamChecked {
                         if !windowYSet {
                             windowYSet = ly == wy
@@ -124,11 +125,11 @@ struct PPU {
                         for location in stride(from: 0, to: 160, by: 4) {
                             let yPos = Int(oam[location]) - 16
                             let xPos = Int(oam[location + 1]) - 8
-                            let index = oam[location + 2]
+                            var index = oam[location + 2]
                             let attributes = oam[location + 3]
                             
-                            if xPos > 0 && ly >= yPos && ly < yPos + 8 && oamCount < 10 {
-                                oamBuffer.append((xPos: xPos, index: index, attributes))
+                            if xPos > 0 && ly >= yPos && ly < yPos + spriteHeight && oamCount < 10 {
+                                oamBuffer.append((xPos: xPos, yPos: yPos, index: index, attributes))
                                 oamCount += 1
                             }
                         }
@@ -189,6 +190,14 @@ struct PPU {
                             
                             for obj in oamBuffer {
                                 if pixel == obj.xPos {
+                                    var spriteHeight = read(flag: .SpriteSize) ? 16 : 8
+                                    var obj = obj
+                                    
+                                    if spriteHeight == 16 && Int(ly) - obj.yPos < 8 {
+                                        obj.index.set(bit: 0, value: obj.attributes.get(bit: 6) ? true : false)
+                                    } else if spriteHeight == 16 {
+                                        obj.index.set(bit: 0, value: obj.attributes.get(bit: 6) ? false : true)
+                                    }
                                     
                                     var tileLocation = Int(obj.index) * 16
                                     if obj.attributes.get(bit: 6) { // Y Flip
