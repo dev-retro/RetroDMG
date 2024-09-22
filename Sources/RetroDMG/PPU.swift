@@ -164,7 +164,7 @@ struct PPU {
                             
 
                             
-                            var tilemapAddress = x + ((fetcher / 8) * 0x20)
+                            var tilemapAddress = x + ((fetcher / 8) * 32)
                             
                             var tileNo = tilemap[Int(tilemapAddress)]
                             
@@ -172,8 +172,8 @@ struct PPU {
                             tileLocation += 2 * (fetcher % 8)
                             
                             
-                            let byte1 = memory[Int(tileLocation)]
-                            let byte2 = memory[Int(tileLocation + 0x1)]
+                            let byte1 = memory[tileLocation]
+                            let byte2 = memory[tileLocation + 0x1]
                             var tile = createRow(byte1: byte1, byte2: byte2, isBackground: true, objectPallete1: nil)
                             
                             if x == 0 {
