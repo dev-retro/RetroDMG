@@ -11,7 +11,7 @@ struct PPU {
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var oam: [UInt8]
-    var oamBuffer: [(xPos: Int, yPos: Int, index: UInt8, attributes:UInt8)]
+    var oamBuffer: [(xPos: Int, yPos: Int, index: UInt8, attributes: UInt8)]
     var oamChecked: Bool
     var oamCount: Int
     
@@ -40,6 +40,8 @@ struct PPU {
     private var drawn: Bool
     private var drawEnd: Int
     private var windowYSet: Bool
+    private var bgWindowPixels: [Int]
+    private var objectPixels: [Int]
     
     //MARK: PPU Registers
     var control: UInt8
@@ -85,6 +87,8 @@ struct PPU {
         setLCDInterrupt = false
         drawEnd = 252
         windowYSet = false
+        bgWindowPixels = [Int]()
+        objectPixels = [Int]()
     }
         
     //MARK: Line based rendering
@@ -143,8 +147,6 @@ struct PPU {
 
                     if !drawn {
                         var x = 0
-                        let remove = Int(scx % 8)
-                        drawEnd += remove
                         
                         for pixel in stride(from: 0, to: 160, by: 8) {
                             if !fetchWindow { // FIXME: Don't like this. It is hacky and needs to be done better
@@ -154,10 +156,11 @@ struct PPU {
                             fetchWindow = read(flag: .WindowDisplayEnable) && windowYSet && pixel >= wx - 7
                             
                             var tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-                            var fetcher = (Int(ly) + Int(scy)) & 0xFF
+                            var fetcher = (Int(ly) + Int(scy))  & 0xFF
                             
 
                             if fetchWindow {
+                                drawEnd += 6
                                 tilemap = read(flag: .WindowTileMapSelect) ? tilemap9C00 : tilemap9800
                                 fetcher = Int(windowLineCounter)
                             }
@@ -168,60 +171,82 @@ struct PPU {
                             
                             var tileNo = tilemap[Int(tilemapAddress)]
                             
+                            
                             var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
                             tileLocation += 2 * (fetcher % 8)
                             
                             
                             let byte1 = memory[tileLocation]
                             let byte2 = memory[tileLocation + 0x1]
-                            var tile = createRow(byte1: byte1, byte2: byte2, isBackground: true, objectPallete1: nil)
+                            bgWindowPixels = createRow(byte1: byte1, byte2: byte2, isBackground: true, objectPallete1: nil)
                             
-                            if x == 0 {
-                                tile.removeSubrange(0..<remove)
-                            }
                             
                             if !read(flag: .BGWindowEnable) {
-                                tile = createRow(byte1: UInt8(), byte2: UInt8(), isBackground: true, objectPallete1: nil)
+                                bgWindowPixels = createRow(byte1: UInt8(), byte2: UInt8(), isBackground: true, objectPallete1: nil)
                             }
                             
-                            var objTile = [Int]()
                             var bgObjPriority = false
                             var horizontalFlip = false
+                            var objPixelHolder = [Int]()
                             
-                            for obj in oamBuffer {
-                                if pixel == obj.xPos {
+                            
+                            
+                            if read(flag: .SpriteEnable) {
+                                var objects = oamBuffer.filter { $0.xPos >= pixel && $0.xPos < pixel + 7 }
+                                var object: (xPos: Int, yPos: Int, index: UInt8, attributes: UInt8)?
+                                for objectToCheck in objects {
+                                    object = object == nil ? objectToCheck : objectToCheck.xPos < object!.xPos ? objectToCheck : object
+                                }
+                                
+                                if var object {
                                     var spriteHeight = read(flag: .SpriteSize) ? 16 : 8
-                                    var obj = obj
                                     
-                                    if spriteHeight == 16 && Int(ly) - obj.yPos < 8 {
-                                        obj.index.set(bit: 0, value: obj.attributes.get(bit: 6) ? true : false)
+                                    if spriteHeight == 16 && Int(ly) - object.yPos < 8 {
+                                        object.index.set(bit: 0, value: object.attributes.get(bit: 6) ? true : false)
                                     } else if spriteHeight == 16 {
-                                        obj.index.set(bit: 0, value: obj.attributes.get(bit: 6) ? false : true)
+                                        object.index.set(bit: 0, value: object.attributes.get(bit: 6) ? false : true)
                                     }
                                     
-                                    var tileLocation = Int(obj.index) * 16
-                                    if obj.attributes.get(bit: 6) { // Y Flip
+                                    var tileLocation = Int(object.index) * 16
+                                    if object.attributes.get(bit: 6) { // Y Flip
                                         tileLocation += 2 * (7 - fetcher % 8) //Flip vertical
                                     } else {
                                         tileLocation += 2 * (fetcher % 8)
                                     }
                                     
-                                    bgObjPriority = obj.attributes.get(bit: 7)
+                                    bgObjPriority = object.attributes.get(bit: 7)
                                     
                                     let byte1 = memory[tileLocation]
                                     let byte2 = memory[tileLocation + 0x1]
-                                    objTile = createRow(byte1: byte1, byte2: byte2, isBackground: false, objectPallete1: obj.attributes.get(bit: 4))
-                                    if obj.attributes.get(bit: 5) {
+                                    
+                                    var offset = object.xPos - pixel
+                                    objPixelHolder = [Int](repeating: 0, count: offset)
+                                    var row = createRow(byte1: byte1, byte2: byte2, isBackground: false, objectPallete1: object.attributes.get(bit: 4))
+                                    
+                                    
+                                    objPixelHolder.append(contentsOf: row)
+                                    
+                                    
+                                    if object.attributes.get(bit: 5) {
                                         horizontalFlip = true
                                     }
+                                    
                                     drawEnd += 6
                                 }
                             }
                             
-                            objTile = objTile.count > 0 ? objTile : [Int](repeating: 0, count: 8)
+                            objectPixels.append(contentsOf: objPixelHolder)
+                            objPixelHolder.removeAll()
                             
-                            var pixelsToAppend = comparePixels(tile, objTile, BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip)
                             
+                            var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip)
+                            objectPixels.removeAll()
+                            
+//                            if pixel == 0 && !drawn {
+//                                pixelsToAppend.removeSubrange(0..<Int(scx % 8))
+//                                drawEnd += Int(scx % 8)
+//                            }
+    
                             tempViewPort.append(contentsOf: pixelsToAppend)
                             x += 1
                             
@@ -246,6 +271,8 @@ struct PPU {
                     oamChecked = false
                     oamBuffer.removeAll()
                     drawn = false
+                    bgWindowPixels.removeAll()
+                    objectPixels.removeAll()
                 }
             } else {
                 if self.cycles >= 456 {
@@ -302,17 +329,16 @@ struct PPU {
         return colourIds
     }
     
-    func comparePixels(_ BGWinPixels: [Int], _ ObjPixels: [Int], BGOBJPriority: Bool, horizontalFlip: Bool) -> [Int] {
+    mutating func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool) -> [Int] {
         var pixels = [Int]()
         
-        var ObjPixels = ObjPixels
         if horizontalFlip {
-            ObjPixels.reverse()
+            objectPixels.reverse()
         }
         
-        for pixelNo in 0..<BGWinPixels.count {
-            var ObjPixel = ObjPixels[pixelNo]
-            var BGWinPixel = BGWinPixels[pixelNo]
+        for _ in 0..<bgWindowPixels.count {
+            var ObjPixel = !objectPixels.isEmpty ? objectPixels.removeFirst() : 0
+            var BGWinPixel = bgWindowPixels.removeFirst()
             
             if ObjPixel == 0 {
                 pixels.append(BGWinPixel)
