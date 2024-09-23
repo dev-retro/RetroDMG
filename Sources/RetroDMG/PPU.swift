@@ -34,6 +34,7 @@ struct PPU {
     var wx: UInt8
     var windowLineCounter: UInt8
     var fetchWindow: Bool
+    var dma: UInt8
     
     private var cycles: UInt16
     private var x: Int
@@ -78,6 +79,7 @@ struct PPU {
         wy = 0x00
         windowLineCounter = 0x00
         fetchWindow = false
+        dma = 0
         
         mode = .OAM
         

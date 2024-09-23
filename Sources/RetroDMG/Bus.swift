@@ -89,6 +89,13 @@ struct Bus {
             return
         } else if location == 0xFF45 {
             ppu.lyc = value
+        } else if location == 0xFF46 {
+            ppu.dma = value
+            let firstIndex = UInt16(value) << 8 | UInt16(0x00)
+            var lastIndex = UInt16(value) << 8 | UInt16(0xFF)
+            
+            var data = memory[Int(firstIndex)...Int(lastIndex)]
+            ppu.oam = Array(data)
         } else if location == 0xFF47 {
             ppu.bgp = value
         } else if location == 0xFF48 {
@@ -275,6 +282,10 @@ struct Bus {
         
         if location == 0xFF45 {
             return ppu.lyc
+        }
+        
+        if location == 0xFF46 {
+            return ppu.dma
         }
         
         if location == 0xFF47 {
