@@ -229,19 +229,24 @@ struct PPU {
                                     
                                     bgObjPriority = object.attributes.get(bit: 7)
                                     
+                                    horizontalFlip = object.attributes.get(bit: 5)
+                                    
                                     let byte1 = memory[tileLocation]
                                     let byte2 = memory[tileLocation + 0x1]
                                     
                                     var offset = object.xPos - pixel
-                                    objPixelHolder = [Int](repeating: 0, count: offset)
+                                    
                                     var row = createRow(byte1: byte1, byte2: byte2, isBackground: false, objectPallete1: object.attributes.get(bit: 4))
                                     
+
                                     
-                                    objPixelHolder.append(contentsOf: row)
-                                    
-                                    
-                                    if object.attributes.get(bit: 5) {
-                                        horizontalFlip = true
+                                    if horizontalFlip {
+                                        objPixelHolder.append(contentsOf: row)
+                                        objPixelHolder.append(contentsOf: [Int](repeating: 0, count: offset))
+                                    } else {
+                                        objPixelHolder.append(contentsOf: [Int](repeating: 0, count: offset))
+                                        objPixelHolder.append(contentsOf: row)
+                                        objPixelHolder.removeLast(offset)
                                     }
                                     
                                     drawEnd += 6
@@ -254,6 +259,7 @@ struct PPU {
                             var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip, tileCount: x)
                             
                             tempViewPort.append(contentsOf: pixelsToAppend)
+                            
                             x += 1
                             
                         }
