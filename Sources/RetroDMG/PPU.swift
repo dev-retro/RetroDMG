@@ -148,35 +148,41 @@ struct PPU {
                     if !drawn {
                         var x = 0
                         
-                        for pixel in stride(from: 0, to: 160, by: 8) {
+                        for pixel in stride(from: 0, to: scx != 0 ? 168 : 160, by: 8) {
                             if !fetchWindow { // FIXME: Don't like this. It is hacky and needs to be done better
                                 fetchWindow = read(flag: .WindowDisplayEnable) && windowYSet && pixel >= wx - 7
                                 x = fetchWindow ? 0 : x
                             }
+                            
+                            if pixel == 0 {
+                                drawEnd += Int(scx) % 8
+                            }
                             fetchWindow = read(flag: .WindowDisplayEnable) && windowYSet && pixel >= wx - 7
                             
                             var tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-                            var fetcher = 0
+                            var fetcherY = 0
+                            var fetcherX = 0
                             
 
                             if fetchWindow {
                                 drawEnd += 6
                                 tilemap = read(flag: .WindowTileMapSelect) ? tilemap9C00 : tilemap9800
-                                fetcher = Int(windowLineCounter)
+                                fetcherY = Int(windowLineCounter)
+                                fetcherX = x
                             } else {
-                                var sum = (Int(scx) / 8 & 0x1F) + ((Int(ly) + Int(scy)) & 0xFF) & 0x3FF
-                                fetcher += sum
+                                fetcherY = ((Int(ly) + Int(scy)) & 0xFF)
+                                fetcherX = (x + (Int(scx) / 8)) & 0x1F
                             }
                             
 
                             
-                            var tilemapAddress = x + ((fetcher / 8) * 32)
+                            var tilemapAddress = fetcherX + ((fetcherY / 8) * 32)
                             
                             var tileNo = tilemap[Int(tilemapAddress)]
                             
                             
                             var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
-                            tileLocation += 2 * (fetcher % 8)
+                            tileLocation += 2 * (fetcherY % 8)
                             
                             
                             let byte1 = memory[tileLocation]
@@ -199,7 +205,7 @@ struct PPU {
                             
                             
                             if read(flag: .SpriteEnable) {
-                                var objects = oamBuffer.filter { $0.xPos >= pixel && $0.xPos < pixel + 7 }
+                                var objects = oamBuffer.filter { $0.xPos >= pixel && $0.xPos < pixel + 8 }
                                 var object: (xPos: Int, yPos: Int, index: UInt8, attributes: UInt8)?
                                 for objectToCheck in objects {
                                     object = object == nil ? objectToCheck : objectToCheck.xPos < object!.xPos ? objectToCheck : object
@@ -216,9 +222,9 @@ struct PPU {
                                     
                                     var tileLocation = Int(object.index) * 16
                                     if object.attributes.get(bit: 6) { // Y Flip
-                                        tileLocation += 2 * (7 - fetcher % 8) //Flip vertical
+                                        tileLocation += 2 * (7 - fetcherY % 8) //Flip vertical
                                     } else {
-                                        tileLocation += 2 * (fetcher % 8)
+                                        tileLocation += 2 * (fetcherY % 8)
                                     }
                                     
                                     bgObjPriority = object.attributes.get(bit: 7)
@@ -245,9 +251,7 @@ struct PPU {
                             objectPixels.append(contentsOf: objPixelHolder)
                             objPixelHolder.removeAll()
                             
-                            
-                            var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip, pixelsToDiscard: pixel == 0 ? Int(scx % 8) : 0)
-                            objectPixels.removeAll()
+                            var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip, tileCount: x)
                             
                             tempViewPort.append(contentsOf: pixelsToAppend)
                             x += 1
@@ -331,22 +335,25 @@ struct PPU {
         return colourIds
     }
     
-    mutating func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool, pixelsToDiscard: Int) -> [Int] {
+    mutating func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool, tileCount: Int) -> [Int] {
         var pixels = [Int]()
-        var pixelsToDiscard = pixelsToDiscard
+        var pixelsToDiscard = Int(scx) % 8
         
         if horizontalFlip {
             objectPixels.reverse()
         }
         
-        for _ in 0..<bgWindowPixels.count {
+        let pixelCount = tileCount == 20 ? pixelsToDiscard : bgWindowPixels.count
+        
+        for counter in 0..<pixelCount {
             var ObjPixel = !objectPixels.isEmpty ? objectPixels.removeFirst() : 0
             var BGWinPixel = bgWindowPixels.removeFirst()
             
-            if pixelsToDiscard > 0 {
+            if tileCount == 0 && pixelsToDiscard > 0 {
                 pixelsToDiscard -= 1
                 continue
             }
+            
             if ObjPixel == 0 {
                 pixels.append(BGWinPixel)
             } else if BGOBJPriority && BGWinPixel != 0 {
@@ -355,6 +362,8 @@ struct PPU {
                 pixels.append(ObjPixel)
             }
         }
+        
+        bgWindowPixels.removeAll()
         
         return pixels
     }
@@ -557,50 +566,6 @@ struct PPU {
             return status & mask == mask
         }
     }
-    
-    
-    //MARK: Tile based rendering
-    
-//    public func createTileData() -> [Int] {
-//        var tiles = [Int]()
-//        for byte in stride(from: 0, to: memory.count, by: 16) {
-//            let byteArray = memory[byte..<byte+16]
-//            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
-//        }
-//        
-//        return tiles
-//    }
-    
-//    public func createTileMap() -> [Int] {
-//        var tiles = [Int]()
-//        for tileNo in tilemap9800 {
-//            let byteArray = memory[Int(UInt16(tileNo) * 16)..<Int((UInt16(tileNo) * 16 + 16))]
-//            tiles.append(contentsOf: createTile(bytes: Array(byteArray)))
-//        }
-//        
-//        return tiles
-//    }
-    
-//    public func createTile(bytes: [UInt8]) -> [Int] {
-//        var pixelRows = [Int]()
-//        
-//        for row in stride(from: 0, to: bytes.count, by: 2) {
-//            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
-//        }
-//        
-//       return pixelRows
-//    }
-    
-//    public func createTile() -> [Int] {
-//        let bytes: [UInt8] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C]
-//        var pixelRows = [Int]()
-//        
-//        for row in stride(from: 0, to: bytes.count, by: 2) {
-//            pixelRows.append(contentsOf: createPixelRow(byte1: bytes[row], byte2: bytes[row+1]))
-//        }
-//        
-//       return pixelRows
-//    }
 }
 
 enum Shade: Int {
