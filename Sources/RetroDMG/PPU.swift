@@ -156,13 +156,16 @@ struct PPU {
                             fetchWindow = read(flag: .WindowDisplayEnable) && windowYSet && pixel >= wx - 7
                             
                             var tilemap = read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800
-                            var fetcher = (Int(ly) + Int(scy))  & 0xFF
+                            var fetcher = 0
                             
 
                             if fetchWindow {
                                 drawEnd += 6
                                 tilemap = read(flag: .WindowTileMapSelect) ? tilemap9C00 : tilemap9800
                                 fetcher = Int(windowLineCounter)
+                            } else {
+                                var sum = (Int(scx) / 8 & 0x1F) + ((Int(ly) + Int(scy)) & 0xFF) & 0x3FF
+                                fetcher += sum
                             }
                             
 
@@ -185,6 +188,10 @@ struct PPU {
                                 bgWindowPixels = createRow(byte1: UInt8(), byte2: UInt8(), isBackground: true, objectPallete1: nil)
                             }
                             
+                            
+                            
+                            
+                            // MARK: Sprite rendering
                             var bgObjPriority = false
                             var horizontalFlip = false
                             var objPixelHolder = [Int]()
@@ -239,14 +246,9 @@ struct PPU {
                             objPixelHolder.removeAll()
                             
                             
-                            var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip)
+                            var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip, pixelsToDiscard: pixel == 0 ? Int(scx % 8) : 0)
                             objectPixels.removeAll()
                             
-//                            if pixel == 0 && !drawn {
-//                                pixelsToAppend.removeSubrange(0..<Int(scx % 8))
-//                                drawEnd += Int(scx % 8)
-//                            }
-    
                             tempViewPort.append(contentsOf: pixelsToAppend)
                             x += 1
                             
@@ -329,8 +331,9 @@ struct PPU {
         return colourIds
     }
     
-    mutating func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool) -> [Int] {
+    mutating func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool, pixelsToDiscard: Int) -> [Int] {
         var pixels = [Int]()
+        var pixelsToDiscard = pixelsToDiscard
         
         if horizontalFlip {
             objectPixels.reverse()
@@ -340,6 +343,10 @@ struct PPU {
             var ObjPixel = !objectPixels.isEmpty ? objectPixels.removeFirst() : 0
             var BGWinPixel = bgWindowPixels.removeFirst()
             
+            if pixelsToDiscard > 0 {
+                pixelsToDiscard -= 1
+                continue
+            }
             if ObjPixel == 0 {
                 pixels.append(BGWinPixel)
             } else if BGOBJPriority && BGWinPixel != 0 {
