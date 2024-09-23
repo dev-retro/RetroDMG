@@ -61,6 +61,12 @@ struct Bus {
             if ppu.mode != .Draw {
                 ppu.tilemap9C00[Int(location - 0x9C00)] = value
             }
+        } else if location >= 0xFE00 && location <= 0xFE9F {
+            if ppu.mode != .OAM && ppu.mode != .Draw {
+                ppu.oam[Int(location - 0xFE00)] = value
+            }
+        } else if location == 0xFF00 {
+            return
         } else if location == 0xFF04 {
             div = 0x0000
         } else if location == 0xFF05 {
@@ -70,15 +76,38 @@ struct Bus {
         } else if location == 0xFF07 {
             tac = value
         } else if location == 0xFF0F {
-                interruptFlag = value
+            interruptFlag = value
         } else if location == 0xFF40 {
             ppu.control = value
+        } else if location == 0xFF41 {
+            ppu.status = value //FIXME: block writes to bit 0, 1 ans 2 see: https://gbdev.io/pandocs/STAT.html
         } else if location == 0xFF42 {
             ppu.scy = value
         } else if location == 0xFF43 {
             ppu.scx = value
         } else if location == 0xFF44 {
             return
+        } else if location == 0xFF45 {
+            ppu.lyc = value
+        } else if location == 0xFF46 {
+            ppu.dma = value
+            let firstIndex = UInt16(value) << 8 | UInt16(0x00)
+            var lastIndex = UInt16(value) << 8 | UInt16(0xFF)
+            
+            var data = memory[Int(firstIndex)...Int(lastIndex)]
+            ppu.oam = Array(data)
+        } else if location == 0xFF47 {
+            ppu.bgp = value
+        } else if location == 0xFF48 {
+            let mask: UInt8 = 0b11111100
+            ppu.obp0 = value & mask
+        } else if location == 0xFF49 {
+            let mask: UInt8 = 0b11111100
+            ppu.obp1 = value & mask
+        } else if location == 0xFF4A {
+            ppu.wy = value
+        } else if location == 0xFF4B {
+            ppu.wx = value
         } else if location == 0xFFFF {
             interruptEnabled = value
         }
@@ -199,6 +228,13 @@ struct Bus {
             return ppu.tilemap9C00[Int(location - 0x9C00)]
         }
         
+        if location >= 0xFE00 && location <= 0xFE9F {
+            if ppu.mode == .OAM || ppu.mode == .Draw {
+                return 0xFF
+            }
+            return ppu.oam[Int(location - 0xFE00)]
+        }
+        
         if location == 0xFF00 {
             return joyp
         }
@@ -228,6 +264,10 @@ struct Bus {
             return ppu.control
         }
         
+        if location == 0xFF41 {
+            return ppu.status
+        }
+        
         if location == 0xFF42 {
             return ppu.scy
         }
@@ -238,6 +278,34 @@ struct Bus {
         
         if location == 0xFF44 {
             return ppu.ly
+        }
+        
+        if location == 0xFF45 {
+            return ppu.lyc
+        }
+        
+        if location == 0xFF46 {
+            return ppu.dma
+        }
+        
+        if location == 0xFF47 {
+            return ppu.bgp
+        }
+        
+        if location == 0xFF48 {
+            return ppu.obp0
+        }
+        
+        if location == 0xFF49 {
+            return ppu.obp1
+        }
+        
+        if location == 0xFF4A {
+            return ppu.wy
+        }
+        
+        if location == 0xFF4B {
+            return ppu.wx
         }
         
         if location == 0xFFFF {

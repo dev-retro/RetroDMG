@@ -2497,8 +2497,12 @@ struct CPU {
             bus.ppu.setVBlankInterrupt = false
         }
         
+        if bus.ppu.setLCDInterrupt {
+            bus.write(interruptFlagType: .LCD, value: true)
+            bus.ppu.setLCDInterrupt = false
+        }
+        
         if setInputInterrupt {
-            bus.write(interruptFlagType: .Joypad, value: true)
             bus.write(interruptFlagType: .Joypad, value: true)
             setInputInterrupt = false
         }
