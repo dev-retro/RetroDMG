@@ -34,6 +34,11 @@ public class RetroDMG: RetroPlatform {
         self.settings = DMGSettings()
     }
     
+    func reset() {
+
+    }
+    
+    
     public func listInputs() -> [RetroInput] {
         return inputs
     }
@@ -47,7 +52,7 @@ public class RetroDMG: RetroPlatform {
         
         let settings = try decoder.decode(DMGSettings.self, from: settings.data(using: .utf8)!)
         
-        if let bios = settings.bios {
+        if let bios = settings.biosSetting.value {
             cpu.bus.write(bootrom: bios)
         }
         
@@ -55,24 +60,33 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func start() -> Bool {
-        loopRunning = true
         
-        loop()
+        if !loopRunning {
+            loopRunning = true
+            
+            loop()
+            return false
+        }
+        
         return true
     }
     
     public func pause() -> Bool {
-        //TODO: to add
+        loopRunning = false
         return false
     }
     
     public func stop() -> Bool {
         loopRunning = false
+        reset()
         return false
     }
     
     func loop() {
         Task {
+            if Task.isCancelled {
+                loopRunning = false
+            }
             var time1 = SuspendingClock().now
             var time2 = SuspendingClock().now
             while loopRunning {
@@ -84,6 +98,10 @@ public class RetroDMG: RetroPlatform {
                     await try? Task.sleep(for: reaminingTime, tolerance: .zero)
                 }
                 for _ in 0..<70224 / 16 {
+                    if Task.isCancelled {
+                        loopRunning = false
+                        break
+                    }
                     let currentCycles = cpu.tick()
                     for _ in 0...(currentCycles / 4) {
                         cpu.updateTimer()
@@ -124,18 +142,6 @@ public class RetroDMG: RetroPlatform {
         cpu.bus.write(rom: file)
         cpu.start()
     }
-    
-//    func ppuTest() -> [Int] {
-//        return cpu.bus.ppu.createTile()
-//    }
-//    
-//    func tileData() -> [Int] {
-//        return cpu.bus.ppu.createTileData()
-//    }
-//    
-//    func tileMap() -> [Int] {
-//        return cpu.bus.ppu.createTileMap()
-//    }
     
     public func viewPort() -> [Int] {
         return cpu.bus.ppu.viewPort
