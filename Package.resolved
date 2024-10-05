@@ -6,7 +6,25 @@
       "location" : "https://github.com/dev-retro/RetroSwift.git",
       "state" : {
         "branch" : "main",
-        "revision" : "b726c17231f909545ccba1262186579b6df8454f"
+        "revision" : "520cff5f7896a21ebfb799abf4c2893dfbbea802"
+      }
+    },
+    {
+      "identity" : "swift-docc-plugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-docc-plugin",
+      "state" : {
+        "revision" : "85e4bb4e1cd62cec64a4b8e769dcefdf0c5b9d64",
+        "version" : "1.4.3"
+      }
+    },
+    {
+      "identity" : "swift-docc-symbolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
+      "state" : {
+        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
+        "version" : "1.0.0"
       }
     }
   ],
