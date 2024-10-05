@@ -15,7 +15,6 @@ public class RetroDMG: RetroPlatform {
     var cpu: CPU
     var inputs: [RetroInput]
     var loopRunning: Bool
-    var settings: DMGSettings
     
     public init() {
         self.cpu = CPU()
@@ -31,7 +30,6 @@ public class RetroDMG: RetroPlatform {
         ]
         
         self.loopRunning = false
-        self.settings = DMGSettings()
     }
     
     func reset() {
@@ -47,16 +45,12 @@ public class RetroDMG: RetroPlatform {
         self.inputs = inputs
     }
     
-    public func setup(settings: String) throws -> Bool {
-        let decoder = JSONDecoder()
-        
-        let settings = try decoder.decode(DMGSettings.self, from: settings.data(using: .utf8)!)
-        
-        if let bios = settings.biosSetting.value {
-            cpu.bus.write(bootrom: bios)
+    public func update(settings: some RetroSettings) {
+        if let settings = settings as? DMGSettings {
+            if let bios = settings.bioSetting.value {
+                cpu.bus.write(bootrom: bios)
+            }
         }
-        
-        return true
     }
     
     public func start() -> Bool {
@@ -115,12 +109,12 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func listSettings() throws -> String {
-        let encoder = JSONEncoder()
-        
-        let settings = try encoder.encode(settings)
-        
-        return String(data: settings, encoding: .utf8)!
-        
+//        let encoder = JSONEncoder()
+//        
+//        let settings = try encoder.encode(settings)
+//        
+//        return String(data: settings, encoding: .utf8)!
+        return ""
     }
     
     func checkInput() {
