@@ -6,7 +6,7 @@
 //
 
 
-struct PPU {
+class PPU {
     var memory: [UInt8]
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
@@ -95,7 +95,7 @@ struct PPU {
         
     //MARK: Line based rendering
     
-    public mutating func updateGraphics(cycles: UInt16) {
+    public func updateGraphics(cycles: UInt16) {
         if !read(flag: .LCDDisplayEnable) {
             ly = 0
             mode = .HorizontalBlank
@@ -343,7 +343,7 @@ struct PPU {
         return colourIds
     }
     
-    mutating func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool, tileCount: Int) -> [Int] {
+    func comparePixels(BGOBJPriority: Bool, horizontalFlip: Bool, tileCount: Int) -> [Int] {
         var pixels = [Int]()
         var pixelsToDiscard = Int(scx) % 8
         
@@ -377,7 +377,7 @@ struct PPU {
     }
     
 
-    mutating func write(mode: PPUMode) {
+    func write(mode: PPUMode) {
         self.mode = mode
     }
     
@@ -385,7 +385,7 @@ struct PPU {
         return mode
     }
     
-    public mutating func write(flag: PPURegisterType, set: Bool) {
+    public func write(flag: PPURegisterType, set: Bool) {
         switch flag {
         case .LCDDisplayEnable:
             let mask: UInt8 = 0b10000000

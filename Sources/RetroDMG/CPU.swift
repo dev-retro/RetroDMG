@@ -12,7 +12,7 @@ enum CPUState {
 case Halted, Running
 }
 
-struct CPU {
+class CPU {
     var registers: Registers
     var cycles: UInt16
     var state: CPUState
@@ -55,7 +55,7 @@ struct CPU {
         raiseIRQ = false
     }
     
-    mutating func start() {
+    func start() {
         if !bus.bootromLoaded {
             registers.write(register: .A, value: 0x01)
             registers.write(register: .B, value: 0x00)
@@ -73,7 +73,7 @@ struct CPU {
         }
     }
     
-    mutating func tick() -> UInt16 {
+    func tick() -> UInt16 {
         if delayedImeWrite {
             registers.write(ime: true)
             delayedImeWrite = false
@@ -615,7 +615,7 @@ struct CPU {
         return cycles
     }
     
-    mutating func extendedOpCodes() {
+    func extendedOpCodes() {
         let opCode = returnAndIncrement(indirect: .PC)
         
         switch opCode {
@@ -1136,7 +1136,7 @@ struct CPU {
         }
     }
     
-//    mutating func processInterrupts() {
+//    func processInterrupts() {
 //        if bus.ppu.setVBlankInterrupt {
 //            bus.write(interruptFlagType: .VBlank, value: true)
 //            bus.ppu.setVBlankInterrupt = false
@@ -1199,7 +1199,7 @@ struct CPU {
 //        }
 //    }
     
-    mutating func returnAndIncrement(indirect register: RegisterType16) -> UInt8 {
+    func returnAndIncrement(indirect register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
         let value = bus.read(location: regValue)
         regValue += 1
@@ -1208,7 +1208,7 @@ struct CPU {
         return value
     }
     
-    mutating func increment(register: RegisterType8) {
+    func increment(register: RegisterType8) {
         var registerValue = registers.read(register: register)
         var value = registerValue.addingReportingOverflow(1)
         registers.write(register: register, value: value.partialValue)
@@ -1221,7 +1221,7 @@ struct CPU {
         
     }
     
-    mutating func increment(register: RegisterType16, partOfOtherOpCode: Bool = false) {
+    func increment(register: RegisterType16, partOfOtherOpCode: Bool = false) {
         var value = registers.read(register: register)
         value = value.addingReportingOverflow(1).partialValue
         
@@ -1232,7 +1232,7 @@ struct CPU {
         }
     }
     
-    mutating func increment(indirect register: RegisterType16) {
+    func increment(indirect register: RegisterType16) {
         var registerValue = registers.read(register: register)
         var value = bus.read(location: registerValue)
         var newValue = value.addingReportingOverflow(1).partialValue
@@ -1243,7 +1243,7 @@ struct CPU {
         registers.write(flag: .HalfCarry, set: (((value & 0xF) + (1 & 0xF)) & 0x10) == 0x10)
     }
     
-    mutating func decrement(register: RegisterType8) {
+    func decrement(register: RegisterType8) {
         var currentValue = registers.read(register: register)
         var newValue = currentValue.subtractingReportingOverflow(1).partialValue
         registers.write(register: register, value: newValue)
@@ -1255,7 +1255,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
-    mutating func decrement(indirect register: RegisterType16) {
+    func decrement(indirect register: RegisterType16) {
         var currentValue = bus.read(location: registers.read(register: register))
         var newValue = currentValue.subtractingReportingOverflow(1).partialValue
         bus.write(location: registers.read(register: register), value: newValue)
@@ -1267,7 +1267,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
-    mutating func decrement(register: RegisterType16, partOfOtherOpCode: Bool = false) {
+    func decrement(register: RegisterType16, partOfOtherOpCode: Bool = false) {
         var regValue = registers.read(register: register)
         let value = regValue.subtractingReportingOverflow(1)
         registers.write(register: register, value: value.partialValue)
@@ -1277,39 +1277,39 @@ struct CPU {
         }
     }
     
-    mutating func load(from fromRegister: RegisterType8, to toRegister: RegisterType8) {
+    func load(from fromRegister: RegisterType8, to toRegister: RegisterType8) {
         registers.write(register: toRegister, value: registers.read(register: fromRegister))
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func load(from fromRegister: RegisterType16, to toRegister: RegisterType16) {
+    func load(from fromRegister: RegisterType16, to toRegister: RegisterType16) {
         registers.write(register: toRegister, value: registers.read(register: fromRegister))
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func load(register: RegisterType8, indirect: RegisterType16) {
+    func load(register: RegisterType8, indirect: RegisterType16) {
         registers.write(register: register, value: bus.read(location: registers.read(register: indirect)))
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func load(indirect: RegisterType16, register: RegisterType8) {
+    func load(indirect: RegisterType16, register: RegisterType8) {
         bus.write(location: registers.read(register: indirect), value: registers.read(register: register))
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func load(from fromRegister: RegisterType16, to toRegister: RegisterType8) {
+    func load(from fromRegister: RegisterType16, to toRegister: RegisterType8) {
         let value = returnAndIncrement(indirect: fromRegister)
         registers.write(register: toRegister, value: value)
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func load(indirect register: RegisterType16) {
+    func load(indirect register: RegisterType16) {
         let value = returnAndIncrement(indirect: .PC)
             bus.write(location: registers.read(register: register), value: value)
             cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
-    mutating func loadFromMemory(to register: RegisterType16) {
+    func loadFromMemory(to register: RegisterType16) {
         let lsb = UInt16(returnAndIncrement(indirect: .PC))
         let msb = UInt16(returnAndIncrement(indirect: .PC))
         let value = msb << 8 | lsb
@@ -1319,7 +1319,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
-    mutating func loadFromMemory(to toRegister: RegisterType8, from fromRegister: RegisterType8) {
+    func loadFromMemory(to toRegister: RegisterType8, from fromRegister: RegisterType8) {
         let lsb = UInt16(registers.read(register: fromRegister))
         let msb = UInt16(0xFF)
         let value = msb << 8 | lsb
@@ -1329,7 +1329,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func loadFromMemory(to register: RegisterType8, masked: Bool) {
+    func loadFromMemory(to register: RegisterType8, masked: Bool) {
         let lsb = UInt16(returnAndIncrement(indirect: .PC))
         let msb = masked ? UInt16(0xFF) : UInt16(returnAndIncrement(indirect: .PC))
         let value = msb << 8 | lsb
@@ -1339,7 +1339,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(masked ? 12 : 16).partialValue
     }
     
-    mutating func loadToMemory(from register: RegisterType8, masked: Bool = false) {
+    func loadToMemory(from register: RegisterType8, masked: Bool = false) {
         let lsb = returnAndIncrement(indirect: .PC)
         let msb = masked ? 0xFF : returnAndIncrement(indirect: .PC)
         
@@ -1350,7 +1350,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(masked ? 12 : 16).partialValue
     }
     
-    mutating func loadToMemory(masked register: RegisterType8) {
+    func loadToMemory(masked register: RegisterType8) {
         let lsb = registers.read(register: register)
         let msb = 0xFF
         
@@ -1361,7 +1361,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func loadToMemory(from register: RegisterType16) {
+    func loadToMemory(from register: RegisterType16) {
         let lsb = returnAndIncrement(indirect: .PC)
         let msb = returnAndIncrement(indirect: .PC)
         let value = registers.read(register: register)
@@ -1375,7 +1375,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(20).partialValue
     }
     
-//    mutating func load(indirect from: RegisterType8?) {
+//    func load(indirect from: RegisterType8?) {
 //        let lsb = increment(register: .PC)
 //        var cycleCount: Int32 = 12
 //        if from != nil {
@@ -1390,7 +1390,7 @@ struct CPU {
 //        cycles = cycles.addingReportingOverflow(cycleCount
 //    }
     
-    mutating func jump(type: JumpType) {
+    func jump(type: JumpType) {
         switch type {
         case .memorySigned8Bit:
             let address = Int8(bitPattern: returnAndIncrement(indirect: .PC))
@@ -1412,7 +1412,7 @@ struct CPU {
         }
     }
     
-    mutating func jumpIfNot(type: JumpType, flag: FlagType) {
+    func jumpIfNot(type: JumpType, flag: FlagType) {
         switch type {
         case .memorySigned8Bit:
             let address_raw = Int8(bitPattern: returnAndIncrement(indirect: .PC))
@@ -1440,7 +1440,7 @@ struct CPU {
         }
     }
     
-    mutating func jumpIf(type: JumpType, flag: FlagType) {
+    func jumpIf(type: JumpType, flag: FlagType) {
         switch type {
         case .memorySigned8Bit:
             let address_raw = Int8(bitPattern: returnAndIncrement(indirect: .PC))
@@ -1469,19 +1469,19 @@ struct CPU {
         
     }
     
-    mutating func jump(to register: RegisterType16) {
+    func jump(to register: RegisterType16) {
         registers.write(register: .PC, value: registers.read(register: register))
         
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func set(ime: Bool) {
+    func set(ime: Bool) {
         registers.write(ime: ime)
         cycles = cycles.addingReportingOverflow(4).partialValue
         state = .Running
     }
     
-    mutating func call() {
+    func call() {
         let lsb = returnAndIncrement(indirect: .PC)
         let msb = returnAndIncrement(indirect: .PC)
         let value = UInt16(msb) << 8 | UInt16(lsb)
@@ -1500,7 +1500,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(24).partialValue
     }
     
-    mutating func callIfNot(flag: FlagType) {
+    func callIfNot(flag: FlagType) {
         let lsb = UInt16(returnAndIncrement(indirect: .PC))
         let msb = UInt16(returnAndIncrement(indirect: .PC))
 
@@ -1525,7 +1525,7 @@ struct CPU {
         }
     }
     
-    mutating func callIf(flag: FlagType) {
+    func callIf(flag: FlagType) {
         let lsb = UInt16(returnAndIncrement(indirect: .PC))
         let msb = UInt16(returnAndIncrement(indirect: .PC))
 
@@ -1550,7 +1550,7 @@ struct CPU {
         }
     }
     
-    mutating func ret() {
+    func ret() {
         let lsb = UInt16(returnAndIncrement(indirect: .SP))
         let msb = UInt16(returnAndIncrement(indirect: .SP))
 
@@ -1561,7 +1561,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func reti() {
+    func reti() {
         let lsb = UInt16(returnAndIncrement(indirect: .SP))
         let msb = UInt16(returnAndIncrement(indirect: .SP))
 
@@ -1573,7 +1573,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func retIfSet(flag: FlagType) {
+    func retIfSet(flag: FlagType) {
         if registers.read(flag: flag) {
             let lsb = UInt16(returnAndIncrement(indirect: .SP))
             let msb = UInt16(returnAndIncrement(indirect: .SP))
@@ -1588,7 +1588,7 @@ struct CPU {
         }
     }
     
-    mutating func retIfNotSet(flag: FlagType) {
+    func retIfNotSet(flag: FlagType) {
         if !registers.read(flag: flag) {
             let lsb = UInt16(returnAndIncrement(indirect: .SP))
             let msb = UInt16(returnAndIncrement(indirect: .SP))
@@ -1603,7 +1603,7 @@ struct CPU {
         }
     }
     
-    mutating func push(register: RegisterType16) {
+    func push(register: RegisterType16) {
         let value = registers.read(register: register)
         decrement(register: .SP, partOfOtherOpCode: true)
         bus.write(location: registers.read(register: .SP), value: UInt8(value >> 8))
@@ -1613,7 +1613,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func pop(register: RegisterType16) {
+    func pop(register: RegisterType16) {
         var lsb = returnAndIncrement(indirect: .SP)
         let msb = returnAndIncrement(indirect: .SP)
         
@@ -1628,7 +1628,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
-    mutating func or(register: RegisterType8) {
+    func or(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let result = a | value;
@@ -1643,7 +1643,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func or(indirect register: RegisterType16) {
+    func or(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
         let result = a | value;
@@ -1658,7 +1658,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func xor() {
+    func xor() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let result = a ^ value
@@ -1673,7 +1673,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func xor(register: RegisterType8) {
+    func xor(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let result = a ^ value
@@ -1688,7 +1688,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func xor(indirect register: RegisterType16) {
+    func xor(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
         let result = a ^ value
@@ -1703,7 +1703,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func and(register: RegisterType8) {
+    func and(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let result = a & value
@@ -1718,7 +1718,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func and(indirect register: RegisterType16) {
+    func and(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
         let result = a & value
@@ -1733,7 +1733,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func and() {
+    func and() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let result = a & value
@@ -1748,7 +1748,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func or() {
+    func or() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let result = a | value
@@ -1763,7 +1763,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func add(register: RegisterType8) {
+    func add(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let result = a.addingReportingOverflow(value)
@@ -1778,7 +1778,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func add(indirect register: RegisterType16) {
+    func add(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
         let result = a.addingReportingOverflow(value)
@@ -1793,7 +1793,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func add() {
+    func add() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let result = a.addingReportingOverflow(value)
@@ -1808,7 +1808,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func addSigned(to register: RegisterType16, cycles cyclesCount: UInt16) {
+    func addSigned(to register: RegisterType16, cycles cyclesCount: UInt16) {
         let sp = registers.read(register: .SP)
         let value = Int8(bitPattern: returnAndIncrement(indirect: .PC))
         
@@ -1829,7 +1829,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(cyclesCount).partialValue
     }
     
-    mutating func adc(register: RegisterType8) {
+    func adc(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let carry = UInt8(registers.read(flag: .Carry))
@@ -1849,7 +1849,7 @@ struct CPU {
     }
     
     
-    mutating func adc(indirect register: RegisterType16) {
+    func adc(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
         let carry = UInt8(registers.read(flag: .Carry))
@@ -1869,7 +1869,7 @@ struct CPU {
     }
     
     
-    mutating func adc() {
+    func adc() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let carry = UInt8(registers.read(flag: .Carry))
@@ -1888,7 +1888,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func add(register: RegisterType16) {
+    func add(register: RegisterType16) {
         let initialValue = registers.read(register: .HL)
         let value = registers.read(register: register)
         let (result, overflow) = initialValue.addingReportingOverflow(value)
@@ -1903,7 +1903,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func sub(register: RegisterType8) {
+    func sub(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let result = a.subtractingReportingOverflow(value)
@@ -1918,7 +1918,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func sub(indirect register: RegisterType16) {
+    func sub(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: .HL))
         let result = a.subtractingReportingOverflow(value)
@@ -1933,7 +1933,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func sub() {
+    func sub() {
         let a = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let result = a.subtractingReportingOverflow(value)
@@ -1948,7 +1948,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func sbc(register: RegisterType8) {
+    func sbc(register: RegisterType8) {
         let a = registers.read(register: .A)
         let register = registers.read(register: register)
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
@@ -1968,7 +1968,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func sbc(indirect register: RegisterType16) {
+    func sbc(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let register = bus.read(location: registers.read(register: register))
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
@@ -1988,7 +1988,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func sbc() {
+    func sbc() {
         let a = registers.read(register: .A)
         let register = returnAndIncrement(indirect: .PC)
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
@@ -2008,7 +2008,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func copy() {
+    func copy() {
         let regValue = registers.read(register: .A)
         let value = returnAndIncrement(indirect: .PC)
         let result = regValue.subtractingReportingOverflow(value)
@@ -2021,7 +2021,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func setCarryFlag() {
+    func setCarryFlag() {
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: true)
@@ -2029,7 +2029,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func setBit(data: UInt8, bit: UInt8, state: Bool) -> UInt8 {
+    func setBit(data: UInt8, bit: UInt8, state: Bool) -> UInt8 {
         let mask = UInt8(1 << bit)
         var newValue = data
         
@@ -2042,13 +2042,13 @@ struct CPU {
         return newValue
     }
 
-    mutating func getBit(data: UInt8, bit: UInt8) -> Bool {
+    func getBit(data: UInt8, bit: UInt8) -> Bool {
         let value = (data >> bit) & 1
         
         return value != 0
     }
     
-    mutating func shiftLeftArithmatically(register: RegisterType8) {
+    func shiftLeftArithmatically(register: RegisterType8) {
         var value = registers.read(register: register)
         let sevenBit = getBit(data: value, bit: 7)
 
@@ -2066,7 +2066,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func shiftLeftArithmatically(indirect register: RegisterType16) {
+    func shiftLeftArithmatically(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let sevenBit = getBit(data: value, bit: 7)
         
@@ -2084,7 +2084,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func shiftRightArithmatically(register: RegisterType8) {
+    func shiftRightArithmatically(register: RegisterType8) {
         var value = registers.read(register: register)
         let zeroBit = getBit(data: value, bit: 0)
         let sevenBit = getBit(data: value, bit: 7)
@@ -2103,7 +2103,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func shiftRightArithmatically(indirect register: RegisterType16) {
+    func shiftRightArithmatically(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         let sevenBit = getBit(data: value, bit: 7)
@@ -2122,7 +2122,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func shiftRightLogically(register: RegisterType8) {
+    func shiftRightLogically(register: RegisterType8) {
         var value = registers.read(register: register)
         let zeroBit = getBit(data: value, bit: 0)
 
@@ -2140,7 +2140,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func shiftRightLogically(indirect register: RegisterType16) {
+    func shiftRightLogically(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         
@@ -2158,7 +2158,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func rotateLeftCarry(register: RegisterType8, zeroDependant: Bool = true) {
+    func rotateLeftCarry(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
         let sevenBit = getBit(data: value, bit: 7)
         
@@ -2176,7 +2176,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(zeroDependant ? 8 : 4).partialValue
     }
     
-    mutating func rotateLeftCarry(indirect register: RegisterType16) {
+    func rotateLeftCarry(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let sevenBit = getBit(data: value, bit: 7)
         
@@ -2195,7 +2195,7 @@ struct CPU {
     }
     
     
-    mutating func rotateLeft(register: RegisterType8, zeroDependant: Bool = true) {
+    func rotateLeft(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
         let sevenBit = getBit(data: value, bit: 7)
         let carry = registers.read(flag: .Carry)
@@ -2214,7 +2214,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func rotateLeft(indirect register: RegisterType16) {
+    func rotateLeft(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let sevenBit = getBit(data: value, bit: 7)
         let carry = registers.read(flag: .Carry)
@@ -2233,7 +2233,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func rotateRightCarry(register: RegisterType8, zeroDependant: Bool = true) {
+    func rotateRightCarry(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
         let zeroBit = getBit(data: value, bit: 0)
         
@@ -2251,7 +2251,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(zeroDependant ? 8 : 4).partialValue
     }
     
-    mutating func rotateRightCarry(indirect register: RegisterType16) {
+    func rotateRightCarry(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         
@@ -2269,7 +2269,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func rotateRight(register: RegisterType8, zeroDependant: Bool = true) {
+    func rotateRight(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
         let zeroBit = getBit(data: value, bit: 0)
         let carry = registers.read(flag: .Carry)
@@ -2288,7 +2288,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func rotateRight(indirect register: RegisterType16) {
+    func rotateRight(indirect register: RegisterType16) {
         var value = bus.read(location: registers.read(register: register))
         let zeroBit = getBit(data: value, bit: 0)
         let carry = registers.read(flag: .Carry)
@@ -2307,7 +2307,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func swap(register: RegisterType8) {
+    func swap(register: RegisterType8) {
         var registerValue = registers.read(register: register)
         
         let value = (registerValue >> 4) | (registerValue << 4)
@@ -2322,7 +2322,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func swap(indirect: RegisterType16) {
+    func swap(indirect: RegisterType16) {
         var value = bus.read(location: registers.read(register: .HL))
         
         value = (value >> 4) | (value << 4)
@@ -2337,7 +2337,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func bit(register: RegisterType8, bit: UInt8) {
+    func bit(register: RegisterType8, bit: UInt8) {
         let bit = !registers.read(register: register).get(bit: bit)
         
         registers.write(flag: .Zero, set: bit)
@@ -2347,7 +2347,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func bit(indirect register: RegisterType16, bit: UInt8) {
+    func bit(indirect register: RegisterType16, bit: UInt8) {
         let bit = !bus.read(location: registers.read(register: register)).get(bit: bit)
         
         registers.write(flag: .Zero, set: bit)
@@ -2357,7 +2357,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
-    mutating func set(bit: UInt8, register: RegisterType8, value: Bool) {
+    func set(bit: UInt8, register: RegisterType8, value: Bool) {
         var regValue = registers.read(register: register)
         regValue.set(bit: bit, value: value)
         
@@ -2365,7 +2365,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func set(bit: UInt8, indirect register: RegisterType16, value: Bool) {
+    func set(bit: UInt8, indirect register: RegisterType16, value: Bool) {
         var memoryValue = bus.read(location: registers.read(register: register))
         memoryValue.set(bit: bit, value: value)
         bus.write(location: registers.read(register: .HL), value: memoryValue)
@@ -2373,19 +2373,19 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func DI() {
+    func DI() {
         registers.write(ime: false)
         
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func EI() {
+    func EI() {
         delayedImeWrite = true
         
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func cpl() {
+    func cpl() {
         var value = ~registers.read(register: .A)
         
         registers.write(register: .A, value: value)
@@ -2396,7 +2396,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func ccf() {
+    func ccf() {
         var value = !registers.read(flag: .Carry)
         
         registers.write(flag: .Subtraction, set: false)
@@ -2407,7 +2407,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func cp(register: RegisterType8) {
+    func cp(register: RegisterType8) {
         let a = registers.read(register: .A)
         let value = registers.read(register: register)
         let result = a.subtractingReportingOverflow(value)
@@ -2420,7 +2420,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func cp(indirect register: RegisterType16) {
+    func cp(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
         let result = a.subtractingReportingOverflow(value)
@@ -2433,7 +2433,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
-    mutating func daa() {
+    func daa() {
         let negativeFlag = registers.read(flag: .Subtraction)
         let carryFlag = registers.read(flag: .Carry)
         let halfCarryFlag = registers.read(flag: .HalfCarry)
@@ -2465,7 +2465,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    mutating func rst(value: UInt8) {
+    func rst(value: UInt8) {
         let msb = UInt8(truncatingIfNeeded: registers.read(register: .PC) >> 8)
         let lsb = UInt8(truncatingIfNeeded: registers.read(register: .PC))
         
@@ -2479,7 +2479,7 @@ struct CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    mutating func halt() {
+    func halt() {
         var ieRegister = bus.read(location: 0xFFFF)
         var ifRegister = bus.read(location: 0xFF0F)
         
@@ -2491,7 +2491,7 @@ struct CPU {
         }
     }
     
-    mutating func processInterrupt() {
+    func processInterrupt() {
         if bus.ppu.setVBlankInterrupt {
             bus.write(interruptFlagType: .VBlank, value: true)
             bus.ppu.setVBlankInterrupt = false
@@ -2615,7 +2615,7 @@ struct CPU {
     }
         
     
-//    mutating func updateTimer1() {
+//    func updateTimer1() {
 //        TIMAReloadCycle = false
 //        if cyclesTilTIMAIRQ > 0 {
 //            cyclesTilTIMAIRQ -= 1
@@ -2663,7 +2663,7 @@ struct CPU {
 //        previousAndResult = andResult
 //    }
         
-    mutating func updateTimer() {
+    func updateTimer() {
         if bus.read(location: 0xFF05) == 0 && setTimerInterrupt{
             bus.write(location: 0xFF05, value: bus.read(location: 0xFF06))
             setTimerInterrupt = false

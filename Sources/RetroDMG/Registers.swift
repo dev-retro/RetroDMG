@@ -19,7 +19,7 @@ enum FlagType {
     case Zero, Subtraction, HalfCarry, Carry
 }
 
-struct Registers {
+class Registers {
     var a: UInt8
     var b: UInt8
     var c: UInt8
@@ -46,7 +46,7 @@ struct Registers {
         ime = false
     }
     
-    mutating func write(register: RegisterType8, value: UInt8) {
+    func write(register: RegisterType8, value: UInt8) {
         switch register {
         case .A:
             a = value
@@ -67,7 +67,7 @@ struct Registers {
         }
     }
     
-    mutating func write(register: RegisterType16, value: UInt16) {
+    func write(register: RegisterType16, value: UInt16) {
         switch register {
         case .AF:
             a = UInt8(value >> 8)
@@ -88,7 +88,7 @@ struct Registers {
         }
     }
     
-    mutating func write(flag: FlagType, set: Bool) {
+    func write(flag: FlagType, set: Bool) {
         switch flag {
         case .Zero:
             let mask: UInt8 = 0b10000000
@@ -125,7 +125,7 @@ struct Registers {
         }
     }
     
-    mutating func write(ime value: Bool) {
+    func write(ime value: Bool) {
         ime = value
     }
     

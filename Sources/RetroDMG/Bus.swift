@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Bus {
+class Bus {
     var memory: [UInt8]
     var bootrom: [UInt8]
     var bootromLoaded: Bool
@@ -25,6 +25,8 @@ struct Bus {
     
     /// Input
     var joyp: UInt8
+    var buttonsStore: UInt8
+    var dpadStore: UInt8
     
     var debug = false
     
@@ -39,10 +41,12 @@ struct Bus {
         tac = 0x00
         tima = 0x00
         tma = 0x00
-        joyp = 0xFF
+        joyp = 0x3F
+        buttonsStore = 0xFF
+        dpadStore = 0xFF
     }
     
-    mutating func write(location: UInt16, value: UInt8) {
+    func write(location: UInt16, value: UInt8) {
         if location >= memory.endIndex {
             print("\(location.hex) is out of bounds")
             return
@@ -66,7 +70,7 @@ struct Bus {
                 ppu.oam[Int(location - 0xFE00)] = value
             }
         } else if location == 0xFF00 {
-            return
+            joyp = value
         } else if location == 0xFF04 {
             div = 0x0000
         } else if location == 0xFF05 {
@@ -119,16 +123,16 @@ struct Bus {
         }
     }
     
-    mutating func write(bootrom: [UInt8]) {
+    func write(bootrom: [UInt8]) {
         self.bootrom = bootrom
         bootromLoaded = true
     }
     
-    mutating func write(rom: [UInt8]) {
+    func write(rom: [UInt8]) {
         memory.replaceSubrange(0...rom.count, with: rom)
     }
     
-    mutating func write(interruptEnableType: InterruptType, value: Bool) {
+    func write(interruptEnableType: InterruptType, value: Bool) {
         switch interruptEnableType {
          case .VBlank:
             interruptEnabled.set(bit: 0, value: value)
@@ -145,7 +149,7 @@ struct Bus {
         }
     }
     
-    mutating func write(interruptFlagType: InterruptType, value: Bool) {
+    func write(interruptFlagType: InterruptType, value: Bool) {
         switch interruptFlagType {
          case .VBlank:
             interruptFlag.set(bit: 0, value: value)
@@ -162,38 +166,30 @@ struct Bus {
         }
     }
     
-    mutating func write(inputType: InputType, value: Bool) {
+    func write(inputType: InputType, value: Bool) {
             switch inputType {
             case .a:
-                joyp.set(bit: 5, value: !value)
-                joyp.set(bit: 0, value: !value)
+                buttonsStore.set(bit: 0, value: !value)
             case .b:
-                joyp.set(bit: 5, value: !value)
-                joyp.set(bit: 1, value: !value)
+                buttonsStore.set(bit: 1, value: !value)
             case .select:
-                joyp.set(bit: 5, value: !value)
-                joyp.set(bit: 2, value: !value)
+                buttonsStore.set(bit: 2, value: !value)
             case .start:
-                joyp.set(bit: 5, value: !value)
-                joyp.set(bit: 3, value: !value)
+                buttonsStore.set(bit: 3, value: !value)
             case .right:
-                joyp.set(bit: 4, value: !value)
-                joyp.set(bit: 0, value: !value)
+                dpadStore.set(bit: 0, value: !value)
             case .left:
-                joyp.set(bit: 4, value: !value)
-                joyp.set(bit: 1, value: !value)
+                dpadStore.set(bit: 1, value: !value)
             case .up:
-                joyp.set(bit: 4, value: !value)
-                joyp.set(bit: 2, value: !value)
+                dpadStore.set(bit: 2, value: !value)
             case .down:
-                joyp.set(bit: 4, value: !value)
-                joyp.set(bit: 3, value: !value)
+                dpadStore.set(bit: 3, value: !value)
             default:
                 fatalError("Input Type not implemented \(inputType)")
             }
     }
     
-    mutating func read(location: UInt16) -> UInt8 {
+    func read(location: UInt16) -> UInt8 {
         let location = Int(location)
         if location > memory.count {
             return 0
@@ -236,7 +232,24 @@ struct Bus {
         }
         
         if location == 0xFF00 {
-            return joyp
+            let dpadCheck = !joyp.get(bit: 4)
+            let buttonsCheck = !joyp.get(bit: 5)
+            
+            if dpadCheck {
+                let mask = UInt8(0b11000000)
+                let value = (joyp | dpadStore) | mask
+                
+                return value
+            } else if buttonsCheck {
+                let mask = UInt8(0b11000000)
+                let value = (joyp | buttonsStore) | mask
+                
+                return value
+            }
+            
+            return 0xFF
+            
+            
         }
         
         if location == 0xFF04 {
@@ -358,6 +371,10 @@ struct Bus {
         case .enable:
             return tac.get(bit: 2)
         }
+    }
+    
+    func read(inputBit: UInt8) -> Bool {
+        return joyp.get(bit: inputBit)
     }
 }
 
