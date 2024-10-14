@@ -14,6 +14,8 @@ public class RetroDMG: RetroPlatform {
     var inputs: [RetroInput]
     var loopRunning: Bool
     
+    var runTask: Task<(), Never>?
+    var debugTask: Task<(), Never>?
     
     public init() {
         self.cpu = CPU()
@@ -34,7 +36,21 @@ public class RetroDMG: RetroPlatform {
     }
     
     func reset() {
-
+        self.cpu = CPU()
+        self.inputs = [
+            RetroInput("Up"),
+            RetroInput("Down"),
+            RetroInput("Left"),
+            RetroInput("Right"),
+            RetroInput("A"),
+            RetroInput("B"),
+            RetroInput("Start"),
+            RetroInput("Select")
+        ]
+        
+        self.debugState = DMGState()
+        
+        self.loopRunning = false
     }
     
     
@@ -72,7 +88,8 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func stop() -> Bool {
-        loopRunning = false
+        runTask?.cancel()
+        debugTask?.cancel()
         reset()
         return false
     }
@@ -80,8 +97,12 @@ public class RetroDMG: RetroPlatform {
     func loop() {
         var time1 = SuspendingClock().now
         var time2 = SuspendingClock().now
-        Task {
+        runTask = Task {
             while loopRunning {
+                if Task.isCancelled {
+                    loopRunning = false
+                    break
+                }
                 checkInput()
                 time2 = SuspendingClock().now
                 var elapsed = time2 - time1
@@ -104,8 +125,12 @@ public class RetroDMG: RetroPlatform {
                 time1 = time2
             }
         }
-        Task {
+        debugTask = Task {
             while loopRunning {
+                if Task.isCancelled {
+                    loopRunning = false
+                    break
+                }
                 var elapsed = time2 - time1
                 var reaminingTime = .milliseconds(16.67) - elapsed
                 if reaminingTime > .milliseconds(1) {
