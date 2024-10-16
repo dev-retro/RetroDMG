@@ -36,6 +36,11 @@ public class DMGState: RetroState {
     public var InputButtons: RetroStateItem<Bool>
     public var InputDPad: RetroStateItem<Bool>
     
+    public var PcLoc: RetroStateItem<String>
+    public var PcLoc1: RetroStateItem<String>
+    public var PcLoc2: RetroStateItem<String>
+    public var PcLoc3: RetroStateItem<String>
+    
     
     public init() {
         a = RetroStateItem<UInt8>(name: "a", displayName: "A", type: .Number, value: 0x00)
@@ -61,5 +66,10 @@ public class DMGState: RetroState {
         InputDown = RetroStateItem(name: "inputDown", displayName: "Down", type: .Bool, value: false)
         InputButtons = RetroStateItem(name: "inputSelectButtons", displayName: "Select Buttons", type: .Bool, value: false)
         InputDPad = RetroStateItem(name: "inputDPadButtons", displayName: "D-Pad Buttons", type: .Bool, value: false)
+        
+        PcLoc = RetroStateItem(name: "location", displayName: "Location", type: .String, value: "")
+        PcLoc1 = RetroStateItem(name: "location1", displayName: "Location + 1", type: .String, value: "")
+        PcLoc2 = RetroStateItem(name: "location2", displayName: "Location + 2", type: .String, value: "")
+        PcLoc3 = RetroStateItem(name: "location3", displayName: "Location + 3", type: .String, value: "")
     }
 }

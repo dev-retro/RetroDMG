@@ -11,8 +11,8 @@ import RetroSwift
 public class DMGSettings: RetroSettings {
     public var bioSetting: DMGBiosSetting
     
-    public init(bioSetting: DMGBiosSetting = DMGBiosSetting(name: "bios", displayName: "BIOS Path", type: .file, value: nil, displayValue: nil)) {
-        self.bioSetting = bioSetting
+    public init() {
+        self.bioSetting = DMGBiosSetting(name: "bios", displayName: "BIOS Path", type: .file, value: nil, displayValue: nil)
     }
 }
 

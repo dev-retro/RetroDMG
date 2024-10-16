@@ -84,7 +84,9 @@ class Bus {
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF41 {
-            ppu.status = value //FIXME: block writes to bit 0, 1 ans 2 see: https://gbdev.io/pandocs/STAT.html
+            let mask: UInt8 = 0b11111000
+            let value = value & mask
+            ppu.status |= value
         } else if location == 0xFF42 {
             ppu.scy = value
         } else if location == 0xFF43 {

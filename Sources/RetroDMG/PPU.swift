@@ -108,12 +108,16 @@ class PPU {
             if ly == 144 {
                 mode = .VerticalBlank
                 write(flag: .Mode1, set: true)
+                write(flag: .Mode1InterruptEnable, set: true)
+                setLCDInterrupt = true
                 setVBlankInterrupt = true
                 viewPort = tempViewPort
                 windowLineCounter = 0x00
             } else if ly > 153 {
                 mode = .OAM
                 write(flag: .Mode2, set: true)
+                write(flag: .Mode2InterruptEnable, set: true)
+                setLCDInterrupt = true
                 ly = 0
                 tempViewPort.removeAll()
                 windowYSet = false
@@ -123,6 +127,8 @@ class PPU {
                 if self.cycles >= 0 && self.cycles < 80 {
                     mode = .OAM
                     write(flag: .Mode2, set: true)
+                    write(flag: .Mode2InterruptEnable, set: true)
+                    setLCDInterrupt = true
                     var spriteHeight = read(flag: .SpriteSize) ? 16 : 8
                     if !oamChecked {
                         if !windowYSet {
@@ -270,6 +276,8 @@ class PPU {
                 } else if self.cycles >= drawEnd && self.cycles < 456 {
                     mode = .HorizontalBlank
                     write(flag: .Mode0, set: true)
+                    write(flag: .Mode0InterruptEnable, set: true)
+                    setLCDInterrupt = true
                 } else {
                     ly += 1
                     write(flag: .CoincidenceFlag, set: ly == lyc)

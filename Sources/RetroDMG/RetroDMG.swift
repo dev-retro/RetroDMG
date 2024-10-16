@@ -140,7 +140,7 @@ public class RetroDMG: RetroPlatform {
             }
         }
     }
-    
+
     func updateState() {
         var state = debugState as! DMGState
         
@@ -167,6 +167,11 @@ public class RetroDMG: RetroPlatform {
         state.InputDown.value = !cpu.bus.dpadStore.get(bit: 3)
         state.InputDPad.value = !cpu.bus.read(inputBit: 4)
         state.InputButtons.value = !cpu.bus.read(inputBit: 5)
+        
+        state.PcLoc.value = cpu.bus.read(location: cpu.registers.read(register: .PC)).hex
+        state.PcLoc1.value = cpu.bus.read(location: cpu.registers.read(register: .PC)+1).hex
+        state.PcLoc2.value = cpu.bus.read(location: cpu.registers.read(register: .PC)+2).hex
+        state.PcLoc3.value = cpu.bus.read(location: cpu.registers.read(register: .PC)+3).hex
         
         debugState = state
     }
