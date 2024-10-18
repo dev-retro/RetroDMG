@@ -1135,70 +1135,7 @@ class CPU {
             fatalError("extended opCode 0x\(opCode.hex) not supported")
         }
     }
-    
-//    func processInterrupts() {
-//        if bus.ppu.setVBlankInterrupt {
-//            bus.write(interruptFlagType: .VBlank, value: true)
-//            bus.ppu.setVBlankInterrupt = false
-//        }
-//        
-//        if setInputInterrupt {
-//            bus.write(interruptFlagType: .Joypad, value: true)
-//            setInputInterrupt = false
-//        }
-//        
-//        //TODO: set other InterruptFlag
-//        
-//        if registers.readIme() {
-//            if bus.read(interruptEnableType: .VBlank) && bus.read(interruptEnableType: .VBlank) {
-//                set(ime: false)
-//                state = .Running
-//                bus.write(interruptFlagType: .VBlank, value: false)
-//                
-//                let pc = registers.read(register: .PC)
-//                let pcMsb = UInt8(pc >> 8)
-//                let pcLsb = UInt8(truncatingIfNeeded: pc)
-//
-//                decrement(register: .SP, partOfOtherOpCode: true)
-//                bus.write(location: registers.read(register: .SP), value: pcMsb)
-//                decrement(register: .SP, partOfOtherOpCode: true)
-//                bus.write(location: registers.read(register: .SP), value: pcLsb)
-//                
-//                registers.write(register: .PC, value: 0x40)
-//            } else if bus.read(interruptEnableType: .Timer) && bus.read(interruptEnableType: .Timer) {
-//                set(ime: false)
-//                state = .Running
-//                bus.write(interruptFlagType: .Timer, value: false)
-//                
-//                let pc = registers.read(register: .PC)
-//                let pcMsb = UInt8(pc >> 8)
-//                let pcLsb = UInt8(truncatingIfNeeded: pc)
-//                
-//                decrement(register: .SP, partOfOtherOpCode: true)
-//                bus.write(location: registers.read(register: .SP), value: pcMsb)
-//                decrement(register: .SP, partOfOtherOpCode: true)
-//                bus.write(location: registers.read(register: .SP), value: pcLsb)
-//                
-//                registers.write(register: .PC, value: 0x50)
-//            } else if bus.read(interruptEnableType: .Joypad) && bus.read(interruptEnableType: .Joypad) {
-//                set(ime: false)
-//                state = .Running
-//                bus.write(interruptFlagType: .Joypad, value: false)
-//                
-//                let pc = registers.read(register: .PC)
-//                let pcMsb = UInt8(pc >> 8)
-//                let pcLsb = UInt8(truncatingIfNeeded: pc)
-//                
-//                decrement(register: .SP, partOfOtherOpCode: true)
-//                bus.write(location: registers.read(register: .SP), value: pcMsb)
-//                decrement(register: .SP, partOfOtherOpCode: true)
-//                bus.write(location: registers.read(register: .SP), value: pcLsb)
-//                
-//                registers.write(register: .PC, value: 0x60)
-//            }
-//        }
-//    }
-    
+
     func returnAndIncrement(indirect register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
         let value = bus.read(location: regValue)
@@ -2507,6 +2444,11 @@ class CPU {
             setInputInterrupt = false
         }
         
+        if setTimerInterrupt {
+            bus.write(interruptFlagType: .Timer, value: true)
+            setTimerInterrupt = false
+        }
+        
         if bus.read(interruptEnableType: .VBlank) && bus.read(interruptFlagType: .VBlank) {
             state = .Running
             
@@ -2613,55 +2555,6 @@ class CPU {
             }
         }
     }
-        
-    
-//    func updateTimer1() {
-//        TIMAReloadCycle = false
-//        if cyclesTilTIMAIRQ > 0 {
-//            cyclesTilTIMAIRQ -= 1
-//            if cyclesTilTIMAIRQ == 0 {
-//                bus.write(interruptFlagType: .Timer, value: true)
-//                bus.tima = bus.tma
-//                TIMAReloadCycle = true
-//            }
-//        }
-//        
-//        bus.div = bus.div.addingReportingOverflow(4).partialValue
-//        
-//        var tacLow = bus.read(tacType: .low)
-//        var tacHigh = bus.read(tacType: .high)
-//        
-//        var andResult = false
-//        if tacLow {
-//            if tacHigh {
-//                andResult = bus.div.get(bit: 7)
-//            } else {
-//                andResult = bus.div.get(bit: 3)
-//            }
-//        } else {
-//            if tacHigh {
-//                andResult = bus.div.get(bit: 5)
-//            } else {
-//                andResult = bus.div.get(bit: 9)
-//            }
-//        }
-//        
-//        andResult = andResult && bus.read(tacType: .enable)
-//
-//        if previousAndResult && !andResult {
-//            bus.write(location: 0xFF05, value: bus.read(location: 0xFF05).addingReportingOverflow(1).partialValue)
-//            
-//            var tima = bus.read(location: 0xFF05)
-//            
-//            print("Timer: \(tima)")
-//            
-//            if tima == 0 {
-//                cyclesTilTIMAIRQ == 1
-//            }
-//        }
-//        
-//        previousAndResult = andResult
-//    }
         
     func updateTimer() {
         if bus.read(location: 0xFF05) == 0 && setTimerInterrupt{
