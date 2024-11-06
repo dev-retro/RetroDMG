@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import RetroSwift
+import RetroKit
 
 enum CPUState {
 case Halted, Running
@@ -1146,8 +1146,8 @@ class CPU {
     }
     
     func increment(register: RegisterType8) {
-        var registerValue = registers.read(register: register)
-        var value = registerValue.addingReportingOverflow(1)
+        let registerValue = registers.read(register: register)
+        let value = registerValue.addingReportingOverflow(1)
         registers.write(register: register, value: value.partialValue)
         
         registers.write(flag: .Zero, set: value.partialValue == 0)
@@ -1170,9 +1170,9 @@ class CPU {
     }
     
     func increment(indirect register: RegisterType16) {
-        var registerValue = registers.read(register: register)
-        var value = bus.read(location: registerValue)
-        var newValue = value.addingReportingOverflow(1).partialValue
+        let registerValue = registers.read(register: register)
+        let value = bus.read(location: registerValue)
+        let newValue = value.addingReportingOverflow(1).partialValue
         bus.write(location: registerValue, value: newValue)
         
         registers.write(flag: .Zero, set: newValue == 0)
@@ -1181,8 +1181,8 @@ class CPU {
     }
     
     func decrement(register: RegisterType8) {
-        var currentValue = registers.read(register: register)
-        var newValue = currentValue.subtractingReportingOverflow(1).partialValue
+        let currentValue = registers.read(register: register)
+        let newValue = currentValue.subtractingReportingOverflow(1).partialValue
         registers.write(register: register, value: newValue)
         
         registers.write(flag: .Zero, set: newValue == 0)
@@ -1193,8 +1193,8 @@ class CPU {
     }
     
     func decrement(indirect register: RegisterType16) {
-        var currentValue = bus.read(location: registers.read(register: register))
-        var newValue = currentValue.subtractingReportingOverflow(1).partialValue
+        let currentValue = bus.read(location: registers.read(register: register))
+        let newValue = currentValue.subtractingReportingOverflow(1).partialValue
         bus.write(location: registers.read(register: register), value: newValue)
         
         registers.write(flag: .Zero, set: newValue == 0)
@@ -1205,7 +1205,7 @@ class CPU {
     }
     
     func decrement(register: RegisterType16, partOfOtherOpCode: Bool = false) {
-        var regValue = registers.read(register: register)
+        let regValue = registers.read(register: register)
         let value = regValue.subtractingReportingOverflow(1)
         registers.write(register: register, value: value.partialValue)
         
@@ -1344,8 +1344,6 @@ class CPU {
             registers.write(register: .PC, value: value)
             
             cycles = cycles.addingReportingOverflow(16).partialValue
-        default:
-            fatalError("jump type not supported")
         }
     }
     
@@ -1771,8 +1769,8 @@ class CPU {
         let value = registers.read(register: register)
         let carry = UInt8(registers.read(flag: .Carry))
         
-        var resultCarry = a.addingReportingOverflow(carry)
-        var result = resultCarry.partialValue.addingReportingOverflow(value)
+        let resultCarry = a.addingReportingOverflow(carry)
+        let result = resultCarry.partialValue.addingReportingOverflow(value)
         
 
         registers.write(register: .A, value: result.partialValue)
@@ -1791,8 +1789,8 @@ class CPU {
         let value = bus.read(location: registers.read(register: register))
         let carry = UInt8(registers.read(flag: .Carry))
         
-        var resultCarry = a.addingReportingOverflow(carry)
-        var result = resultCarry.partialValue.addingReportingOverflow(value)
+        let resultCarry = a.addingReportingOverflow(carry)
+        let result = resultCarry.partialValue.addingReportingOverflow(value)
         
 
         registers.write(register: .A, value: result.partialValue)
@@ -1811,8 +1809,8 @@ class CPU {
         let value = returnAndIncrement(indirect: .PC)
         let carry = UInt8(registers.read(flag: .Carry))
         
-        var resultCarry = a.addingReportingOverflow(carry)
-        var result = resultCarry.partialValue.addingReportingOverflow(value)
+        let resultCarry = a.addingReportingOverflow(carry)
+        let result = resultCarry.partialValue.addingReportingOverflow(value)
         
 
         registers.write(register: .A, value: result.partialValue)
@@ -1890,8 +1888,8 @@ class CPU {
         let register = registers.read(register: register)
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
         
-        var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
-        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
+        let (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
+        let (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
         var halfCarry = Int8(Int8(bitPattern: a) & 0xF - Int8(bitPattern: register) & 0xF)
         halfCarry -= Int8(bitPattern: carry) & 0xF
             
@@ -1910,8 +1908,8 @@ class CPU {
         let register = bus.read(location: registers.read(register: register))
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
         
-        var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
-        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
+        let (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
+        let (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
         var halfCarry = Int8(Int8(bitPattern: a) & 0xF - Int8(bitPattern: register) & 0xF)
         halfCarry -= Int8(bitPattern: carry) & 0xF
             
@@ -1930,8 +1928,8 @@ class CPU {
         let register = returnAndIncrement(indirect: .PC)
         let carry: UInt8 = registers.read(flag: .Carry) ? 1 : 0
         
-        var (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
-        var (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
+        let (resultOne, overFlowOne) = a.subtractingReportingOverflow(carry)
+        let (resultTwo, overFlowTwo) = resultOne.subtractingReportingOverflow(register)
         var halfCarry = Int8(Int8(bitPattern: a) & 0xF - Int8(bitPattern: register) & 0xF)
         halfCarry -= Int8(bitPattern: carry) & 0xF
             
@@ -2245,7 +2243,7 @@ class CPU {
     }
     
     func swap(register: RegisterType8) {
-        var registerValue = registers.read(register: register)
+        let registerValue = registers.read(register: register)
         
         let value = (registerValue >> 4) | (registerValue << 4)
         
@@ -2323,7 +2321,7 @@ class CPU {
     }
     
     func cpl() {
-        var value = ~registers.read(register: .A)
+        let value = ~registers.read(register: .A)
         
         registers.write(register: .A, value: value)
         
@@ -2334,7 +2332,7 @@ class CPU {
     }
     
     func ccf() {
-        var value = !registers.read(flag: .Carry)
+        let value = !registers.read(flag: .Carry)
         
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: false)
@@ -2417,14 +2415,14 @@ class CPU {
     }
     
     func halt() {
-        var ieRegister = bus.read(location: 0xFFFF)
-        var ifRegister = bus.read(location: 0xFF0F)
+        let ieRegister = bus.read(location: 0xFFFF)
+        let ifRegister = bus.read(location: 0xFF0F)
         
         if ieRegister & ifRegister == 0 {
             state = .Halted
         } else {
             state = .Running
-            returnAndIncrement(indirect: .PC)
+            _ = returnAndIncrement(indirect: .PC)
         }
     }
     
@@ -2565,10 +2563,10 @@ class CPU {
         
         bus.div = bus.div.addingReportingOverflow(4).partialValue
 
-        var timaEnabled = bus.read(tacType: .enable)
+        let timaEnabled = bus.read(tacType: .enable)
         
-        var tacLow = bus.read(tacType: .low)
-        var tacHigh = bus.read(tacType: .high)
+        let tacLow = bus.read(tacType: .low)
+        let tacHigh = bus.read(tacType: .high)
         
         var andResult = false 
         if tacLow {
@@ -2586,7 +2584,7 @@ class CPU {
         }
 
         if previousAndResult && !andResult {
-            var tima = bus.read(location: 0xFF05).addingReportingOverflow(1)
+            let tima = bus.read(location: 0xFF05).addingReportingOverflow(1)
             
             if tima.overflow {
                 setTimerInterrupt = true

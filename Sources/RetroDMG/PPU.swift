@@ -129,7 +129,7 @@ class PPU {
                     write(flag: .Mode2, set: true)
                     write(flag: .Mode2InterruptEnable, set: true)
                     setLCDInterrupt = true
-                    var spriteHeight = read(flag: .SpriteSize) ? 16 : 8
+                    let spriteHeight = read(flag: .SpriteSize) ? 16 : 8
                     if !oamChecked {
                         if !windowYSet {
                             windowYSet = ly == wy
@@ -137,7 +137,7 @@ class PPU {
                         for location in stride(from: 0, to: 160, by: 4) {
                             let yPos = Int(oam[location]) - 16
                             let xPos = Int(oam[location + 1]) - 8
-                            var index = oam[location + 2]
+                            let index = oam[location + 2]
                             let attributes = oam[location + 3]
                             
                             if xPos > 0 && ly >= yPos && ly < yPos + spriteHeight && oamCount < 10 {
@@ -184,9 +184,9 @@ class PPU {
                             
 
                             
-                            var tilemapAddress = fetcherX + ((fetcherY / 8) * 32)
+                            let tilemapAddress = fetcherX + ((fetcherY / 8) * 32)
                             
-                            var tileNo = tilemap[Int(tilemapAddress)]
+                            let tileNo = tilemap[Int(tilemapAddress)]
                             
                             
                             var tileLocation = read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
@@ -213,14 +213,14 @@ class PPU {
                             
                             
                             if read(flag: .SpriteEnable) {
-                                var objects = oamBuffer.filter { $0.xPos >= pixel && $0.xPos < pixel + 8 }
+                                let objects = oamBuffer.filter { $0.xPos >= pixel && $0.xPos < pixel + 8 }
                                 var object: (xPos: Int, yPos: Int, index: UInt8, attributes: UInt8)?
                                 for objectToCheck in objects {
                                     object = object == nil ? objectToCheck : objectToCheck.xPos < object!.xPos ? objectToCheck : object
                                 }
                                 
                                 if var object {
-                                    var spriteHeight = read(flag: .SpriteSize) ? 16 : 8
+                                    let spriteHeight = read(flag: .SpriteSize) ? 16 : 8
                                     
                                     if spriteHeight == 16 && Int(ly) - object.yPos < 8 {
                                         object.index.set(bit: 0, value: object.attributes.get(bit: 6) ? true : false)
@@ -242,9 +242,9 @@ class PPU {
                                     let byte1 = memory[tileLocation]
                                     let byte2 = memory[tileLocation + 0x1]
                                     
-                                    var offset = object.xPos - pixel
+                                    let offset = object.xPos - pixel
                                     
-                                    var row = createRow(byte1: byte1, byte2: byte2, isBackground: false, objectPallete1: object.attributes.get(bit: 4))
+                                    let row = createRow(byte1: byte1, byte2: byte2, isBackground: false, objectPallete1: object.attributes.get(bit: 4))
                                     
 
                                     
@@ -264,7 +264,7 @@ class PPU {
                             objectPixels.append(contentsOf: objPixelHolder)
                             objPixelHolder.removeAll()
                             
-                            var pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip, tileCount: x)
+                            let pixelsToAppend = comparePixels(BGOBJPriority: bgObjPriority, horizontalFlip: horizontalFlip, tileCount: x)
                             
                             tempViewPort.append(contentsOf: pixelsToAppend)
                             
@@ -361,9 +361,9 @@ class PPU {
         
         let pixelCount = tileCount == 20 ? pixelsToDiscard : bgWindowPixels.count
         
-        for counter in 0..<pixelCount {
-            var ObjPixel = !objectPixels.isEmpty ? objectPixels.removeFirst() : 0
-            var BGWinPixel = bgWindowPixels.removeFirst()
+        for _ in 0..<pixelCount {
+            let ObjPixel = !objectPixels.isEmpty ? objectPixels.removeFirst() : 0
+            let BGWinPixel = bgWindowPixels.removeFirst()
             
             if tileCount == 0 && pixelsToDiscard > 0 {
                 pixelsToDiscard -= 1

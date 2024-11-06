@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "retroswift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dev-retro/RetroSwift.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "520cff5f7896a21ebfb799abf4c2893dfbbea802"
-      }
-    },
-    {
       "identity" : "swift-docc-plugin",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-docc-plugin",
@@ -25,6 +16,24 @@
       "state" : {
         "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
         "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "0687f71944021d616d34d922343dcef086855920",
+        "version" : "600.0.1"
+      }
+    },
+    {
+      "identity" : "swift-testing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-testing",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3a537b8f4b590ae868e563276b7d45d0503034e3"
       }
     }
   ],

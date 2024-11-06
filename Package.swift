@@ -16,18 +16,21 @@ let package = Package(
             targets: ["RetroDMG"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/dev-retro/RetroSwift.git", branch: "main"),
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0")
+        .package(url: "https://github.com/dev-retro/RetroKit.git", from: "0.1.0"),
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
+        .package(url: "https://github.com/swiftlang/swift-testing", branch: "main")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "RetroDMG", dependencies: [
-                .product(name: "RetroSwift", package: "RetroSwift")
+                .product(name: "RetroKit", package: "RetroKit")
             ]),
         .testTarget(
-            name: "RetroDMGTests",
-            dependencies: ["RetroDMG"]),
+            name: "RetroDMGTests", dependencies: [
+                "RetroDMG",
+                .product(name: "Testing", package: "swift-testing")
+            ]),
     ]
 )

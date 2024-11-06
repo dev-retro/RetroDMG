@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import RetroSwift
+import RetroKit
 
 public class DMGSettings: RetroSettings {
     public var bioSetting: DMGBiosSetting

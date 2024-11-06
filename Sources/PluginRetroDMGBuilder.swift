@@ -6,8 +6,7 @@
 //
 
 import Foundation
-
-import RetroSwift
+import RetroKit
 
 @_cdecl("createPlatform")
 public func createPlatform() -> UnsafeMutableRawPointer {

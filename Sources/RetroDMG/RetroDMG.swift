@@ -1,4 +1,4 @@
-import RetroSwift
+import RetroKit
 import Foundation
 
 public class RetroDMG: RetroPlatform {
@@ -105,10 +105,10 @@ public class RetroDMG: RetroPlatform {
                 }
                 checkInput()
                 time2 = SuspendingClock().now
-                var elapsed = time2 - time1
-                var reaminingTime = .milliseconds(16.67) - elapsed
+                let elapsed = time2 - time1
+                let reaminingTime = .milliseconds(16.67) - elapsed
                 if reaminingTime > .milliseconds(1) {
-                    await try? Task.sleep(for: reaminingTime, tolerance: .zero)
+                    try? await Task.sleep(for: reaminingTime, tolerance: .zero)
                 }
                 for _ in 0..<70224 / 16 {
 //                    if Task.isCancelled {
@@ -131,10 +131,10 @@ public class RetroDMG: RetroPlatform {
                     loopRunning = false
                     break
                 }
-                var elapsed = time2 - time1
-                var reaminingTime = .milliseconds(16.67) - elapsed
+                let elapsed = time2 - time1
+                let reaminingTime = .milliseconds(16.67) - elapsed
                 if reaminingTime > .milliseconds(1) {
-                    await try? Task.sleep(for: reaminingTime, tolerance: .zero)
+                    try? await Task.sleep(for: reaminingTime, tolerance: .zero)
                 }
                 updateState()
             }
@@ -142,7 +142,7 @@ public class RetroDMG: RetroPlatform {
     }
 
     func updateState() {
-        var state = debugState as! DMGState
+        let state = debugState as! DMGState
         
         state.a.value = cpu.registers.a
         state.b.value = cpu.registers.b
