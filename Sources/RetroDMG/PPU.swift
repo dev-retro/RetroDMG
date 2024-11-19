@@ -500,28 +500,24 @@ class PPU {
                 status &= mask ^ 0xFF
             }
         case .Mode0:
-            let mask: UInt8 = 0b00000000
-            
             if set {
-                status |= mask
+                status.set(bit: 0, value: false)
+                status.set(bit: 1, value: false)
             }
         case .Mode1:
-            let mask: UInt8 = 0b0000001
-            
             if set {
-                status |= mask
+                status.set(bit: 0, value: true)
+                status.set(bit: 1, value: false)
             }
         case .Mode2:
-            let mask: UInt8 = 0b00000010
-            
             if set {
-                status |= mask
+                status.set(bit: 0, value: false)
+                status.set(bit: 1, value: true)
             }
         case .Mode3:
-            let mask: UInt8 = 0b00000011
-            
             if set {
-                status |= mask
+                status.set(bit: 0, value: true)
+                status.set(bit: 1, value: true)
             }
         }
     }
