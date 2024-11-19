@@ -1144,14 +1144,6 @@ class CPU {
         
         return value
     }
-
-    func read(indirect register: RegisterType16, offset: UInt16 = 0) -> UInt8 {
-        var regValue = registers.read(register: register)
-        regValue = regValue.addingReportingOverflow(offset).partialValue
-        let value = bus.read(location: regValue)
-        
-        return value
-    }
     
     func increment(register: RegisterType8) {
         let registerValue = registers.read(register: register)
