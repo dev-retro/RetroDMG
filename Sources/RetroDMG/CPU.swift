@@ -1139,8 +1139,16 @@ class CPU {
     func returnAndIncrement(indirect register: RegisterType16) -> UInt8 {
         var regValue = registers.read(register: register)
         let value = bus.read(location: regValue)
-        regValue += 1
+        regValue = regValue.addingReportingOverflow(1).partialValue
         registers.write(register: register, value: regValue)
+        
+        return value
+    }
+
+    func read(indirect register: RegisterType16, offset: UInt16 = 0) -> UInt8 {
+        var regValue = registers.read(register: register)
+        regValue = regValue.addingReportingOverflow(offset).partialValue
+        let value = bus.read(location: regValue)
         
         return value
     }
@@ -1178,6 +1186,8 @@ class CPU {
         registers.write(flag: .Zero, set: newValue == 0)
         registers.write(flag: .Subtraction, set: false)
         registers.write(flag: .HalfCarry, set: (((value & 0xF) + (1 & 0xF)) & 0x10) == 0x10)
+
+        cycles = cycles.addingReportingOverflow(12).partialValue
     }
     
     func decrement(register: RegisterType8) {
@@ -2239,7 +2249,7 @@ class CPU {
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: zeroBit)
 
-        cycles = cycles.addingReportingOverflow(8).partialValue
+        cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
     func swap(register: RegisterType8) {

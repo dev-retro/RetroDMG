@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "retrokit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dev-retro/RetroKit.git",
+      "state" : {
+        "revision" : "c04c2fdd7eca92068aeeea692f624ba328f18a34",
+        "version" : "0.1.2"
+      }
+    },
+    {
       "identity" : "swift-docc-plugin",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-docc-plugin",

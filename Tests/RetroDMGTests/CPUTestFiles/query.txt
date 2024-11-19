@@ -1,0 +1,6 @@
+map({
+name: .name,
+cycles: .cycles | size(),
+initial: .initial,
+final: .final
+})

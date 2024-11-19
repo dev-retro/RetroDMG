@@ -12,6 +12,7 @@ class Bus {
     var bootrom: [UInt8]
     var bootromLoaded: Bool
     public var ppu: PPU
+    public var debug = false
     
     ///Interrupt registers
     var interruptEnabled: UInt8
@@ -28,7 +29,7 @@ class Bus {
     var buttonsStore: UInt8
     var dpadStore: UInt8
     
-    var debug = false
+    
     
     init() {
         memory = [UInt8](repeating: 0, count: 65537)
@@ -47,6 +48,10 @@ class Bus {
     }
     
     func write(location: UInt16, value: UInt8) {
+        if debug {
+            return memory[Int(location)] = value
+        }
+        
         if location >= memory.endIndex {
             print("\(location.hex) is out of bounds")
             return
@@ -186,6 +191,10 @@ class Bus {
     }
         
         func read(location: UInt16) -> UInt8 {
+            if debug {
+                return memory[Int(location)]
+            }
+            
             let location = Int(location)
             if location > memory.count {
                 return 0
