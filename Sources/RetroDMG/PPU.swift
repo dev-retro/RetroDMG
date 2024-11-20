@@ -396,109 +396,31 @@ class PPU {
     public func write(flag: PPURegisterType, set: Bool) {
         switch flag {
         case .LCDDisplayEnable:
-            let mask: UInt8 = 0b10000000
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 7, value: set)
         case .WindowTileMapSelect:
-            let mask: UInt8 = 0b01000000
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 6, value: set)
         case .WindowDisplayEnable:
-            let mask: UInt8 = 0b00100000
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 5, value: set)
         case .TileDataSelect:
-            let mask: UInt8 = 0b00010000
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 4, value: set)
         case .BGTileMapSelect:
-            let mask: UInt8 = 0b00001000
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 3, value: set)
         case .SpriteSize:
-            let mask: UInt8 = 0b00000100
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 2, value: set)
         case .SpriteEnable:
-            let mask: UInt8 = 0b00000010
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 1, value: set)
         case .BGWindowEnable:
-            let mask: UInt8 = 0b00000001
-            
-            if set {
-                control |= mask
-            } else {
-                control &= mask ^ 0xFF
-            }
+            control.set(bit: 0, value: set)
         case .LYCLYInterruptEnable:
-            let mask: UInt8 = 0b01000000
-            
-            if set {
-                status |= mask
-            } else {
-                status &= mask ^ 0xFF
-            }
+            status.set(bit: 6, value: set)
         case .Mode2InterruptEnable:
-            let mask: UInt8 = 0b00100000
-            
-            if set {
-                status |= mask
-            } else {
-                status &= mask ^ 0xFF
-            }
+            status.set(bit: 5, value: set)
         case .Mode1InterruptEnable:
-            let mask: UInt8 = 0b00010000
-            
-            if set {
-                status |= mask
-            } else {
-                status &= mask ^ 0xFF
-            }
+            status.set(bit: 4, value: set)
         case .Mode0InterruptEnable:
-            let mask: UInt8 = 0b00001000
-            
-            if set {
-                status |= mask
-            } else {
-                status &= mask ^ 0xFF
-            }
+            status.set(bit: 3, value: set)
         case .CoincidenceFlag:
-            let mask: UInt8 = 0b00000100
-            
-            if set {
-                status |= mask
-            } else {
-                status &= mask ^ 0xFF
-            }
+            status.set(bit: 2, value: set)
         case .Mode0:
             if set {
                 status.set(bit: 0, value: false)
@@ -525,57 +447,41 @@ class PPU {
     public func read(flag: PPURegisterType) -> Bool {
         switch flag {
         case .LCDDisplayEnable:
-            let mask: UInt8 = 0b10000000
-            return control & mask == mask
+            return control.get(bit: 7)
         case .WindowTileMapSelect:
-            let mask: UInt8 = 0b01000000
-            return control & mask == mask
+            return control.get(bit: 6)
         case .WindowDisplayEnable:
-            let mask: UInt8 = 0b00100000
-            return control & mask == mask
+            return control.get(bit: 5)
         case .TileDataSelect:
-            let mask: UInt8 = 0b00010000
-            return control & mask == mask
+            return control.get(bit: 4)
         case .BGTileMapSelect:
-            let mask: UInt8 = 0b00001000
-            return control & mask == mask
+            return control.get(bit: 3)
         case .SpriteSize:
-            let mask: UInt8 = 0b00000100
-            return control & mask == mask
+            return control.get(bit: 2)
         case .SpriteEnable:
-            let mask: UInt8 = 0b00000010
-            return control & mask == mask
+            return control.get(bit: 1)
         case .BGWindowEnable:
-            let mask: UInt8 = 0b00000001
-            return control & mask == mask
+            return control.get(bit: 0)
             
         case .LYCLYInterruptEnable:
             let mask: UInt8 = 0b01000000
-            return status & mask == mask
+            return status.get(bit: 6)
         case .Mode2InterruptEnable:
-            let mask: UInt8 = 0b00100000
-            return status & mask == mask
+            return status.get(bit: 5)
         case .Mode1InterruptEnable:
-            let mask: UInt8 = 0b00010000
-            return status & mask == mask
+            return status.get(bit: 4)
         case .Mode0InterruptEnable:
-            let mask: UInt8 = 0b00001000
-            return status & mask == mask
+            return status.get(bit: 3)
         case .CoincidenceFlag:
-            let mask: UInt8 = 0b00000100
-            return status & mask == mask
+            return status.get(bit: 2)
         case .Mode0:
-            let mask: UInt8 = 0b00000000
-            return status & mask == mask
+            return !status.get(bit: 0) && !status.get(bit: 1)
         case .Mode1:
-            let mask: UInt8 = 0b00000001
-            return status & mask == mask
+            return status.get(bit: 0) && !status.get(bit: 1)
         case .Mode2:
-            let mask: UInt8 = 0b00000010
-            return status & mask == mask
+            return !status.get(bit: 0) && status.get(bit: 1)
         case .Mode3:
-            let mask: UInt8 = 0b00000011
-            return status & mask == mask
+            return status.get(bit: 0) && status.get(bit: 1)
         }
     }
 }
