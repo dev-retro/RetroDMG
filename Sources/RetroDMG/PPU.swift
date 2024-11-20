@@ -464,7 +464,6 @@ class PPU {
             return control.get(bit: 0)
             
         case .LYCLYInterruptEnable:
-            let mask: UInt8 = 0b01000000
             return status.get(bit: 6)
         case .Mode2InterruptEnable:
             return status.get(bit: 5)
