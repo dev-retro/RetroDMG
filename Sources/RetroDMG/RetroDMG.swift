@@ -196,8 +196,12 @@ public class RetroDMG: RetroPlatform {
     
     
     public func load(file: [UInt8]) {
-        cpu.bus.write(rom: file)
-        cpu.start()
+        do {
+            try cpu.bus.mbc.load(rom: file)
+            cpu.start()
+        } catch {
+            print(error)
+        }
     }
     
     public func viewPort() -> [Int] {
