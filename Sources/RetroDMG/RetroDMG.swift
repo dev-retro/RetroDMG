@@ -125,19 +125,21 @@ public class RetroDMG: RetroPlatform {
                 time1 = time2
             }
         }
-        debugTask = Task {
-            while loopRunning {
-                if Task.isCancelled {
-                    loopRunning = false
-                    break
+        if cpu.debug {
+            debugTask = Task {
+                while loopRunning {
+                    if Task.isCancelled {
+                        loopRunning = false
+                        break
+                    }
+                    let elapsed = time2 - time1
+                    let reaminingTime = .milliseconds(16.67) - elapsed
+                    if reaminingTime > .milliseconds(1) {
+                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
+                    }
+                    updateState()
                 }
-                let elapsed = time2 - time1
-                let reaminingTime = .milliseconds(16.67) - elapsed
-                if reaminingTime > .milliseconds(1) {
-                    try? await Task.sleep(for: reaminingTime, tolerance: .zero)
-                }
-                updateState()
-            }
+            }    
         }
     }
 
