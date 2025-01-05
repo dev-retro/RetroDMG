@@ -13,6 +13,7 @@ class Bus {
     var bootromLoaded: Bool
     public var ppu: PPU
     public var debug = false
+    public var mbc: MBC
     
     ///Interrupt registers
     var interruptEnabled: UInt8
@@ -38,6 +39,7 @@ class Bus {
         interruptEnabled = 0x00
         interruptFlag = 0x00
         ppu = PPU()
+        mbc = MBC()
         div = 0x0000
         tac = 0x00
         tima = 0x00
@@ -57,8 +59,12 @@ class Bus {
             return
         }
         
-        if location >= 0x0000 && location <= 0x3FFF {
-            return
+        if location >= 0x0000 && location <= 0x7FFF {
+            do {
+                try mbc.write(location: location, value: value)
+            } catch {
+                print(error.localizedDescription)
+            }
         }
         if location >= 0x8000 && location <= 0x97FF {
             ppu.memory[Int(location - 0x8000)] = value
@@ -206,6 +212,16 @@ class Bus {
             
             if bootromLoaded && location == 0x100 {
                 bootromLoaded = false
+            }
+            
+            if location >= 0x0000 && location <= 0x7FFF {
+                do {
+                    return try mbc.read(location: UInt16(location))
+                } catch {
+                    print(error.localizedDescription)
+                    return 0
+                }
+                
             }
             
             if location >= 0x8000 && location <= 0x97FF {
