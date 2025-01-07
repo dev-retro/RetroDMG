@@ -15,11 +15,11 @@ class NoMBC: MBCCart {
     }
     
     func read(location: UInt16) -> UInt8 {
-        return data[Int(location)]
+       return data[Int(location)] 
     }
-    
+
     func write(location: UInt16, value: UInt8) {
-        if location >= 0x0000 && location <= 0x3FFF {
+        if location >= 0x0000 && location <= 0x7FFF {
             return
         }
         data[Int(location)] = value
