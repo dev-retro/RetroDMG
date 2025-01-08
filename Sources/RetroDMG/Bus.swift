@@ -352,6 +352,10 @@ class Bus {
                 return ppu.wx
             }
             
+            if location == 0xFF4D {
+                return 0xFF //TODO: Implement speed switch for CGB
+            }
+            
             if location == 0xFFFF {
                 return interruptEnabled
             }
