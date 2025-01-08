@@ -76,6 +76,14 @@ class Bus {
             if ppu.mode != .Draw {
                 ppu.tilemap9C00[Int(location - 0x9C00)] = value
             }
+        } else if location >= 0xA000 && location <= 0xBFFF {
+            do {
+                try mbc.write(location: location, value: value)
+            } catch {
+                print(error.localizedDescription)
+            }
+        } else if location >= 0xE000 && location <= 0xFDFF { 
+            memory[Int(location - 0x2000)] = value
         } else if location >= 0xFE00 && location <= 0xFE9F {
             if ppu.mode != .OAM && ppu.mode != .Draw {
                 ppu.oam[Int(location - 0xFE00)] = value
@@ -244,7 +252,9 @@ class Bus {
                 }
                 return ppu.tilemap9C00[Int(location - 0x9C00)]
             }
-            
+            if location >= 0xE000 && location <= 0xFDFF {
+                return memory[Int(location - 0x2000)]
+            }
             if location >= 0xFE00 && location <= 0xFE9F {
                 if ppu.mode == .OAM || ppu.mode == .Draw {
                     return 0xFF
