@@ -272,6 +272,14 @@ class Bus {
                 
                 
             }
+
+            if location == 0xFF02 { 
+                return 0xFF
+            }
+
+            if location == 0xFF03 {
+                return 0xFF
+            }
             
             if location == 0xFF04 {
                 let upper = UInt8(div >> 8)
@@ -287,13 +295,93 @@ class Bus {
             }
             
             if location == 0xFF07 {
-                return tac
+                let mask = UInt8(0b11111000)
+                return tac | mask
+            }
+
+            if location == 0xFF08 {
+                return 0xFF
+            }
+
+            if location == 0xFF09 {
+                return 0xFF
+            }
+
+            if location == 0xFF0A {
+                return 0xFF
+            }
+
+            if location == 0xFF0B {
+                return 0xFF
+            }
+
+            if location == 0xFF0C {
+                return 0xFF
+            }
+
+            if location == 0xFF0D {
+                return 0xFF
+            }
+
+            if location == 0xFF0E {
+                return 0xFF
             }
             
             if location == 0xFF0F {
-                return interruptFlag
+                let mask = UInt8(0b11100000)
+                return interruptFlag | mask
+            }
+
+            if location == 0xFF10 {
+                let mask = UInt8(0b10000000)
+                return mask //FIXME: implement NR10 Channel 1 sweep
+            }
+
+            if location == 0xFF15 {
+                return 0xFF
+            }
+
+            if location == 0xFF1A {
+                let mask = UInt8(0b01111111)
+                return mask //FIXME: implement NR30 Channel 3 DAC enable
             }
             
+            if location == 0xFF1C {
+                let mask = UInt8(0b10011111)
+                return mask //FIXME: implement NR32 Channel 3 output level
+            }
+
+            if location == 0xFF1F {
+                return 0xFF
+            }
+
+            if location == 0xFF20 {
+                let mask = UInt8(0b11000000)
+                return mask //FIXME: implement NR41 Channel 4 length timer
+            }
+
+            if location == 0xFF23 {
+                let mask = UInt8(0b00111111)
+                return mask //FIXME: implement NR44 Channel 4 control
+            }
+
+            if location == 0xFF26 {
+                let mask = UInt8(0b01110000)
+                return mask //FIXME: implement NR52 Audio master control
+            }
+
+            if location == 0xFF27 {
+                return 0xFF
+            }
+
+            if location == 0xFF28 {
+                return 0xFF
+            }
+
+            if location == 0xFF29 {
+                return 0xFF
+            }
+
             if location == 0xFF40 {
                 return ppu.control
             }
@@ -340,6 +428,158 @@ class Bus {
             
             if location == 0xFF4B {
                 return ppu.wx
+            }
+
+            if location == 0xFF4C {
+                return 0xFF
+            }
+
+            if location == 0xFF4D {
+                return 0xFF //TODO: Implement speed switch for CGB
+            }
+
+            if location == 0xFF4E {
+                return 0xFF
+            }
+
+            if location == 0xFF4F {
+                return 0xFF
+            }
+
+            if location == 0xFF50 {
+                return 0xFF
+            }
+
+            if location == 0xFF51 {
+                return 0xFF
+            }
+
+            if location == 0xFF52 {
+                return 0xFF
+            }
+
+            if location == 0xFF53 {
+                return 0xFF
+            }
+
+            if location == 0xFF54 {
+                return 0xFF
+            }
+
+            if location == 0xFF55 {
+                return 0xFF
+            }
+
+            if location == 0xFF56 {
+                return 0xFF
+            }
+
+            if location == 0xFF57 {
+                return 0xFF
+            }
+
+            if location == 0xFF58 {
+                return 0xFF
+            }
+
+            if location == 0xFF59 {
+                return 0xFF
+            }
+
+            if location == 0xFF5A {
+                return 0xFF
+            }
+
+            if location == 0xFF5B {
+                return 0xFF
+            }
+
+            if location == 0xFF5C {
+                return 0xFF
+            }
+
+            if location == 0xFF5D {
+                return 0xFF
+            }
+
+            if location == 0xFF5E {
+                return 0xFF
+            }
+
+            if location == 0xFF5F {
+                return 0xFF
+            }
+
+            if location == 0xFF60 {
+                return 0xFF
+            }
+
+            if location == 0xFF61 {
+                return 0xFF
+            }
+
+            if location == 0xFF62 {
+                return 0xFF
+            }
+
+            if location == 0xFF63 {
+                return 0xFF
+            }
+
+            if location == 0xFF64 {
+                return 0xFF
+            }
+
+            if location == 0xFF65 {
+                return 0xFF
+            }
+
+            if location == 0xFF66 {
+                return 0xFF
+            }
+
+            if location == 0xFF67 {
+                return 0xFF
+            }
+
+            if location == 0xFF68 {
+                return 0xFF
+            }
+
+            if location == 0xFF69 {
+                return 0xFF
+            }
+
+            if location == 0xFF6A {
+                return 0xFF
+            }
+
+            if location == 0xFF6B {
+                return 0xFF
+            }
+
+            if location == 0xFF6C {
+                return 0xFF
+            }
+
+            if location == 0xFF6D {
+                return 0xFF
+            }
+
+            if location == 0xFF6E {
+                return 0xFF
+            }
+
+            if location == 0xFF6F {
+                return 0xFF
+            }
+
+            if location == 0xFF70 {
+                return 0xFF
+            }
+
+            if location >= 0xFF71 && location <= 0xFFFE {
+                return 0xFF
             }
             
             if location == 0xFFFF {
