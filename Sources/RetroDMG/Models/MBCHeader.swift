@@ -23,11 +23,9 @@ public enum ROMSize: UInt8 {
     case _1MB = 0x05
     case _2MB = 0x06
     case _4MB = 0x07
-    case _1_1MB = 0x52
-    case _1_2MB = 0x53
-    case _1_5MB = 0x54
+    case _8MB = 0x08
     
-    var bankCount: Int {
+    var bankCount: UInt16 {
         switch self {
         case ._32KB:
             return 2
@@ -45,12 +43,8 @@ public enum ROMSize: UInt8 {
             return 128
         case ._4MB:
             return 256
-        case ._1_1MB:
-            return 72
-        case ._1_2MB:
-            return 80
-        case ._1_5MB:
-            return 96
+        case ._8MB:
+            return 512
         }
     }
 }
@@ -62,7 +56,7 @@ public enum RAMSize: UInt8 {
     case _128KB = 0x04
     case _64KB = 0x05
     
-    var bankCount: Int {
+    var bankCount: UInt8 {
         switch self {
         case .None:
             return 0
