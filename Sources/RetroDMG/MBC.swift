@@ -11,16 +11,16 @@ class MBC {
     public var cart: MBCCart?
     
     func load(rom: [UInt8]) throws {
-        let type = MBCType(rawValue: rom[0x147])
-        let romSize = ROMSize(rawValue: rom[0x148])
-        let ramSize = RAMSize(rawValue: rom[0x149])
+        let type: MBCType? = MBCType(rawValue: rom[0x147])
+        let romSize: ROMSize? = ROMSize(rawValue: rom[0x148])
+        let ramSize: RAMSize? = RAMSize(rawValue: rom[0x149])
         
         
         switch type {
         case .NoMBC:
             cart = NoMBC(data: rom)
         case .MBC1, .MBC1RAM, .MBC1RAMBattery:
-            cart = MBC1Cart(data: rom)
+            cart = MBC1Cart(data: rom, RAMSize: ramSize!, ROMSize: romSize!)
         case .none:
             throw MBCError.MBCTypeError("MBC Type not found: (\(rom[0x147]))")
         }
