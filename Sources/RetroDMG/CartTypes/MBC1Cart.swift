@@ -38,9 +38,9 @@ class MBC1Cart: MBCCart {
     
     func read(location: UInt16) -> UInt8 {
         if location >= 0x0000 && location <= 0x3FFF {
-            var location = Int(location & 0x3FFF)
+            var location = Int(location)
             if mode == false {
-                return data[Int(location)]
+                return data[location]
             }
             
             let offset = Int(UInt16(bank2) << 5 & (ROMSize.bankCount - 1)) << 14
@@ -77,23 +77,23 @@ class MBC1Cart: MBCCart {
             RAMG = value & 0x0F == 0x0A
         }
         else if location >= 0x2000 && location <= 0x3FFF {
-            bank1 = value & 0x1F
-            if bank1 == 0 {
-                bank1 = 0x01
+            var v = value & 0x1F
+            if v == 0x00 {
+                v = 0x01
             }
+            bank1 = v
         }
         else if location >= 0x4000 && location <= 0x5FFF {
             bank2 = value & 0x03
         }
         else if location >= 0x6000 && location <= 0x7FFF {
-            mode = value & 0x01 == 0x01
+            mode = value.get(bit: 0)
         }
         else if location >= 0xA000 && location <= 0xBFFF {
-            var location = Int(location & 0x1FFF)
             if RAMSize == .None || RAMG == false {
                 return
             }
-
+            var location = Int(location & 0x1FFF)
             if mode == false {
                 data[location] = value
             }
