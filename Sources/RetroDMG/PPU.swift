@@ -304,7 +304,7 @@ class PPU {
             let lsb = byte1.get(bit: UInt8(bit))
             
 
-            let pallete = isBackground ? bgp : objectPallete1! ? obp1 : obp0
+            let pallete = isBackground ? bgp : objectPallete1! ? obp0 : obp0
             
             for palleteBit in stride(from: isBackground ? 0 : 2, to: 8, by: 2) {
                 if pallete.get(bit: UInt8(palleteBit + 1)) {
@@ -369,6 +369,7 @@ class PPU {
         }
         
         bgWindowPixels.removeAll()
+        objectPixels.removeAll()
         
         return pixels
     }

@@ -82,7 +82,7 @@ class Bus {
             } catch {
                 print(error.localizedDescription)
             }
-        } else if location >= 0xE000 && location <= 0xFDFF { 
+        } else if location >= 0xE000 && location <= 0xFDFF {
             memory[Int(location - 0x2000)] = value
         } else if location >= 0xFE00 && location <= 0xFE9F {
             if ppu.mode != .OAM && ppu.mode != .Draw {
@@ -103,7 +103,7 @@ class Bus {
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF41 {
-            let mask: UInt8 = 0b11111000
+            let mask: UInt8 = 0b01111000
             let value = value & mask
             ppu.status |= value
         } else if location == 0xFF42 {
