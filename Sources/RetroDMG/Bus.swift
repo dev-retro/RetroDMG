@@ -69,20 +69,20 @@ class Bus {
         if location >= 0x8000 && location <= 0x97FF {
             ppu.memory[Int(location - 0x8000)] = value
         } else if location >= 0x9800 && location <= 0x9BFF {
-            if ppu.mode != .Draw {
+//            if ppu.mode != .Draw {
                 ppu.tilemap9800[Int(location - 0x9800)] = value
-            }
+//            }
         } else if location >= 0x9C00 && location <= 0x9FFF {
-            if ppu.mode != .Draw {
+//            if ppu.mode != .Draw {
                 ppu.tilemap9C00[Int(location - 0x9C00)] = value
-            }
+//            }
         } else if location >= 0xA000 && location <= 0xBFFF {
             do {
                 try mbc.write(location: location, value: value)
             } catch {
                 print(error.localizedDescription)
             }
-        } else if location >= 0xE000 && location <= 0xFDFF { 
+        } else if location >= 0xE000 && location <= 0xFDFF {
             memory[Int(location - 0x2000)] = value
         } else if location >= 0xFE00 && location <= 0xFE9F {
             if ppu.mode != .OAM && ppu.mode != .Draw {
@@ -103,7 +103,7 @@ class Bus {
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF41 {
-            let mask: UInt8 = 0b11111000
+            let mask: UInt8 = 0b01111000
             let value = value & mask
             ppu.status |= value
         } else if location == 0xFF42 {
@@ -233,32 +233,32 @@ class Bus {
             }
             
             if location >= 0x8000 && location <= 0x97FF {
-                if ppu.mode == .Draw {
+//                if ppu.mode == .Draw {
                     return 0xFF
-                }
+//                }
                 return ppu.memory[Int(location - 0x8000)]
             }
             
             if location >= 0x9800 && location <= 0x9BFF {
-                if ppu.mode == .Draw {
+//                if ppu.mode == .Draw {
                     return 0xFF
-                }
+//                }
                 return ppu.tilemap9800[Int(location - 0x9800)]
             }
             
             if location >= 0x9C00 && location <= 0x9FFF {
-                if ppu.mode == .Draw {
+//                if ppu.mode == .Draw {
                     return 0xFF
-                }
+//                }
                 return ppu.tilemap9C00[Int(location - 0x9C00)]
             }
             if location >= 0xE000 && location <= 0xFDFF {
                 return memory[Int(location - 0x2000)]
             }
             if location >= 0xFE00 && location <= 0xFE9F {
-                if ppu.mode == .OAM || ppu.mode == .Draw {
+//                if ppu.mode == .OAM || ppu.mode == .Draw {
                     return 0xFF
-                }
+//                }
                 return ppu.oam[Int(location - 0xFE00)]
             }
             

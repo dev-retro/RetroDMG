@@ -89,7 +89,7 @@ public class RetroDMG: RetroPlatform {
     
     public func stop() -> Bool {
         runTask?.cancel()
-        debugTask?.cancel()
+//        debugTask?.cancel()
         reset()
         return false
     }
@@ -111,10 +111,10 @@ public class RetroDMG: RetroPlatform {
                     try? await Task.sleep(for: reaminingTime, tolerance: .zero)
                 }
                 for _ in 0..<70224 / 16 {
-//                    if Task.isCancelled {
-//                        loopRunning = false
-//                        break
-//                    }
+                    if Task.isCancelled {
+                        loopRunning = false
+                        break
+                    }
                     let currentCycles = cpu.tick()
                     for _ in 0...(currentCycles / 4) {
                         cpu.updateTimer()
@@ -125,22 +125,22 @@ public class RetroDMG: RetroPlatform {
                 time1 = time2
             }
         }
-        if cpu.debug {
-            debugTask = Task {
-                while loopRunning {
-                    if Task.isCancelled {
-                        loopRunning = false
-                        break
-                    }
-                    let elapsed = time2 - time1
-                    let reaminingTime = .milliseconds(16.67) - elapsed
-                    if reaminingTime > .milliseconds(1) {
-                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
-                    }
-                    updateState()
-                }
-            }    
-        }
+//        if cpu.debug {
+//            debugTask = Task {
+//                while loopRunning {
+//                    if Task.isCancelled {
+//                        loopRunning = false
+//                        break
+//                    }
+//                    let elapsed = time2 - time1
+//                    let reaminingTime = .milliseconds(16.67) - elapsed
+//                    if reaminingTime > .milliseconds(1) {
+//                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
+//                    }
+//                    updateState()
+//                }
+//            }    
+//        }
     }
 
     func updateState() {
@@ -209,4 +209,56 @@ public class RetroDMG: RetroPlatform {
     public func viewPort() -> [Int] {
         return cpu.bus.ppu.viewPort
     }
+    
+    public func tileData(rowCount: Int, columnCount: Int) -> [Int] {
+        var tilemap = cpu.bus.ppu.memory
+        var viewPort = [Int]()
+        
+        let totalTiles = rowCount * columnCount
+        let totalBytes = totalTiles * 16
+       
+        for rowIndex in stride(from: 0, to: totalBytes, by: rowCount * 2 * 8) {
+            for columnIndex in stride(from: rowIndex, to: rowIndex + 16, by: 2) {
+                for byteIndex in stride(from: columnIndex, to: columnIndex + rowCount * 16, by: 16) {
+                    viewPort.append(contentsOf:
+                                        cpu.bus.ppu.createRow(byte1: tilemap[byteIndex], byte2: tilemap[byteIndex + 1], isBackground: true, objectPallete1: nil)
+                    )
+                }
+            }
+        }
+        
+        return viewPort
+    }
+    
+    public func tileMap(get9800: Bool) -> [Int] {
+        var memory = cpu.bus.ppu.memory
+        var tilemap = get9800 ? cpu.bus.ppu.tilemap9800 : cpu.bus.ppu.tilemap9C00
+        var tilemapBytes = [UInt8]()
+        var viewPort = [Int]()
+        
+        for address in 0..<1024 {
+            let tileNo = tilemap[address]
+            
+            var tileLocation = cpu.bus.ppu.read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+            
+            tilemapBytes.append(contentsOf: memory[tileLocation..<tileLocation + 16])
+            
+        }
+        
+        let totalTiles = 32 * 32
+        let totalBytes = totalTiles * 16
+       
+        for rowIndex in stride(from: 0, to: totalBytes, by: 32 * 2 * 8) {
+            for columnIndex in stride(from: rowIndex, to: rowIndex + 16, by: 2) {
+                for byteIndex in stride(from: columnIndex, to: columnIndex + 32 * 16, by: 16) {
+                    viewPort.append(contentsOf:
+                                        cpu.bus.ppu.createRow(byte1: tilemapBytes[byteIndex], byte2: tilemapBytes[byteIndex + 1], isBackground: true, objectPallete1: nil)
+                    )
+                }
+            }
+        }
+        
+        return viewPort
+    }
+    
 }
