@@ -519,7 +519,7 @@ class CPU {
             case 0xD2:
                 jumpIfNot(type: .memoryUnsigned16Bit, flag: .Carry)
             case 0xD3:
-                return 0//Not Used
+                unused()
             case 0xD4:
                 callIfNot(flag: .Carry)
             case 0xD5:
@@ -535,9 +535,11 @@ class CPU {
             case 0xDA:
                 jumpIf(type: .memoryUnsigned16Bit, flag: .Carry)
             case 0xDB:
-                return 0//Not Used
+                unused()
             case 0xDC:
                 callIf(flag: .Carry)
+            case 0xDD:
+                unused()
             case 0xDE:
                 sbc()
             case 0xDF:
@@ -549,9 +551,9 @@ class CPU {
             case 0xE2:
                 loadToMemory(masked: .C)
             case 0xE3:
-                return 0//Not Used
+                unused()
             case 0xE4:
-                return 0//Not Used
+                unused()
             case 0xE5:
                 push(register: .HL)
             case 0xE6:
@@ -565,11 +567,11 @@ class CPU {
             case 0xEA:
                 loadToMemory(from: .A)
             case 0xEB:
-                return 0//Not Used
+                unused()
             case 0xEC:
-                return 0//Not Used
+                unused()
             case 0xED:
-                return 0//Not Used
+                unused()
             case 0xEE:
                 xor()
             case 0xEF:
@@ -583,7 +585,7 @@ class CPU {
             case 0xF3:
                 DI()
             case 0xF4:
-                return 0//Not Used
+                unused()
             case 0xF5:
                 push(register: .AF)
             case 0xF6:
@@ -599,9 +601,9 @@ class CPU {
             case 0xFB:
                 EI()
             case 0xFC:
-                return 0//Not Used
+                unused()
             case 0xFD:
-                return 0//Not Used
+                unused()
             case 0xFE:
                 copy()
             case 0xFF:
@@ -2426,6 +2428,11 @@ class CPU {
             state = .Running
             _ = returnAndIncrement(indirect: .PC)
         }
+    }
+
+    func unused() {
+        let value = registers.read(register: .PC).subtractingReportingOverflow(1)
+        registers.write(register: .PC, value: value.partialValue)
     }
     
     func processInterrupt() {
