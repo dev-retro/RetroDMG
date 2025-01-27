@@ -612,7 +612,7 @@ class CPU {
                 fatalError("opCode 0x\(opCode.hex) not supported")
             }
         } else if state == .Halted {
-            cycles += 1
+            cycles = cycles.addingReportingOverflow(4).partialValue
         }
         return cycles
     }
@@ -1170,7 +1170,7 @@ class CPU {
             cycles = cycles.addingReportingOverflow(8).partialValue
         }
     }
-    
+
     func increment(indirect register: RegisterType16) {
         let registerValue = registers.read(register: register)
         let value = bus.read(location: registerValue)
@@ -1193,7 +1193,7 @@ class CPU {
         registers.write(flag: .Subtraction, set: true)
         registers.write(flag: .HalfCarry, set: Int8(currentValue & 0xF) - Int8(1 & 0xF) < 0)
         
-        cycles = cycles.addingReportingOverflow(12).partialValue
+        cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
     func decrement(indirect register: RegisterType16) {
@@ -1316,21 +1316,6 @@ class CPU {
         cycles = cycles.addingReportingOverflow(20).partialValue
     }
     
-//    func load(indirect from: RegisterType8?) {
-//        let lsb = increment(register: .PC)
-//        var cycleCount: Int32 = 12
-//        if from != nil {
-//            let lsb = registers.read(register: from!)
-//            cycleCount = 8
-//        }
-//        let msb = 0xFF
-//        let location = UInt16(lsb << 8) | UInt16(msb)
-//        
-//        bus.write(location: location, value: UInt8)
-//        
-//        cycles = cycles.addingReportingOverflow(cycleCount
-//    }
-    
     func jump(type: JumpType) {
         switch type {
         case .memorySigned8Bit:
@@ -1412,12 +1397,6 @@ class CPU {
         registers.write(register: .PC, value: registers.read(register: register))
         
         cycles = cycles.addingReportingOverflow(4).partialValue
-    }
-    
-    func set(ime: Bool) {
-        registers.write(ime: ime)
-        cycles = cycles.addingReportingOverflow(4).partialValue
-        state = .Running
     }
     
     func call() {
@@ -1596,6 +1575,21 @@ class CPU {
 
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
+
+    func or() {
+        let a = registers.read(register: .A)
+        let value = returnAndIncrement(indirect: .PC)
+        let result = a | value
+
+        registers.write(register: .A, value: result)
+
+        registers.write(flag: .Zero, set: result == 0)
+        registers.write(flag: .Subtraction, set: false)
+        registers.write(flag: .HalfCarry, set: false)
+        registers.write(flag: .Carry, set: false)
+
+        cycles = cycles.addingReportingOverflow(8).partialValue
+    }
     
     func xor() {
         let a = registers.read(register: .A)
@@ -1609,7 +1603,7 @@ class CPU {
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: false)
 
-        cycles = cycles.addingReportingOverflow(4).partialValue
+        cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
     func xor(register: RegisterType8) {
@@ -1685,22 +1679,7 @@ class CPU {
         registers.write(flag: .Carry, set: false)
 
         cycles = cycles.addingReportingOverflow(8).partialValue
-    }
-    
-    func or() {
-        let a = registers.read(register: .A)
-        let value = returnAndIncrement(indirect: .PC)
-        let result = a | value
-
-        registers.write(register: .A, value: result)
-
-        registers.write(flag: .Zero, set: result == 0)
-        registers.write(flag: .Subtraction, set: false)
-        registers.write(flag: .HalfCarry, set: false)
-        registers.write(flag: .Carry, set: false)
-
-        cycles = cycles.addingReportingOverflow(8).partialValue
-    }
+    } 
     
     func add(register: RegisterType8) {
         let a = registers.read(register: .A)
@@ -1787,7 +1766,6 @@ class CPU {
         cycles = cycles.addingReportingOverflow(4).partialValue
     }
     
-    
     func adc(indirect register: RegisterType16) {
         let a = registers.read(register: .A)
         let value = bus.read(location: registers.read(register: register))
@@ -1806,7 +1784,6 @@ class CPU {
 
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
-    
     
     func adc() {
         let a = registers.read(register: .A)
@@ -2133,7 +2110,6 @@ class CPU {
         cycles = cycles.addingReportingOverflow(16).partialValue
     }
     
-    
     func rotateLeft(register: RegisterType8, zeroDependant: Bool = true) {
         var value = registers.read(register: register)
         let sevenBit = getBit(data: value, bit: 7)
@@ -2150,7 +2126,7 @@ class CPU {
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: sevenBit)
 
-        cycles = cycles.addingReportingOverflow(8).partialValue
+        cycles = cycles.addingReportingOverflow(zeroDependant ? 8 : 4).partialValue
     }
     
     func rotateLeft(indirect register: RegisterType16) {
@@ -2224,7 +2200,7 @@ class CPU {
         registers.write(flag: .HalfCarry, set: false)
         registers.write(flag: .Carry, set: zeroBit)
 
-        cycles = cycles.addingReportingOverflow(8).partialValue
+        cycles = cycles.addingReportingOverflow(zeroDependant ? 8 : 4).partialValue
     }
     
     func rotateRight(indirect register: RegisterType16) {
@@ -2428,6 +2404,8 @@ class CPU {
             state = .Running
             _ = returnAndIncrement(indirect: .PC)
         }
+
+        cycles = cycles.addingReportingOverflow(4).partialValue
     }
 
     func unused() {
