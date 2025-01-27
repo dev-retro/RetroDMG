@@ -99,7 +99,7 @@ class Bus {
         } else if location == 0xFF07 {
             tac = value
         } else if location == 0xFF0F {
-            interruptFlag = value
+            interruptFlag = value & 0b00011111
         } else if location == 0xFF40 {
             ppu.control = value
         } else if location == 0xFF41 {
@@ -151,21 +151,6 @@ class Bus {
     
     func write(rom: [UInt8]) {
         memory.replaceSubrange(0...rom.count, with: rom)
-    }
-    
-    func write(interruptEnableType: InterruptType, value: Bool) {
-        switch interruptEnableType {
-        case .VBlank:
-            interruptEnabled.set(bit: 0, value: value)
-        case .LCD:
-            interruptEnabled.set(bit: 1, value: value)
-        case .Timer:
-            interruptEnabled.set(bit: 2, value: value)
-        case .Serial:
-            interruptEnabled.set(bit: 3, value: value)
-        case .Joypad:
-            interruptEnabled.set(bit: 4, value: value)
-        }
     }
     
     func write(interruptFlagType: InterruptType, value: Bool) {

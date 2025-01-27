@@ -2424,16 +2424,18 @@ class CPU {
             bus.ppu.setLCDInterrupt = false
         }
         
-        if setInputInterrupt {
-            bus.write(interruptFlagType: .Joypad, value: true)
-            setInputInterrupt = false
-        }
-        
         if setTimerInterrupt {
             bus.write(interruptFlagType: .Timer, value: true)
             setTimerInterrupt = false
         }
-        
+
+        //TODO: Implement Serial Interrupt      
+
+        if setInputInterrupt {
+            bus.write(interruptFlagType: .Joypad, value: true)
+            setInputInterrupt = false
+        }
+
         if bus.read(interruptEnableType: .VBlank) && bus.read(interruptFlagType: .VBlank) {
             state = .Running
             
