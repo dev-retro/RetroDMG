@@ -71,7 +71,7 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func start() -> Bool {
-        
+        debug(enabled: true)
         if !loopRunning {
             loopRunning = true
             
