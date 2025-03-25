@@ -71,7 +71,7 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func start() -> Bool {
-        
+        debug(enabled: true)
         if !loopRunning {
             loopRunning = true
             
@@ -89,7 +89,7 @@ public class RetroDMG: RetroPlatform {
     
     public func stop() -> Bool {
         runTask?.cancel()
-//        debugTask?.cancel()
+        debugTask?.cancel()
         reset()
         return false
     }
@@ -125,22 +125,22 @@ public class RetroDMG: RetroPlatform {
                 time1 = time2
             }
         }
-//        if cpu.debug {
-//            debugTask = Task {
-//                while loopRunning {
-//                    if Task.isCancelled {
-//                        loopRunning = false
-//                        break
-//                    }
-//                    let elapsed = time2 - time1
-//                    let reaminingTime = .milliseconds(16.67) - elapsed
-//                    if reaminingTime > .milliseconds(1) {
-//                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
-//                    }
-//                    updateState()
-//                }
-//            }    
-//        }
+        if cpu.debug {
+            debugTask = Task {
+                while loopRunning {
+                    if Task.isCancelled {
+                        loopRunning = false
+                        break
+                    }
+                    let elapsed = time2 - time1
+                    let reaminingTime = .milliseconds(16.67) - elapsed
+                    if reaminingTime > .milliseconds(1) {
+                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
+                    }
+                    updateState()
+                }
+            }    
+        }
     }
 
     func updateState() {
@@ -211,7 +211,7 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func tileData(rowCount: Int, columnCount: Int) -> [Int] {
-        var tilemap = cpu.bus.ppu.memory
+        var tilemap = cpu.bus.ppu.tileData
         var viewPort = [Int]()
         
         let totalTiles = rowCount * columnCount
@@ -231,7 +231,7 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func tileMap(get9800: Bool) -> [Int] {
-        var memory = cpu.bus.ppu.memory
+        var memory = cpu.bus.ppu.tileData
         var tilemap = get9800 ? cpu.bus.ppu.tilemap9800 : cpu.bus.ppu.tilemap9C00
         var tilemapBytes = [UInt8]()
         var viewPort = [Int]()

@@ -7,7 +7,7 @@
 
 
 class PPU {
-    var memory: [UInt8]
+    var tileData: [UInt8]
     var tilemap9800: [UInt8]
     var tilemap9C00: [UInt8]
     var oam: [UInt8]
@@ -35,7 +35,7 @@ class PPU {
     var windowLineCounter: UInt8
     var fetchWindow: Bool
     var dma: UInt8
-    
+
     private var cycles: UInt16
     private var x: Int
     private var drawn: Bool
@@ -49,7 +49,7 @@ class PPU {
     var status: UInt8
     
     init() {
-        memory = [UInt8](repeating: 0, count: 0x1800)
+        tileData = [UInt8](repeating: 0, count: 0x1800)
         tilemap9800 = [UInt8](repeating: 0, count: 0x400)
         tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
         oam = [UInt8](repeating: 0, count: 0xA0)
@@ -96,7 +96,7 @@ class PPU {
     //MARK: Line based rendering
     
     public func updateGraphics(cycles: UInt16) {
-        if !read(flag: .LCDDisplayEnable) {
+        if !read(flag: .LCDEnable) {
             ly = 0
             mode = .HorizontalBlank
             write(flag: .Mode0, set: true)
@@ -120,7 +120,7 @@ class PPU {
                 if self.cycles >= 0 && self.cycles < 80 {
                     mode = .OAM
                     write(flag: .Mode2, set: true)
-                    let spriteHeight = read(flag: .SpriteSize) ? 16 : 8
+                    let spriteHeight = read(flag: .OBJSize) ? 16 : 8
                     if !oamChecked {
                         if !windowYSet {
                             windowYSet = ly == wy
@@ -184,8 +184,8 @@ class PPU {
                             tileLocation += 2 * (fetcherY % 8)
                             
                             
-                            let byte1 = memory[tileLocation]
-                            let byte2 = memory[tileLocation + 0x1]
+                            let byte1 = tileData[tileLocation]
+                            let byte2 = tileData[tileLocation + 0x1]
                             bgWindowPixels = createRow(byte1: byte1, byte2: byte2, isBackground: true, objectPallete1: nil)
                             
                             
@@ -203,7 +203,7 @@ class PPU {
                             
                             
                             
-                            if read(flag: .SpriteEnable) {
+                            if read(flag: .OBJEnable) {
                                 let objects = oamBuffer.filter { $0.xPos >= pixel && $0.xPos < pixel + 8 }
                                 var object: (xPos: Int, yPos: Int, index: UInt8, attributes: UInt8)?
                                 for objectToCheck in objects {
@@ -211,7 +211,7 @@ class PPU {
                                 }
                                 
                                 if var object {
-                                    let spriteHeight = read(flag: .SpriteSize) ? 16 : 8
+                                    let spriteHeight = read(flag: .OBJSize) ? 16 : 8
                                     
                                     if spriteHeight == 16 && Int(ly) - object.yPos < 8 {
                                         object.index.set(bit: 0, value: object.attributes.get(bit: 6) ? true : false)
@@ -230,8 +230,8 @@ class PPU {
                                     
                                     horizontalFlip = object.attributes.get(bit: 5)
                                     
-                                    let byte1 = memory[tileLocation]
-                                    let byte2 = memory[tileLocation + 0x1]
+                                    let byte1 = tileData[tileLocation]
+                                    let byte2 = tileData[tileLocation + 0x1]
                                     
                                     let offset = object.xPos - pixel
                                     
@@ -385,7 +385,7 @@ class PPU {
     
     public func write(flag: PPURegisterType, set: Bool) {
         switch flag {
-        case .LCDDisplayEnable:
+        case .LCDEnable:
             control.set(bit: 7, value: set)
         case .WindowTileMapSelect:
             control.set(bit: 6, value: set)
@@ -395,9 +395,9 @@ class PPU {
             control.set(bit: 4, value: set)
         case .BGTileMapSelect:
             control.set(bit: 3, value: set)
-        case .SpriteSize:
+        case .OBJSize:
             control.set(bit: 2, value: set)
-        case .SpriteEnable:
+        case .OBJEnable:
             control.set(bit: 1, value: set)
         case .BGWindowEnable:
             control.set(bit: 0, value: set)
@@ -436,7 +436,7 @@ class PPU {
     
     public func read(flag: PPURegisterType) -> Bool {
         switch flag {
-        case .LCDDisplayEnable:
+        case .LCDEnable:
             return control.get(bit: 7)
         case .WindowTileMapSelect:
             return control.get(bit: 6)
@@ -446,9 +446,9 @@ class PPU {
             return control.get(bit: 4)
         case .BGTileMapSelect:
             return control.get(bit: 3)
-        case .SpriteSize:
+        case .OBJSize:
             return control.get(bit: 2)
-        case .SpriteEnable:
+        case .OBJEnable:
             return control.get(bit: 1)
         case .BGWindowEnable:
             return control.get(bit: 0)
@@ -475,38 +475,10 @@ class PPU {
     }
 }
 
-enum Shade: Int {
-    case White = 0
-    case LightGray = 1
-    case DarkGray = 2
-    case Black = 3
-}
 
 enum PPUMode {
     case HorizontalBlank
     case VerticalBlank
     case OAM
     case Draw
-}
-
-public enum PPURegisterType {
-    case LCDDisplayEnable
-    case WindowTileMapSelect
-    case WindowDisplayEnable
-    case TileDataSelect
-    case BGTileMapSelect
-    case SpriteSize
-    case SpriteEnable
-    case BGWindowEnable
-
-    case LYCLYInterruptEnable
-    case Mode2InterruptEnable
-    case Mode1InterruptEnable
-    case Mode0InterruptEnable
-    case CoincidenceFlag
-    
-    case Mode0
-    case Mode1
-    case Mode2
-    case Mode3
 }
