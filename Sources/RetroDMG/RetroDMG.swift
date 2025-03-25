@@ -89,7 +89,7 @@ public class RetroDMG: RetroPlatform {
     
     public func stop() -> Bool {
         runTask?.cancel()
-//        debugTask?.cancel()
+        debugTask?.cancel()
         reset()
         return false
     }
@@ -125,22 +125,22 @@ public class RetroDMG: RetroPlatform {
                 time1 = time2
             }
         }
-//        if cpu.debug {
-//            debugTask = Task {
-//                while loopRunning {
-//                    if Task.isCancelled {
-//                        loopRunning = false
-//                        break
-//                    }
-//                    let elapsed = time2 - time1
-//                    let reaminingTime = .milliseconds(16.67) - elapsed
-//                    if reaminingTime > .milliseconds(1) {
-//                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
-//                    }
-//                    updateState()
-//                }
-//            }    
-//        }
+        if cpu.debug {
+            debugTask = Task {
+                while loopRunning {
+                    if Task.isCancelled {
+                        loopRunning = false
+                        break
+                    }
+                    let elapsed = time2 - time1
+                    let reaminingTime = .milliseconds(16.67) - elapsed
+                    if reaminingTime > .milliseconds(1) {
+                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
+                    }
+                    updateState()
+                }
+            }    
+        }
     }
 
     func updateState() {
