@@ -14,6 +14,9 @@ let package = Package(
         .library(
             name: "RetroDMG",
             targets: ["RetroDMG"]),
+        .executable(
+            name: "RetroDMGCLI",
+            targets: ["RetroDMGCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/dev-retro/RetroKit.git", from: "0.1.0"),
@@ -27,6 +30,9 @@ let package = Package(
             name: "RetroDMG", dependencies: [
                 .product(name: "RetroKit", package: "RetroKit")
             ]),
+        .target(
+            name: "RetroDMGCLI",
+            dependencies: ["RetroDMG"]),
         .testTarget(
           name: "RetroDMGTests",
           dependencies: [

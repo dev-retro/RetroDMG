@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:RetroDMG}",
+            "name": "Debug RetroDMGCLI",
+            "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGCLI",
+            "preLaunchTask": "swift: Build Debug RetroDMGCLI"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:RetroDMG}",
+            "name": "Release RetroDMGCLI",
+            "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGCLI",
+            "preLaunchTask": "swift: Build Release RetroDMGCLI"
+        }
+    ]
+}
