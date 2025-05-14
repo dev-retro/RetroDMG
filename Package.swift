@@ -15,8 +15,8 @@ let package = Package(
             name: "RetroDMG",
             targets: ["RetroDMG"]),
         .executable(
-            name: "RetroDMGCLI",
-            targets: ["RetroDMGCLI"]),
+            name: "RetroDMGApp",
+            targets: ["RetroDMGApp"]),
     ],
     dependencies: [
         .package(url: "https://github.com/dev-retro/RetroKit.git", from: "0.1.0"),
@@ -30,9 +30,13 @@ let package = Package(
             name: "RetroDMG", dependencies: [
                 .product(name: "RetroKit", package: "RetroKit")
             ]),
-        .target(
-            name: "RetroDMGCLI",
-            dependencies: ["RetroDMG"]),
+        .executableTarget(
+            name: "RetroDMGApp",
+            dependencies: ["RetroDMG"],
+            resources: [
+                .process("platforms/macOS/Shaders.metal")
+            ]
+        ),
         .testTarget(
           name: "RetroDMGTests",
           dependencies: [
@@ -41,7 +45,7 @@ let package = Package(
           ],
           resources: [
             .process("CPUTestFiles")
-          ]
+          ],
         )
     ]
 )

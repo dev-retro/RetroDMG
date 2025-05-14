@@ -9,18 +9,18 @@
             "request": "launch",
             "args": [],
             "cwd": "${workspaceFolder:RetroDMG}",
-            "name": "Debug RetroDMGCLI",
-            "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGCLI",
-            "preLaunchTask": "swift: Build Debug RetroDMGCLI"
+            "name": "Debug RetroDMGApp",
+            "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGApp",
+            "preLaunchTask": "swift: Build Debug RetroDMGApp"
         },
         {
             "type": "swift",
             "request": "launch",
             "args": [],
             "cwd": "${workspaceFolder:RetroDMG}",
-            "name": "Release RetroDMGCLI",
-            "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGCLI",
-            "preLaunchTask": "swift: Build Release RetroDMGCLI"
+            "name": "Release RetroDMGApp",
+            "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGApp",
+            "preLaunchTask": "swift: Build Release RetroDMGApp"
         }
     ]
 }
