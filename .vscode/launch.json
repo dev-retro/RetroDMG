@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:RetroDMG}",
+            "name": "Debug RetroDMGApp (Full Build)",
+            "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGApp",
+            "preLaunchTask": "Full Build (Debug)",
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:RetroDMG}",
+            "name": "Release RetroDMGApp (Full Build)",
+            "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGApp",
+            "preLaunchTask": "Full Build (Release)",
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:RetroDMG}",
+            "name": "Debug RetroDMGApp",
+            "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGApp",
+            "preLaunchTask": "swift: Build Debug RetroDMGApp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:RetroDMG}",
+            "name": "Release RetroDMGApp",
+            "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGApp",
+            "preLaunchTask": "swift: Build Release RetroDMGApp"
+        }
+    ]
+}

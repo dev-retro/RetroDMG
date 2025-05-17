@@ -1,0 +1,45 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile Shader Library",
+            "type": "shell",
+            "osx": {
+                "command": "./scripts/BuildMetalLibrary.sh",
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            },
+        },
+                {
+            "label": "Remove Shader Library",
+            "type": "shell",
+            "osx": {
+                "command": "./scripts/RemoveMetalLibrary.sh",
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            },
+        },
+        {
+            "label": "Full Build (Debug)",
+            "dependsOn": [
+                "Compile Shader Library",
+                "swift: Build Debug RetroDMGApp",
+                "Remove Shader Library"
+            ],
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "Full Build (Release)",
+            "dependsOn": [
+                "Compile Shader Library",
+                "swift: Build Release RetroDMGApp",
+                "Remove Shader Library"
+            ],
+            "dependsOrder": "sequence"
+        }
+    ]
+}
