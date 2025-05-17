@@ -8,6 +8,7 @@
 import SwiftUI
 import Foundation
 
+@MainActor
 struct PlatformView: View {
     @Environment(AppState.self) var appState: AppState
     @State var viewModel = PlatformViewModel()

@@ -9,6 +9,7 @@ import SwiftUI
 import RetroKit
 import RetroDMG
 
+@MainActor
 struct RetroDMGView: View {
     @Environment(AppState.self) var appState: AppState
     @State var viewModel = RetroDMGViewModel()
