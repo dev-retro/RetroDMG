@@ -101,7 +101,7 @@ class RetroDMGRenderer: NSObject {
     }
     
     func createPipelineState(device: MTLDevice) {
-        // The device will make a library for us
+        // The device will make a library for u
         do {
             let library = try device.makeDefaultLibrary(bundle: Bundle.module)
             // Our vertex function name

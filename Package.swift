@@ -34,7 +34,8 @@ let package = Package(
             name: "RetroDMGApp",
             dependencies: ["RetroDMG"],
             resources: [
-                .process("platforms/macOS/Shaders.metal")
+                .copy("default.metallib"),
+                .process("platforms/macOS/Shaders/Shaders.metal")
             ]
         ),
         .testTarget(
