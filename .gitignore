@@ -26,3 +26,4 @@ xcuserdata/
 .index-build
 
 *.metallib
+Sources/RetroDMGApp/platforms/macOS/Shaders/Shaders.metal
