@@ -4,6 +4,16 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Slang compile",
+            "type": "shell",
+            "osx": {
+                "command": "./scripts/BuildMetalLibrary.swift",
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            },
+        },
+        {
             "label": "Compile Shader Library",
             "type": "shell",
             "osx": {
@@ -26,6 +36,7 @@
         {
             "label": "Full Build (Debug)",
             "dependsOn": [
+                "Slang compile",
                 "Compile Shader Library",
                 "swift: Build Debug RetroDMGApp",
                 "Remove Shader Library"
@@ -35,6 +46,7 @@
         {
             "label": "Full Build (Release)",
             "dependsOn": [
+                "Slang compile",
                 "Compile Shader Library",
                 "swift: Build Release RetroDMGApp",
                 "Remove Shader Library"

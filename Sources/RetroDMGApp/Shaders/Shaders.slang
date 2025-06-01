@@ -9,9 +9,7 @@ struct VertexOut {
 };
 
 [shader("vertex")]
-VertexOut basic_vertex_function(
-    VertexIn vertices[1],
-    uint vertexID : SV_VertexID)
+VertexOut basic_vertex_function(VertexIn vertices[1], uint vertexID : SV_VertexID)
 {
     VertexOut vOut;
     vOut.position = float4(vertices[vertexID].position, 1.0);
