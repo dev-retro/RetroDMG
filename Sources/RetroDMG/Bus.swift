@@ -186,7 +186,7 @@ class Bus {
     
     /// Load the main cartridge ROM into memory.
     func write(rom: [UInt8]) {
-        memory.replaceSubrange(0...rom.count, with: rom)
+        memory.replaceSubrange(0..<rom.count, with: rom)
     }
     
     /// Set or clear a specific interrupt flag in the IF register.
