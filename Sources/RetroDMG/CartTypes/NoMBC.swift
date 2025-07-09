@@ -15,13 +15,27 @@ class NoMBC: MBCCart {
     }
     
     func read(location: UInt16) -> UInt8 {
-       return data[Int(location)] 
+        // Bounds check to prevent crashes
+        if Int(location) >= data.count {
+            return 0xFF
+        }
+        return data[Int(location)] 
     }
 
     func write(location: UInt16, value: UInt8) {
+        // ROM area (0x0000-0x7FFF) is read-only
         if location >= 0x0000 && location <= 0x7FFF {
             return
         }
-        data[Int(location)] = value
+        
+        // Bounds check to prevent memory corruption
+        if Int(location) >= data.count {
+            return
+        }
+        
+        // Only allow writes to RAM areas (0xA000-0xBFFF for external RAM)
+        if location >= 0xA000 && location <= 0xBFFF {
+            data[Int(location)] = value
+        }
     }
 }

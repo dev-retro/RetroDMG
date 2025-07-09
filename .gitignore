@@ -26,3 +26,15 @@ xcuserdata/
 .index-build
 
 *.metallib
+
+# Additional for VS Code and Swift projects
+.vscode/
+.history/
+
+# SwiftPM
+/.build/
+/Packages/
+/.swiftpm/xcode/package.xcworkspace
+
+# SwiftPM test and doc artifacts
+*.docc-build
