@@ -153,7 +153,6 @@ class Bus {
             let lastIndex = UInt16(value) << 8 | UInt16(0xFF)
             
             let data = memory[Int(firstIndex)...Int(lastIndex)]
-            let new = Array(data)
             ppu.oam = Array(data)
         } else if location == 0xFF47 {
             ppu.bgp = value

@@ -211,7 +211,7 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func tileData(rowCount: Int, columnCount: Int) -> [Int] {
-        var tilemap = cpu.bus.ppu.tileData
+        let tilemap = cpu.bus.ppu.tileData
         var viewPort = [Int]()
         
         let totalTiles = rowCount * columnCount
@@ -231,15 +231,15 @@ public class RetroDMG: RetroPlatform {
     }
     
     public func tileMap(get9800: Bool) -> [Int] {
-        var memory = cpu.bus.ppu.tileData
-        var tilemap = get9800 ? cpu.bus.ppu.tilemap9800 : cpu.bus.ppu.tilemap9C00
+        let memory = cpu.bus.ppu.tileData
+        let tilemap = get9800 ? cpu.bus.ppu.tilemap9800 : cpu.bus.ppu.tilemap9C00
         var tilemapBytes = [UInt8]()
         var viewPort = [Int]()
         
         for address in 0..<1024 {
             let tileNo = tilemap[address]
             
-            var tileLocation = cpu.bus.ppu.read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
+            let tileLocation = cpu.bus.ppu.read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
             
             tilemapBytes.append(contentsOf: memory[tileLocation..<tileLocation + 16])
             
