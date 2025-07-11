@@ -155,5 +155,23 @@ class MBC3Cart: MBCCart {
             break
         }
     }
+    
+    /// Returns the current RAM contents for persistence.
+    func getRAM() -> Data? {
+        if ram.isEmpty {
+            return nil
+        }
+        return Data(ram)
+    }
+
+    /// Loads RAM contents from the given data.
+    func setRAM(_ data: Data) {
+        if ram.isEmpty {
+            return
+        }
+        for (i, byte) in data.prefix(ram.count).enumerated() {
+            ram[i] = byte
+        }
+    }
 }
 

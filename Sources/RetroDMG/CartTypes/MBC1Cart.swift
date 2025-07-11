@@ -104,4 +104,28 @@ class MBC1Cart: MBCCart {
             data[location] = value
         }
     }
+
+    /// Returns the current RAM contents for persistence.
+    func getRAM() -> Data? {
+        if RAMSize == .None || RAMG == false {
+            return nil
+        }
+        let ramSize = Int(RAMSize.bankCount) * 8 * 1024
+        let ramStart = 0xA000
+        let ramEnd = ramStart + ramSize - 1
+        let ramData = data[ramStart...ramEnd]
+        return Data(ramData)
+    }
+
+    /// Loads RAM contents from the given data.
+    func setRAM(_ data: Data) {
+        if RAMSize == .None {
+            return
+        }
+        let ramSize = Int(RAMSize.bankCount) * 8 * 1024
+        let ramStart = 0xA000
+        for (i, byte) in data.prefix(ramSize).enumerated() {
+            self.data[ramStart + i] = byte
+        }
+    }
 }

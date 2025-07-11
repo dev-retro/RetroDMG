@@ -8,6 +8,15 @@
 import Foundation
 
 class NoMBC: MBCCart {
+    /// NoMBC cartridges do not support RAM persistence.
+    func getRAM() -> Data? {
+        return nil
+    }
+
+    /// NoMBC cartridges do not support RAM persistence.
+    func setRAM(_ data: Data) {
+        // Do nothing
+    }
     var data: [UInt8]
     
     required init(data: [UInt8]) {

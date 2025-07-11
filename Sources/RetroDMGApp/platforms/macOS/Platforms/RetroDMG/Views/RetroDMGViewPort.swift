@@ -138,10 +138,10 @@ extension RetroDMGRenderer: MTKViewDelegate {
     
     func draw(in view: MTKView) {
         let pixels = core.viewPort()
-        let black = SIMD4<Float>(0.149, 0.169, 0.169, 1)
-        let dark = SIMD4<Float>(0.4, 0.42, 0.439, 1)
-        let light = SIMD4<Float>(0.58, 0.624, 0.659, 1)
-        let white = SIMD4<Float>(0.804, 0.859, 0.878, 1)
+        let black = SIMD4<Float>(0, 0, 0, 1)
+        let dark = SIMD4<Float>(0.5, 0.5, 0.5, 1)
+        let light = SIMD4<Float>(0.75, 0.75, 0.75, 1)
+        let white = SIMD4<Float>(1, 1, 1, 1)
         
         vertices.removeAll(keepingCapacity: true)
         

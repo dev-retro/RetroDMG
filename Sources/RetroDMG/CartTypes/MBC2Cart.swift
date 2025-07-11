@@ -32,16 +32,18 @@ class MBC2Cart: MBCCart {
     }
 
     /// Returns the current RAM contents for persistence.
-    /// - Returns: A `Data` object containing 512 bytes, each with upper nibble set to 1.
-    func getRAM() -> Data {
-        // Only lower nibble is meaningful, upper nibble always set
+    func getRAM() -> Data? {
+        if ram.isEmpty {
+            return nil
+        }
         return Data(ram.map { $0 | 0xF0 })
     }
 
     /// Loads RAM contents from the given data.
-    /// - Parameter data: A `Data` object containing up to 512 bytes. Only lower nibble is stored.
     func setRAM(_ data: Data) {
-        // Only lower nibble is stored
+        if ram.isEmpty {
+            return
+        }
         for (i, byte) in data.prefix(512).enumerated() {
             ram[i] = byte & 0x0F
         }

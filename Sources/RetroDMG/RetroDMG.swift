@@ -260,5 +260,27 @@ public class RetroDMG: RetroPlatform {
         
         return viewPort
     }
+
+    // MARK: - Persistence API
+
+    /// Loads battery-backed RAM data into the current cartridge (MBC), if supported.
+    /// If the cartridge does not support RAM, this is a no-op.
+    public func loadSaveData(_ data: Data?) {
+        guard let cart = cpu.bus.mbc.cart, let saveData = data else { return }
+        cart.setRAM(saveData)
+    }
+
+    /// Retrieves battery-backed RAM data and identifying info from the current cartridge (MBC), if supported.
+    /// Returns nil for saveData if the cartridge does not support RAM.
+    public func getSaveDataWithInfo() -> [String: Any]? {
+        guard let cart = cpu.bus.mbc.cart else { return nil }
+        let saveData = cart.getRAM()
+        return [
+            "saveData": saveData as Any,
+            "title": cart.cartridgeTitle,
+            "type": cart.cartridgeType,
+            "hash": cart.romHash
+        ]
+    }
     
 }
