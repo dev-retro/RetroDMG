@@ -21,6 +21,14 @@ class MBC {
             cart = NoMBC(data: rom)
         case .MBC1, .MBC1RAM, .MBC1RAMBattery:
             cart = MBC1Cart(data: rom, RAMSize: ramSize!, ROMSize: romSize!)
+        case .MBC2, .MBC2Battery:
+            cart = MBC2Cart(data: rom)
+        case .MBC3, .MBC3RAM, .MBC3RAMBattery, .MBC3TimerBattery, .MBC3TimerRAMBattery:
+            let ramBytes = ramSize != nil ? Int(ramSize!.bankCount) * 0x2000 : 0
+            cart = MBC3Cart(rom: rom, ramSize: ramBytes)
+        case .MBC5, .MBC5RAM, .MBC5RAMBattery, .MBC5Rumble, .MBC5RumbleRAM, .MBC5RumbleRAMBattery:
+            let ramBytes = ramSize != nil ? Int(ramSize!.bankCount) * 0x2000 : 0
+            cart = MBC5Cart(rom: rom, ramSize: ramBytes)
         case .none:
             throw MBCError.MBCTypeError("MBC Type not found: (\(rom[0x147]))")
         }
