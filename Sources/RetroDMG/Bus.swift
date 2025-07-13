@@ -109,6 +109,9 @@ class Bus {
             if !ppu.read(flag: .Mode3) {
                 ppu.tilemap9C00[Int(location - 0x9C00)] = value
             }
+        } else if location >= 0xFEA0 && location <= 0xFEFF {
+            // Not Usable area (0xFEA0–0xFEFF) - writes are ignored (DMG correct)
+            return
         } else if location >= 0xA000 && location <= 0xBFFF {
             do {
                 try mbc.write(location: location, value: value)
@@ -139,6 +142,18 @@ class Bus {
             // Only bits 3-6 are writable, per GBDEV
             let mask: UInt8 = 0b01111000
             ppu.status = (ppu.status & ~mask) | (value & mask)
+        } else if location == 0xFF50 {
+            // TODO: Boot ROM mapping control (FF50) - implement full logic if needed
+            // Writing any value disables boot ROM mapping (DMG correct)
+            bootromLoaded = false
+        } else if (location >= 0xFF10 && location <= 0xFF26) || (location >= 0xFF30 && location <= 0xFF3F) {
+            // TODO: Audio registers (FF10–FF26, FF30–FF3F) - implement audio if needed
+            // For DMG, ignoring writes is correct
+            return
+        } else if location == 0xFF4D {
+            // TODO: Speed switch (FF4D) - implement if CGB support is added
+            // For DMG, ignoring writes is correct
+            return
         } else if location == 0xFF42 {
             ppu.scy = value
         } else if location == 0xFF43 {
@@ -169,9 +184,6 @@ class Bus {
         } else if location == 0xFFFF {
             interruptEnabled = value
         }
-        //        else if location == 0xFF02 && value == 0x81 {
-        //            print(Character(UnicodeScalar(memory[0xFF01])), terminator: "")
-        //        }
         else {
             memory[Int(location)] = value
         }
@@ -277,6 +289,10 @@ class Bus {
                 }
                 return ppu.tilemap9C00[Int(location - 0x9C00)]
             }
+            if location >= 0xFEA0 && location <= 0xFEFF {
+                // Not Usable area (0xFEA0–0xFEFF) - always returns 0xFF (DMG correct)
+                return 0xFF
+            }
             if location >= 0xE000 && location <= 0xFDFF {
                 return memory[Int(location - 0x2000)]
             }
@@ -335,6 +351,21 @@ class Bus {
             
             if location == 0xFF41 {
                 return ppu.status
+            }
+            if location == 0xFF50 {
+                // TODO: Boot ROM mapping control (FF50) - implement full logic if needed
+                // For DMG, always returns 0xFF
+                return 0xFF
+            }
+            if (location >= 0xFF10 && location <= 0xFF26) || (location >= 0xFF30 && location <= 0xFF3F) {
+                // TODO: Audio registers (FF10–FF26, FF30–FF3F) - implement audio if needed
+                // For DMG, always returns 0xFF
+                return 0xFF
+            }
+            if location == 0xFF4D {
+                // TODO: Speed switch (FF4D) - implement if CGB support is added
+                // For DMG, always returns 0xFF
+                return 0xFF
             }
             
             if location == 0xFF42 {
