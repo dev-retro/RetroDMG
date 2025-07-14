@@ -60,7 +60,7 @@ class RetroDMGMetalView: MTKView {
         colorPixelFormat = .bgra8Unorm
         clearColor = MTLClearColor(red: 1, green: 1, blue: 1, alpha: 1)
         if startCore {
-            core.start()
+            _ = core.start()
         }
         createRenderer(device: defaultDevice)
     }

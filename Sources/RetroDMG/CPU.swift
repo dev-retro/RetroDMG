@@ -79,7 +79,7 @@ class CPU {
             delayedImeWrite = false
             state = .Running
         }
-        
+
         if debug {
             currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
             if printDebug {
@@ -88,10 +88,19 @@ class CPU {
         }
 
         cycles = 0x0000
+        // DMA halt logic: If DMA is active, halt CPU instruction execution and only advance hardware
+        if bus.dmaActive {
+            // Advance DMA by 4 cycles (1 byte per 4 cycles)
+            bus.stepDMA(cycles: 4)
+            // Advance PPU and timer by 4 cycles
+            updateTimer()
+            // Advance CPU cycle count
+            cycles = cycles.addingReportingOverflow(4).partialValue
+            return cycles
+        }
+
         if state == .Running {
-            
             let opCode = returnAndIncrement(indirect: .PC)
-            
             switch opCode {
             case 0x00: //NOP
                 cycles = cycles.addingReportingOverflow(4).partialValue
@@ -2732,6 +2741,20 @@ class CPU {
     /// Executes a single instruction and outputs state if in step mode
     func step() {
         waitingForStep = false
+
+        // DMA halt logic: If DMA is active, halt CPU instruction execution and only advance hardware
+        if bus.dmaActive {
+            // Advance DMA by 4 cycles (1 byte per 4 cycles)
+            // bus.stepDMA(4)
+            // Advance PPU and timer by 4 cycles
+            // bus.ppu.step(4)
+            updateTimer()
+            // Advance CPU cycle count
+            cycles = cycles.addingReportingOverflow(4).partialValue
+            // Output state after hardware advancement
+            debugStateOutput()
+            return
+        }
 
         // Fetch opcode from memory
         let pc = registers.read(register: .PC)

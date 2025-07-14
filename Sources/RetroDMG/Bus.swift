@@ -59,6 +59,16 @@ class Bus {
     /// D-pad state storage
     var dpadStore: UInt8
 
+    // --- DMA state ---
+    /// True if DMA transfer is active
+    var dmaActive: Bool = false
+    /// DMA source address (high byte from FF46)
+    var dmaSource: UInt16 = 0
+    /// DMA cycle counter
+    var dmaCycles: Int = 0
+    /// DMA transfer index (0..0x9F)
+    var dmaIndex: Int = 0
+
     /// Initialize all memory, IO, and PPU state
     init() {
         memory = [UInt8](repeating: 0, count: 65537)
@@ -95,13 +105,14 @@ class Bus {
         }
         
         if location >= 0x0000 && location <= 0x7FFF {
+            // Cartridge ROM and MBC writes (banking, RAM enable, etc.)
             do {
                 try mbc.write(location: location, value: value)
             } catch {
                 print(error.localizedDescription)
             }
-        }
-        if location >= 0x8000 && location <= 0x9FFF {
+            return
+        } else if location >= 0x8000 && location <= 0x9FFF {
             // VRAM write (0x8000-0x9FFF)
             let offset = Int(location - 0x8000)
             if offset < 0x1800 {
@@ -111,19 +122,22 @@ class Bus {
             } else {
                 ppu.tilemap9C00[offset - 0x1C00] = value
             }
-        } else if location >= 0xFEA0 && location <= 0xFEFF {
-            // Not Usable area (0xFEA0–0xFEFF) - writes are ignored (DMG correct)
-            return
         } else if location >= 0xA000 && location <= 0xBFFF {
+            // External RAM (handled by MBC)
             do {
                 try mbc.write(location: location, value: value)
             } catch {
                 print(error.localizedDescription)
             }
         } else if location >= 0xE000 && location <= 0xFDFF {
+            // Echo RAM
             memory[Int(location - 0x2000)] = value
         } else if location >= 0xFE00 && location <= 0xFE9F {
             // OAM write (0xFE00-0xFE9F) - Sprite attribute memory
+            if dmaActive {
+                // Ignore writes during DMA
+                return
+            }
             let oamIndex = Int(location - 0xFE00)
             ppu.oam[oamIndex] = value
         } else if location == 0xFF00 {
@@ -166,13 +180,12 @@ class Bus {
         } else if location == 0xFF45 {
             ppu.lyc = value
         } else if location == 0xFF46 {
+            // Start or restart DMA transfer (cycle-accurate)
             ppu.dma = value
-            let firstIndex = UInt16(value) << 8 | UInt16(0x00)
-            let lastIndex = UInt16(value) << 8 | UInt16(0xFF)
-            
-            let data = memory[Int(firstIndex)...Int(lastIndex)]
-            let dataArray = Array(data)
-            ppu.oam = dataArray
+            dmaActive = true
+            dmaSource = UInt16(value) << 8
+            dmaCycles = 0
+            dmaIndex = 0
         } else if location == 0xFF47 {
             ppu.bgp = value
         } else if location == 0xFF48 {
@@ -262,7 +275,8 @@ class Bus {
             if bootromLoaded && location == 0x100 {
                 bootromLoaded = false
             }
-             if location >= 0x0000 && location <= 0x7FFF {
+            if location >= 0x0000 && location <= 0x7FFF {
+                // Cartridge ROM and MBC reads
                 do {
                     let value = try mbc.read(location: UInt16(location))
                     return value
@@ -271,7 +285,6 @@ class Bus {
                     return 0
                 }
             }
-            
             if location >= 0x8000 && location <= 0x9FFF {
                 // VRAM read (0x8000-0x9FFF)
                 if ppu.read(flag: .Mode3) && location >= 0x9800 {
@@ -289,20 +302,37 @@ class Bus {
                     return ppu.tilemap9C00[offset - 0x1C00]
                 }
             }
-            if location >= 0xFEA0 && location <= 0xFEFF {
-                // Not Usable area (0xFEA0–0xFEFF) - always returns 0xFF (DMG correct)
-                return 0xFF
+            if location >= 0xA000 && location <= 0xBFFF {
+                // External RAM (handled by MBC)
+                do {
+                    let value = try mbc.read(location: UInt16(location))
+                    return value
+                } catch {
+                    print(error.localizedDescription)
+                    return 0
+                }
+            }
+            if location >= 0xC000 && location <= 0xDFFF {
+                // Work RAM (WRAM)
+                return memory[Int(location)]
             }
             if location >= 0xE000 && location <= 0xFDFF {
+                // Echo RAM (mirror of 0xC000–0xDDFF)
                 return memory[Int(location - 0x2000)]
             }
             if location >= 0xFE00 && location <= 0xFE9F {
+                if dmaActive {
+                    return 0xFF
+                }
                 if ppu.read(flag: .Mode2) || ppu.read(flag: .Mode3) {
                     return 0xFF
                 }
                 return ppu.oam[Int(location - 0xFE00)]
             }
-            
+            if location >= 0xFEA0 && location <= 0xFEFF {
+                // Not Usable area (0xFEA0–0xFEFF) - always returns 0xFF (DMG correct)
+                return 0xFF
+            }
             if location == 0xFF00 {
                 let dpadCheck = !joyp.get(bit: 4)
                 let buttonsCheck = !joyp.get(bit: 5)
@@ -418,6 +448,24 @@ class Bus {
             
             return memory[location]
         }
+
+            /// Step DMA transfer by the given number of cycles. Call this from your main emulation loop.
+    func stepDMA(cycles: Int) {
+        guard dmaActive else { return }
+        dmaCycles += cycles
+        while dmaCycles >= 4 && dmaIndex < 0xA0 {
+            // Copy one byte every 4 cycles
+            let srcAddr = Int(dmaSource) + dmaIndex
+            let value = memory[srcAddr]
+            ppu.oam[dmaIndex] = value
+            dmaIndex += 1
+            dmaCycles -= 4
+        }
+        if dmaIndex >= 0xA0 {
+            // DMA complete
+            dmaActive = false
+        }
+    }
         
         /// Read a specific interrupt enable bit from the IE register.
         func read(interruptEnableType: InterruptType) -> Bool {
