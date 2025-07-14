@@ -99,15 +99,20 @@ class Bus {
                 print(error.localizedDescription)
             }
         }
-        if location >= 0x8000 && location <= 0x97FF {
-            ppu.tileData[Int(location - 0x8000)] = value
-        } else if location >= 0x9800 && location <= 0x9BFF {
+        if location >= 0x8000 && location <= 0x9FFF {
+            // VRAM write (0x8000-0x9FFF)
             if !ppu.read(flag: .Mode3) {
-                ppu.tilemap9800[Int(location - 0x9800)] = value
-            }
-        } else if location >= 0x9C00 && location <= 0x9FFF {
-            if !ppu.read(flag: .Mode3) {
-                ppu.tilemap9C00[Int(location - 0x9C00)] = value
+                let offset = Int(location - 0x8000)
+                if offset < 0x1800 {
+                    // Tile data region
+                    ppu.tileData[offset] = value
+                } else if offset < 0x1C00 {
+                    // Tilemap 9800 region
+                    ppu.tilemap9800[offset - 0x1800] = value
+                } else {
+                    // Tilemap 9C00 region
+                    ppu.tilemap9C00[offset - 0x1C00] = value
+                }
             }
         } else if location >= 0xFEA0 && location <= 0xFEFF {
             // Not Usable area (0xFEA0–0xFEFF) - writes are ignored (DMG correct)
@@ -269,25 +274,22 @@ class Bus {
                 
             }
             
-            if location >= 0x8000 && location <= 0x97FF {
-                if ppu.read(flag: .Mode3) {
+            if location >= 0x8000 && location <= 0x9FFF {
+                // VRAM read (0x8000-0x9FFF)
+                if ppu.read(flag: .Mode3) && location >= 0x9800 {
                     return 0xFF
                 }
-                return ppu.tileData[Int(location - 0x8000)]
-            }
-            
-            if location >= 0x9800 && location <= 0x9BFF {
-                if ppu.read(flag: .Mode3) {
-                    return 0xFF
+                let offset = Int(location - 0x8000)
+                if offset < 0x1800 {
+                    // Tile data region
+                    return ppu.tileData[offset]
+                } else if offset < 0x1C00 {
+                    // Tilemap 9800 region
+                    return ppu.tilemap9800[offset - 0x1800]
+                } else {
+                    // Tilemap 9C00 region
+                    return ppu.tilemap9C00[offset - 0x1C00]
                 }
-                return ppu.tilemap9800[Int(location - 0x9800)]
-            }
-            
-            if location >= 0x9C00 && location <= 0x9FFF {
-                if ppu.read(flag: .Mode3) {
-                    return 0xFF
-                }
-                return ppu.tilemap9C00[Int(location - 0x9C00)]
             }
             if location >= 0xFEA0 && location <= 0xFEFF {
                 // Not Usable area (0xFEA0–0xFEFF) - always returns 0xFF (DMG correct)

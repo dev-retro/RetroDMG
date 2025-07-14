@@ -19,11 +19,14 @@
 /// The main Game Boy PPU class. Handles all LCD rendering, including background, window, and sprites.
 /// Implements scanline-based rendering and all timing/priority rules per GBDEV documentation.
 class PPU {
-    /// Tile data (0x8000-0x97FF, 0x8800-0x97FF)
-    var tileData: [UInt8]
-    /// Tile maps (BG/Window)
-    var tilemap9800: [UInt8]
-    var tilemap9C00: [UInt8]
+    /// Shadow VRAM arrays for tile data and tilemaps
+    var tileData: [UInt8] = [UInt8](repeating: 0, count: 0x1800) // 0x8000-0x97FF
+    var tilemap9800: [UInt8] = [UInt8](repeating: 0, count: 0x400) // 0x9800-0x9BFF
+    var tilemap9C00: [UInt8] = [UInt8](repeating: 0, count: 0x400) // 0x9C00-0x9FFF
+    /// Debug flag (should be set from CPU debug option)
+    var debugEnabled: Bool = false
+    /// Reference to system bus for VRAM access
+    weak var bus: Bus?
     /// OAM (Object Attribute Memory, 40 sprites)
     var oam: [UInt8]
     /// OAM buffer for current scanline (max 10 sprites)
@@ -73,16 +76,16 @@ class PPU {
         while objFIFO.count < indices.count {
             objFIFO.append(PixelFIFOEntry(colorIndex: 0, palette: 0, isSprite: true, objPriority: false, objPalette1: false))
         }
-        
-        // Mix sprite pixels with existing OBJ FIFO entries
+
+        // For each pixel, only allow the first non-transparent sprite pixel (in OAM order) to be used
         for i in 0..<indices.count {
-            if indices[i] != 0 && i < objFIFO.count {  // Only non-transparent sprite pixels
-                let existingPixel = objFIFO[i]
-                // Replace if existing pixel is transparent
-                if existingPixel.colorIndex == 0 {
-                    objFIFO[i] = PixelFIFOEntry(colorIndex: indices[i], palette: palettes[i], isSprite: true, objPriority: priority[i], objPalette1: palette1[i])
-                }
+            let incomingTransparent = indices[i] == 0
+            let existingTransparent = objFIFO[i].colorIndex == 0
+            // Only overwrite if existing is transparent and incoming is non-transparent
+            if existingTransparent && !incomingTransparent {
+                objFIFO[i] = PixelFIFOEntry(colorIndex: indices[i], palette: palettes[i], isSprite: true, objPriority: priority[i], objPalette1: palette1[i])
             }
+            // If existing is non-transparent, do not overwrite (higher-priority sprite already present)
         }
     }
 
@@ -90,18 +93,22 @@ class PPU {
     /// Per Pandocs: only pop when both FIFOs have pixels ready
     func popAndMixPixel() -> Int? {
         guard !bgFIFO.isEmpty else { return nil }
-        
+
         let bgPixel = bgFIFO.removeFirst()
         let objPixel = objFIFO.isEmpty ? nil : objFIFO.removeFirst()
-        
-        // Determine final pixel per GB priority rules (per Pandocs)
-        if let obj = objPixel, obj.colorIndex != 0, read(flag: .OBJEnable) {
+
+        // Sprite colorIndex 0 is always transparent: BG shows through
+        if let obj = objPixel, read(flag: .OBJEnable) {
+            if obj.colorIndex == 0 {
+                // Transparent sprite pixel, show BG
+                return shadeForColorIndex(bgPixel.colorIndex, palette: bgPixel.palette).rawValue
+            }
             // Sprite pixel is visible, check priority
-            if obj.objPriority && bgPixel.colorIndex >= 1 && bgPixel.colorIndex <= 3 {
-                // BG has priority over sprite
+            if obj.objPriority && bgPixel.colorIndex != 0 {
+                // BG has priority over sprite (unless BG is color 0)
                 return shadeForColorIndex(bgPixel.colorIndex, palette: bgPixel.palette).rawValue
             } else {
-                // Sprite has priority
+                // Sprite has priority or BG is color 0
                 return shadeForColorIndex(obj.colorIndex, palette: obj.palette).rawValue
             }
         } else {
@@ -146,11 +153,8 @@ class PPU {
     var control: UInt8
     var status: UInt8
     
-    /// Initialize all VRAM, OAM, and registers to default values.
+    /// Initialize all OAM, registers, and state. Bus must be set after init.
     init() {
-        tileData = [UInt8](repeating: 0, count: 0x1800)
-        tilemap9800 = [UInt8](repeating: 0, count: 0x400)
-        tilemap9C00 = [UInt8](repeating: 0, count: 0x400)
         oam = [UInt8](repeating: 0, count: 0xA0)
         oamBuffer = [(Int, Int, UInt8, UInt8, Int)]()
         oamChecked = false
@@ -227,14 +231,20 @@ class PPU {
                         if !windowYSet && read(flag: .WindowDisplayEnable) && read(flag: .BGWindowEnable) {
                             windowYSet = ly == wy
                         }
+                        // Hardware: scan OAM in order, add first 10 sprites that intersect scanline, regardless of X position
                         for location in stride(from: 0, to: 0xA0, by: 4) {
+                            if oamCount >= 10 { break }
                             let yPos = Int(oam[location]) - 16
                             let xPos = Int(oam[location + 1]) - 8
                             let index = oam[location + 2]
                             let attributes = oam[location + 3]
                             let oamIndex = location / 4  // Store original OAM index
-                            
-                            if xPos >= -7 && ly >= yPos && ly < yPos + spriteHeight && oamCount < 10 {
+
+                            // Sprite intersects scanline (Y range), do not filter by X
+                            if ly >= yPos && ly < yPos + spriteHeight {
+                                if debugEnabled {
+                                    print("[PPU] Scanline \(ly): OAM sprite selected: X=\(xPos), Y=\(yPos), index=\(index), attributes=\(attributes), OAMIndex=\(oamIndex)")
+                                }
                                 oamBuffer.append((xPos: xPos, yPos: yPos, index: index, attributes: attributes, oamIndex: oamIndex))
                                 oamCount += 1
                             }
@@ -250,7 +260,7 @@ class PPU {
                     if !drawn {
                         // Initialize for scanline rendering
                         var pixelsPushed = 0
-                        var fetcherX = Int(scx) / 8  // Start fetcher at correct X position
+                        var fetcherX = 0  // Always start at tile 0, handle SCX offset below
                         var windowTriggered = false
                         
                         // Clear FIFOs at start of Mode 3 (per Pandocs)
@@ -258,12 +268,9 @@ class PPU {
                         
                         // Calculate scanline offset in framebuffer
                         let scanlineOffset = Int(ly) * 160
-                        // Apply initial SCX penalty at start of Mode 3
-                        let initialScrollPenalty = Int(scx) % 8
-                        if initialScrollPenalty > 0 {
-                            drawEnd += initialScrollPenalty
-                        }
+                        let scxOffset = Int(scx) % 8
                         // Render 160 pixels for this scanline
+                        var scxDiscarded = false
                         while pixelsPushed < 160 {
                             // Window trigger check (per Pandocs: trigger when WX-7 reached)
                             if !windowTriggered && 
@@ -278,16 +285,15 @@ class PPU {
                                 bgFIFO.removeAll(keepingCapacity: true)
                                 drawEnd += 6  // Window penalty
                             }
-                            
+
                             // Only fetch new tile data if FIFO needs it
                             if bgFIFO.count < 8 {
-                                let tilemap = fetchWindow ? 
-                                    (read(flag: .WindowTileMapSelect) ? tilemap9C00 : tilemap9800) :
-                                    (read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800)
-                                let fetcherY = fetchWindow ? 
-                                    Int(windowLineCounter) :
-                                    (Int(ly) + Int(scy)) & 0xFF
-                                let tilemapAddress = (fetcherX & 0x1F) + ((fetcherY / 8) * 32)
+                                let tilemap = (fetchWindow ? (read(flag: .WindowTileMapSelect) ? tilemap9C00 : tilemap9800)
+                                                          : (read(flag: .BGTileMapSelect) ? tilemap9C00 : tilemap9800))
+                                let fetcherY = fetchWindow ? Int(windowLineCounter) : (Int(ly) + Int(scy)) & 0xFF
+                                let scxTileOffset = Int(scx) / 8
+                                let tilemapX = fetchWindow ? fetcherX : (scxTileOffset + fetcherX) & 0x1F
+                                let tilemapAddress = tilemapX + ((fetcherY / 8) * 32)
                                 let tileNo = tilemap[Int(tilemapAddress)]
                                 var tileLocation: Int
                                 if read(flag: .TileDataSelect) {
@@ -306,30 +312,26 @@ class PPU {
                                 } else {
                                     bgColorIndices = [Int](repeating: 0, count: 8)
                                 }
-                                
                                 // Push to BG FIFO
                                 pushBGToFIFO(indices: bgColorIndices, palette: bgp)
                                 fetcherX += 1
                             }
-                            
+
                             // Pop and output pixels if FIFO has enough data
                             if bgFIFO.count >= 8 {
-                                // Handle SCX scroll offset for first tile
-                                var pixelsToDiscard = 0
-                                if !fetchWindow && pixelsPushed == 0 {
-                                    pixelsToDiscard = Int(scx) % 8
-                                }
-                                
-                                // Discard SCX offset pixels
-                                for _ in 0..<pixelsToDiscard {
-                                    if !bgFIFO.isEmpty {
-                                        _ = bgFIFO.removeFirst()
+                                // Handle SCX scroll offset for first tile, only once per scanline
+                                if !fetchWindow && !scxDiscarded {
+                                    for _ in 0..<scxOffset {
+                                        if !bgFIFO.isEmpty {
+                                            _ = bgFIFO.removeFirst()
+                                        }
                                         if !objFIFO.isEmpty {
                                             _ = objFIFO.removeFirst()
                                         }
                                     }
+                                    scxDiscarded = true
                                 }
-                                
+
                                 // Handle sprites for current pixel position
                                 var objPixels = [Int](repeating: 0, count: 8)
                                 var objPriority = [Bool](repeating: false, count: 8)
@@ -342,7 +344,7 @@ class PPU {
                                     }
                                     pushOBJToFIFO(indices: objPixels, palettes: objPalettes, priority: objPriority, palette1: objPalette1)
                                 }
-                                
+
                                 // Output one pixel directly to framebuffer
                                 if let finalPixel = popAndMixPixel() {
                                     tempFrameBuffer[scanlineOffset + pixelsPushed] = finalPixel
@@ -402,58 +404,53 @@ class PPU {
     func processSpritesForTile(screenStartX: Int, objPixels: inout [Int], objPriority: inout [Bool], objPalette1: inout [Bool]) {
         for i in 0..<8 {
             let screenX = screenStartX + i
-            let spritesAtPixel = oamBuffer.filter { sprite in
-                screenX >= sprite.xPos && screenX < sprite.xPos + 8
-            }
-            
-            // Sort sprites by priority (per Pandocs: X coord first, then OAM index)
-            let sortedSprites = spritesAtPixel.sorted { sprite1, sprite2 in
-                if sprite1.xPos != sprite2.xPos {
-                    return sprite1.xPos < sprite2.xPos
-                } else {
-                    return sprite1.oamIndex < sprite2.oamIndex
+            for sprite in oamBuffer {
+                // Accept sprites with X between -7 and 159 (partially or fully visible)
+                if screenX >= sprite.xPos && screenX < sprite.xPos + 8 {
+                    if debugEnabled {
+                        print("[PPU] Pixel X=\(screenX), scanline \(ly): Considering sprite X=\(sprite.xPos), Y=\(sprite.yPos), index=\(sprite.index), OAMIndex=\(sprite.oamIndex)")
+                    }
+                    let spriteHeight = read(flag: .OBJSize) ? 16 : 8
+                    var spriteIndex = sprite.index
+                    let spriteY = Int(ly) - sprite.yPos
+
+                    if spriteHeight == 16 {
+                        let baseTileIndex = sprite.index & 0xFE
+                        spriteIndex = baseTileIndex + UInt8(spriteY >= 8 ? 1 : 0)
+                    }
+
+                    var tileLocation = Int(spriteIndex) * 16
+                    let lineInTile = spriteY % 8
+                    let actualLineInTile = sprite.attributes.get(bit: 6) ? (7 - lineInTile) : lineInTile
+                    tileLocation += 2 * actualLineInTile
+                    let byte1 = tileData[tileLocation]
+                    let byte2 = tileData[tileLocation + 1]
+                    let spritePixelX = screenX - sprite.xPos
+                    // Accept negative spritePixelX (off-screen left) and spritePixelX >= 8 (off-screen right)
+                    if spritePixelX < 0 || spritePixelX >= 8 {
+                        continue
+                    }
+                    let actualSpritePixelX = sprite.attributes.get(bit: 5) ? (7 - spritePixelX) : spritePixelX
+                    let bitIndex = 7 - actualSpritePixelX
+                    if bitIndex < 0 || bitIndex > 7 {
+                        continue
+                    }
+                    let lsb = byte1.get(bit: UInt8(bitIndex))
+                    let msb = byte2.get(bit: UInt8(bitIndex))
+                    let colorIndex = (msb ? 2 : 0) + (lsb ? 1 : 0)
+                    if debugEnabled {
+                        print("[PPU] Pixel X=\(screenX), scanline \(ly): Sprite colorIndex=\(colorIndex)")
+                    }
+                    if colorIndex != 0 {
+                        let palette1 = sprite.attributes.get(bit: 4)
+                        objPixels[i] = colorIndex
+                        objPriority[i] = sprite.attributes.get(bit: 7)
+                        objPalette1[i] = palette1
+                        break
+                    }
                 }
             }
-            
-            // Use the highest priority sprite for this pixel
-            if let sprite = sortedSprites.first {
-                let spriteHeight = read(flag: .OBJSize) ? 16 : 8
-                var spriteIndex = sprite.index
-                let spriteY = Int(ly) - sprite.yPos
-                
-                if spriteHeight == 16 {
-                    // 8x16 mode: force even tile index for top tile (per Pandocs)
-                    let baseTileIndex = sprite.index & 0xFE  // Force even
-                    spriteIndex = baseTileIndex + UInt8(spriteY >= 8 ? 1 : 0)
-                }
-                
-                var tileLocation = Int(spriteIndex) * 16
-                
-                // Calculate which line within the tile we're rendering
-                let lineInTile = spriteY % 8
-                let actualLineInTile = sprite.attributes.get(bit: 6) ? (7 - lineInTile) : lineInTile
-                tileLocation += 2 * actualLineInTile
-                let byte1 = tileData[tileLocation]
-                let byte2 = tileData[tileLocation + 1]
-                let spritePixelX = screenX - sprite.xPos
-                if spritePixelX < 0 || spritePixelX >= 8 {
-                    continue
-                }
-                let actualSpritePixelX = sprite.attributes.get(bit: 5) ? (7 - spritePixelX) : spritePixelX
-                let bitIndex = 7 - actualSpritePixelX
-                if bitIndex < 0 || bitIndex > 7 {
-                    continue
-                }
-                let lsb = byte1.get(bit: UInt8(bitIndex))
-                let msb = byte2.get(bit: UInt8(bitIndex))
-                let colorIndex = (msb ? 2 : 0) + (lsb ? 1 : 0)
-                if colorIndex != 0 {
-                    let palette1 = sprite.attributes.get(bit: 4)
-                    objPixels[i] = colorIndex
-                    objPriority[i] = sprite.attributes.get(bit: 7)
-                    objPalette1[i] = palette1
-                }
-            }
+            // If no non-transparent pixel found, leave as transparent (0)
         }
     }
     
