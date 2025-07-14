@@ -5,16 +5,16 @@
 //  Created by Glenn Hevey on 27/12/2023.
 //
 
-import SwiftUI
-import RetroKit
 import RetroDMG
+import RetroKit
+import SwiftUI
 
 @MainActor
 struct RetroDMGView: View {
     @Environment(AppState.self) var appState: AppState
     @State var viewModel = RetroDMGViewModel()
     @Environment(\.presentationMode) var presentationMode
-    
+
     var body: some View {
         VStack {
             if viewModel.isLoaded {
@@ -23,134 +23,179 @@ struct RetroDMGView: View {
                         VStack {
                             HStack {
                                 if let core = viewModel.core {
-                                    if viewModel.debugViewShowing {   
+                                    if viewModel.debugViewShowing {
                                         switch viewModel.debugView {
                                         case .Debug:
-                                            RetroDMGDebugView(core: core)
+                                            RetroDMGViewPort {
+                                                RetroDMGMetalView(
+                                                    core: core,
+                                                    pixelProvider: {
+                                                        core.tileData(rowCount: 24, columnCount: 16)
+                                                    }, tilesPerRow: 24, rowsPerScreen: 16)
+                                            }
+                                            .aspectRatio(
+                                                CGSize(width: 160, height: 144), contentMode: .fit)
                                         case .Tilemap9800:
-                                            RetroDMGTilemap98View(core: core)
+                                            RetroDMGViewPort {
+                                                RetroDMGMetalView(
+                                                    core: core,
+                                                    pixelProvider: { core.tileMap(get9800: true) },
+                                                    tilesPerRow: 32, rowsPerScreen: 32)
+                                            }
+                                            .aspectRatio(
+                                                CGSize(width: 160, height: 144), contentMode: .fit)
                                         case .Tilemap9C00:
-                                            RetroDMGTilemap9CView(core: core)
+                                            RetroDMGViewPort {
+                                                RetroDMGMetalView(
+                                                    core: core,
+                                                    pixelProvider: { core.tileMap(get9800: false) },
+                                                    tilesPerRow: 32, rowsPerScreen: 32)
+                                            }
+                                            .aspectRatio(
+                                                CGSize(width: 160, height: 144), contentMode: .fit)
                                         }
                                     }
                                     RetroDMGViewPort {
-                                        RetroDMGMetalView(core: core)
+                                        RetroDMGMetalView(
+                                            core: core, pixelProvider: { core.viewPort() },
+                                            tilesPerRow: 20, rowsPerScreen: 18, startCore: true)
                                     }
                                     .aspectRatio(CGSize(width: 160, height: 144), contentMode: .fit)
                                     .focusable()
                                     .focusEffectDisabled()
-                                    .onKeyPress(keys: ["w", "s", "a", "d", "p", "l","c", "v"], phases: [.all]) { press in
-                                            viewModel.keys = core.listInputs()
-                                            switch press.key.character {
-                                            case "w":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "Up" && press.phase == .down || key.name == "Up" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "Up" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
+                                    .onKeyPress(
+                                        keys: ["w", "s", "a", "d", "p", "l", "c", "v"],
+                                        phases: [.all]
+                                    ) { press in
+                                        viewModel.keys = core.listInputs()
+                                        switch press.key.character {
+                                        case "w":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "Up" && press.phase == .down
+                                                    || key.name == "Up" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "Up" && press.phase == .up {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
                                                 }
-                                                
-                                                return .handled
-                                            case "s":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "Down" && press.phase == .down || key.name == "Down" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "Down" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                
-                                                return .handled
-                                            case "a":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "Left" && press.phase == .down || key.name == "Left" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "Left" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                return .handled
-                                            case "d":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "Right" && press.phase == .down || key.name == "Right" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "Right" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                return .handled
-                                            case "p":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "A" && press.phase == .down || key.name == "A" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "A" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                return .handled
-                                            case "l":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "B" && press.phase == .down || key.name == "B" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "B" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                return .handled
-                                            case "c":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "Select" && press.phase == .down || key.name == "Select" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "Select" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                return .handled
-                                            case "v":
-                                                for (index, key) in viewModel.keys.enumerated() {
-                                                    if key.name == "Start" && press.phase == .down || key.name == "Start" && press.phase == .repeat {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = true
-                                                        core.update(inputs: viewModel.keys)
-                                                    } else if key.name == "Start" && press.phase == .up {
-                                                        viewModel.keys[index].updated = true
-                                                        viewModel.keys[index].active = false
-                                                        core.update(inputs: viewModel.keys)
-                                                    }
-                                                }
-                                                return .handled
-                                            default:
-                                                return .ignored
                                             }
+                                            return .handled
+                                        case "s":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "Down" && press.phase == .down
+                                                    || key.name == "Down" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "Down" && press.phase == .up {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        case "a":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "Left" && press.phase == .down
+                                                    || key.name == "Left" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "Left" && press.phase == .up {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        case "d":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "Right" && press.phase == .down
+                                                    || key.name == "Right" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "Right" && press.phase == .up
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        case "p":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "A" && press.phase == .down
+                                                    || key.name == "A" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "A" && press.phase == .up {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        case "l":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "B" && press.phase == .down
+                                                    || key.name == "B" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "B" && press.phase == .up {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        case "c":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "Select" && press.phase == .down
+                                                    || key.name == "Select"
+                                                        && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "Select" && press.phase == .up
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        case "v":
+                                            for (index, key) in viewModel.keys.enumerated() {
+                                                if key.name == "Start" && press.phase == .down
+                                                    || key.name == "Start" && press.phase == .repeat
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = true
+                                                    core.update(inputs: viewModel.keys)
+                                                } else if key.name == "Start" && press.phase == .up
+                                                {
+                                                    viewModel.keys[index].updated = true
+                                                    viewModel.keys[index].active = false
+                                                    core.update(inputs: viewModel.keys)
+                                                }
+                                            }
+                                            return .handled
+                                        default:
+                                            return .ignored
+                                        }
                                     }
                                 } else {
                                     Text("Loading")
@@ -235,8 +280,7 @@ struct RetroDMGView: View {
         )
 
     }
-    
-    
+
     func filePicked(path: URL) -> [UInt8] {
         var bytes = [UInt8]()
         do {
