@@ -1,4 +1,3 @@
-
 //
 //  Bus.swift
 //  RetroDMG
@@ -87,6 +86,9 @@ class Bus {
             return memory[Int(location)] = value
         }
         
+        // Debug: Track all writes that come through the bus
+        // Removed verbose VRAM logging - too much spam
+        
         if location >= memory.endIndex {
             print("\(location.hex) is out of bounds")
             return
@@ -101,18 +103,13 @@ class Bus {
         }
         if location >= 0x8000 && location <= 0x9FFF {
             // VRAM write (0x8000-0x9FFF)
-            if !ppu.read(flag: .Mode3) {
-                let offset = Int(location - 0x8000)
-                if offset < 0x1800 {
-                    // Tile data region
-                    ppu.tileData[offset] = value
-                } else if offset < 0x1C00 {
-                    // Tilemap 9800 region
-                    ppu.tilemap9800[offset - 0x1800] = value
-                } else {
-                    // Tilemap 9C00 region
-                    ppu.tilemap9C00[offset - 0x1C00] = value
-                }
+            let offset = Int(location - 0x8000)
+            if offset < 0x1800 {
+                ppu.tileData[offset] = value
+            } else if offset < 0x1C00 {
+                ppu.tilemap9800[offset - 0x1800] = value
+            } else {
+                ppu.tilemap9C00[offset - 0x1C00] = value
             }
         } else if location >= 0xFEA0 && location <= 0xFEFF {
             // Not Usable area (0xFEA0–0xFEFF) - writes are ignored (DMG correct)
@@ -126,9 +123,9 @@ class Bus {
         } else if location >= 0xE000 && location <= 0xFDFF {
             memory[Int(location - 0x2000)] = value
         } else if location >= 0xFE00 && location <= 0xFE9F {
-            if !ppu.read(flag: .Mode2) && !ppu.read(flag: .Mode3) {
-                ppu.oam[Int(location - 0xFE00)] = value
-            }
+            // OAM write (0xFE00-0xFE9F) - Sprite attribute memory
+            let oamIndex = Int(location - 0xFE00)
+            ppu.oam[oamIndex] = value
         } else if location == 0xFF00 {
             joyp = value
         } else if location == 0xFF04 {
@@ -142,6 +139,7 @@ class Bus {
         } else if location == 0xFF0F {
             interruptFlag = value & 0b00011111
         } else if location == 0xFF40 {
+            // PPU control register 
             ppu.control = value
         } else if location == 0xFF41 {
             // Only bits 3-6 are writable, per GBDEV
@@ -173,7 +171,8 @@ class Bus {
             let lastIndex = UInt16(value) << 8 | UInt16(0xFF)
             
             let data = memory[Int(firstIndex)...Int(lastIndex)]
-            ppu.oam = Array(data)
+            let dataArray = Array(data)
+            ppu.oam = dataArray
         } else if location == 0xFF47 {
             ppu.bgp = value
         } else if location == 0xFF48 {
@@ -263,15 +262,14 @@ class Bus {
             if bootromLoaded && location == 0x100 {
                 bootromLoaded = false
             }
-            
-            if location >= 0x0000 && location <= 0x7FFF {
+             if location >= 0x0000 && location <= 0x7FFF {
                 do {
-                    return try mbc.read(location: UInt16(location))
+                    let value = try mbc.read(location: UInt16(location))
+                    return value
                 } catch {
                     print(error.localizedDescription)
                     return 0
                 }
-                
             }
             
             if location >= 0x8000 && location <= 0x9FFF {

@@ -76,7 +76,8 @@ class MBC3Cart: MBCCart {
             // Switchable ROM bank
             let bank = max(romBank, 1) & 0x7F
             let offset = Int(bank) * 0x4000 + Int(location - 0x4000)
-            return rom[safe: offset] ?? 0xFF
+            let value = rom[safe: offset] ?? 0xFF
+            return value
         case 0xA000...0xBFFF:
             if ramEnabled {
                 if ramBank <= 0x03 {

@@ -82,21 +82,21 @@ class RetroDMGDebugRenderer: NSObject {
     }
     
     func createPipelineState(device: MTLDevice) {
-        // The device will make a library for us
-        let library = device.makeDefaultLibrary()
-        // Our vertex function name
-        let vertexFunction = library?.makeFunction(name: "basic_vertex_function")
-        // Our fragment function name
-        let fragmentFunction = library?.makeFunction(name: "basic_fragment_function")
-        // Create basic descriptor
-        let renderPipelineDescriptor = MTLRenderPipelineDescriptor()
-        // Attach the pixel format that si the same as the MetalView
-        renderPipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-        // Attach the shader functions
-        renderPipelineDescriptor.vertexFunction = vertexFunction
-        renderPipelineDescriptor.fragmentFunction = fragmentFunction
-        // Try to update the state of the renderPipeline
         do {
+            // The device will make a library for us
+            let library = try device.makeDefaultLibrary(bundle: Bundle.module)
+            // Our vertex function name
+            let vertexFunction = library.makeFunction(name: "basic_vertex_function")
+            // Our fragment function name
+            let fragmentFunction = library.makeFunction(name: "basic_fragment_function")
+            // Create basic descriptor
+            let renderPipelineDescriptor = MTLRenderPipelineDescriptor()
+            // Attach the pixel format that si the same as the MetalView
+            renderPipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+            // Attach the shader functions
+            renderPipelineDescriptor.vertexFunction = vertexFunction
+            renderPipelineDescriptor.fragmentFunction = fragmentFunction
+            // Try to update the state of the renderPipeline
             renderPipelineState = try device.makeRenderPipelineState(descriptor: renderPipelineDescriptor)
         } catch {
             print(error.localizedDescription)

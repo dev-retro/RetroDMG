@@ -49,6 +49,13 @@ class MBC {
         
         return cart.read(location: location)
     }
+    
+    var currentROMBank: UInt8 {
+        if let mbc3Cart = cart as? MBC3Cart {
+            return mbc3Cart.romBank
+        }
+        return 1 // Default to bank 1 if unknown
+    }
 }
 
 

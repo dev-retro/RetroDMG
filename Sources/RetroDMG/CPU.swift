@@ -321,20 +321,27 @@ class CPU {
             case 0x6F:
                 load(from: .A, to: .L)
             case 0x70:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .B)
             case 0x71:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .C)
             case 0x72:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .D)
             case 0x73:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .E)
             case 0x74:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .H)
             case 0x75:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .L)
             case 0x76:
                 halt()
             case 0x77:
+                // Removed verbose opcode logging
                 load(indirect: .HL, register: .A)
             case 0x78:
                 load(from: .B, to: .A)
@@ -349,6 +356,7 @@ class CPU {
             case 0x7D:
                 load(from: .L, to: .A)
             case 0x7E:
+                // Removed verbose opcode logging
                 load(register: .A, indirect: .HL)
             case 0x7F:
                 load(from: .A, to: .A)
@@ -1229,12 +1237,18 @@ class CPU {
     }
     
     func load(register: RegisterType8, indirect: RegisterType16) {
-        registers.write(register: register, value: bus.read(location: registers.read(register: indirect)))
+        let address = registers.read(register: indirect)
+        let value = bus.read(location: address)
+        
+        registers.write(register: register, value: value)
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
     func load(indirect: RegisterType16, register: RegisterType8) {
-        bus.write(location: registers.read(register: indirect), value: registers.read(register: register))
+        let address = registers.read(register: indirect)
+        let value = registers.read(register: register)
+        
+        bus.write(location: address, value: value)
         cycles = cycles.addingReportingOverflow(8).partialValue
     }
     
@@ -2731,8 +2745,8 @@ class CPU {
         checkBreakpoints(currentPC: pc, currentOpcode: opcode)
         checkWatchpoints()
 
-        // Decode and execute opcode (stub)
-        executeOpcode(opcode)
+        // Execute the instruction using the real implementation
+        _ = tick()
 
         // Output state after execution
         debugStateOutput()

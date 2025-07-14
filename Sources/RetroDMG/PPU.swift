@@ -91,7 +91,7 @@ class PPU {
 
     /// Pop one pixel from each FIFO, mix, and return final shade
     /// Per Pandocs: only pop when both FIFOs have pixels ready
-    func popAndMixPixel() -> Int? {
+    func popAndMixPixel(x: Int) -> Int? {
         guard !bgFIFO.isEmpty else { return nil }
 
         let bgPixel = bgFIFO.removeFirst()
@@ -109,7 +109,8 @@ class PPU {
                 return shadeForColorIndex(bgPixel.colorIndex, palette: bgPixel.palette).rawValue
             } else {
                 // Sprite has priority or BG is color 0
-                return shadeForColorIndex(obj.colorIndex, palette: obj.palette).rawValue
+                let spriteColor = shadeForColorIndex(obj.colorIndex, palette: obj.palette).rawValue
+                return spriteColor
             }
         } else {
             // No sprite pixel or sprite disabled, show background
@@ -242,9 +243,6 @@ class PPU {
 
                             // Sprite intersects scanline (Y range), do not filter by X
                             if ly >= yPos && ly < yPos + spriteHeight {
-                                if debugEnabled {
-                                    print("[PPU] Scanline \(ly): OAM sprite selected: X=\(xPos), Y=\(yPos), index=\(index), attributes=\(attributes), OAMIndex=\(oamIndex)")
-                                }
                                 oamBuffer.append((xPos: xPos, yPos: yPos, index: index, attributes: attributes, oamIndex: oamIndex))
                                 oamCount += 1
                             }
@@ -343,10 +341,15 @@ class PPU {
                                         objPalettes.append(objPalette1[j] ? obp1 : obp0)
                                     }
                                     pushOBJToFIFO(indices: objPixels, palettes: objPalettes, priority: objPriority, palette1: objPalette1)
+                                } else {
+                                    // Sprites disabled, fill with transparent pixels
+                                    objPixels = [Int](repeating: 0, count: 8)
+                                    objPriority = [Bool](repeating: false, count: 8)
+                                    objPalette1 = [Bool](repeating: false, count: 8)
                                 }
 
                                 // Output one pixel directly to framebuffer
-                                if let finalPixel = popAndMixPixel() {
+                                if let finalPixel = popAndMixPixel(x: pixelsPushed) {
                                     tempFrameBuffer[scanlineOffset + pixelsPushed] = finalPixel
                                 } else {
                                     tempFrameBuffer[scanlineOffset + pixelsPushed] = 0  // White fallback
@@ -407,9 +410,6 @@ class PPU {
             for sprite in oamBuffer {
                 // Accept sprites with X between -7 and 159 (partially or fully visible)
                 if screenX >= sprite.xPos && screenX < sprite.xPos + 8 {
-                    if debugEnabled {
-                        print("[PPU] Pixel X=\(screenX), scanline \(ly): Considering sprite X=\(sprite.xPos), Y=\(sprite.yPos), index=\(sprite.index), OAMIndex=\(sprite.oamIndex)")
-                    }
                     let spriteHeight = read(flag: .OBJSize) ? 16 : 8
                     var spriteIndex = sprite.index
                     let spriteY = Int(ly) - sprite.yPos
@@ -425,6 +425,7 @@ class PPU {
                     tileLocation += 2 * actualLineInTile
                     let byte1 = tileData[tileLocation]
                     let byte2 = tileData[tileLocation + 1]
+                    
                     let spritePixelX = screenX - sprite.xPos
                     // Accept negative spritePixelX (off-screen left) and spritePixelX >= 8 (off-screen right)
                     if spritePixelX < 0 || spritePixelX >= 8 {
@@ -438,9 +439,6 @@ class PPU {
                     let lsb = byte1.get(bit: UInt8(bitIndex))
                     let msb = byte2.get(bit: UInt8(bitIndex))
                     let colorIndex = (msb ? 2 : 0) + (lsb ? 1 : 0)
-                    if debugEnabled {
-                        print("[PPU] Pixel X=\(screenX), scanline \(ly): Sprite colorIndex=\(colorIndex)")
-                    }
                     if colorIndex != 0 {
                         let palette1 = sprite.attributes.get(bit: 4)
                         objPixels[i] = colorIndex
