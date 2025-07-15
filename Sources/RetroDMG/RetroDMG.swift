@@ -1,13 +1,40 @@
 import RetroKit
 import Foundation
 
+/// The main entry point for the Nintendo Game Boy emulator library.
+///
+/// `RetroDMG` provides all core emulation functionality. Consumers of the library should use this class to:
+/// - Load ROMs
+/// - Control emulation (start, pause, stop)
+/// - Update input state
+/// - Retrieve graphics and state data
+/// - Manage save data
+///
+/// **Note:** Input, graphics, audio, and serial I/O should be implemented by the consumer. This library provides only the emulation core and exposes data for integration.
+///
+/// ### Example Usage
+/// ```swift
+/// let emulator = RetroDMG()
+/// emulator.load(file: romBytes)
+/// emulator.start()
+/// let frame = emulator.viewPort()
+/// emulator.update(inputs: myInputs)
+/// emulator.pause()
+/// ```
 public class RetroDMG: RetroPlatform {
+    /// The display name of the platform.
     public var name = "Nintendo Game Boy"
+    /// A description of the platform.
     public var description = "The Game Boy is an 8-bit fourth generation handheld game console developed and manufactured by Nintendo."
+    /// The release year of the platform.
     public var releaseDate = 1989
+    /// The number of supported players.
     public var noOfPlayers = 1
+    /// The internal platform name.
     public var platformName = "RetroDMG"
+    /// A description of the emulator library.
     public var platformDescription = "Retro platform library for the Nintendo Game Boy"
+    /// The current debug state, including registers and input.
     public var debugState: any RetroState
     
     var cpu: CPU
@@ -54,14 +81,23 @@ public class RetroDMG: RetroPlatform {
     }
     
     
+    /// Returns the list of supported input controls for the Game Boy.
+    ///
+    /// - Returns: An array of `RetroInput` representing all available input buttons.
     public func listInputs() -> [RetroInput] {
         return inputs
     }
     
+    /// Updates the input state for the emulator.
+    ///
+    /// - Parameter inputs: An array of `RetroInput` representing the current input state.
     public func update(inputs: [RetroInput]) {
         self.inputs = inputs
     }
     
+    /// Updates emulator settings, such as BIOS configuration.
+    ///
+    /// - Parameter settings: A type conforming to `RetroSettings`.
     public func update(settings: some RetroSettings) {
         if let settings = settings as? DMGSettings {
             if let bios = settings.bioSetting.value {
@@ -70,23 +106,30 @@ public class RetroDMG: RetroPlatform {
         }
     }
     
+    /// Starts the emulation loop.
+    ///
+    /// - Returns: `true` if the emulator was already running, `false` if it was started.
     public func start() -> Bool {
         debug(enabled: false)
         if !loopRunning {
             loopRunning = true
-            
             loop()
             return false
         }
-        
         return true
     }
     
+    /// Pauses the emulation loop.
+    ///
+    /// - Returns: Always returns `false` (reserved for future use).
     public func pause() -> Bool {
         loopRunning = false
         return false
     }
     
+    /// Stops the emulation and resets the emulator state.
+    ///
+    /// - Returns: Always returns `false` (reserved for future use).
     public func stop() -> Bool {
         runTask?.cancel()
         debugTask?.cancel()
@@ -178,6 +221,10 @@ public class RetroDMG: RetroPlatform {
         debugState = state
     }
     
+    /// Lists available emulator settings as a string (reserved for future use).
+    ///
+    /// - Throws: May throw in future implementations.
+    /// - Returns: An empty string (reserved).
     public func listSettings() throws -> String {
         return ""
     }
@@ -198,6 +245,9 @@ public class RetroDMG: RetroPlatform {
     }
     
     
+    /// Loads a Game Boy ROM into the emulator.
+    ///
+    /// - Parameter file: The ROM data as an array of bytes.
     public func load(file: [UInt8]) {
         do {
             try cpu.bus.mbc.load(rom: file)
@@ -207,17 +257,24 @@ public class RetroDMG: RetroPlatform {
         }
     }
     
+    /// Returns the current display framebuffer (160x144 pixels).
+    ///
+    /// - Returns: An array of pixel values representing the current frame.
     public func viewPort() -> [Int] {
         return cpu.bus.ppu.viewPort
     }
     
+    /// Returns tile data for a given number of rows and columns.
+    ///
+    /// - Parameters:
+    ///   - rowCount: Number of tile rows.
+    ///   - columnCount: Number of tile columns.
+    /// - Returns: An array of pixel values for the requested tile region.
     public func tileData(rowCount: Int, columnCount: Int) -> [Int] {
         let tilemap = cpu.bus.ppu.tileData
         var viewPort = [Int]()
-        
         let totalTiles = rowCount * columnCount
         let totalBytes = totalTiles * 16
-       
         for rowIndex in stride(from: 0, to: totalBytes, by: rowCount * 2 * 8) {
             for columnIndex in stride(from: rowIndex, to: rowIndex + 16, by: 2) {
                 for byteIndex in stride(from: columnIndex, to: columnIndex + rowCount * 16, by: 16) {
@@ -227,25 +284,25 @@ public class RetroDMG: RetroPlatform {
                 }
             }
         }
-        
         return viewPort
     }
     
+    /// Returns the full tilemap for the background or window.
+    ///
+    /// - Parameter get9800: If `true`, returns the 0x9800 tilemap; otherwise, returns the 0x9C00 tilemap.
+    /// - Returns: An array of pixel values for the requested tilemap.
     public func tileMap(get9800: Bool) -> [Int] {
         let memory = cpu.bus.ppu.tileData
         let tilemap = get9800 ? cpu.bus.ppu.tilemap9800 : cpu.bus.ppu.tilemap9C00
         var tilemapBytes = [UInt8]()
         var viewPort = [Int]()
-
         for address in 0..<1024 {
             let tileNo = tilemap[address]
             let tileLocation = cpu.bus.ppu.read(flag: .TileDataSelect) ? Int(tileNo) * 16 : 0x1000 + Int(Int8(bitPattern: tileNo)) * 16
             tilemapBytes.append(contentsOf: memory[tileLocation..<tileLocation + 16])
         }
-
         let totalTiles = 32 * 32
         let totalBytes = totalTiles * 16
-
         for rowIndex in stride(from: 0, to: totalBytes, by: 32 * 2 * 8) {
             for columnIndex in stride(from: rowIndex, to: rowIndex + 16, by: 2) {
                 for byteIndex in stride(from: columnIndex, to: columnIndex + 32 * 16, by: 16) {
@@ -255,21 +312,22 @@ public class RetroDMG: RetroPlatform {
                 }
             }
         }
-        
         return viewPort
     }
 
     // MARK: - Persistence API
 
     /// Loads battery-backed RAM data into the current cartridge (MBC), if supported.
-    /// If the cartridge does not support RAM, this is a no-op.
+    ///
+    /// - Parameter data: The save data to load. If the cartridge does not support RAM, this is a no-op.
     public func loadSaveData(_ data: Data?) {
         guard let cart = cpu.bus.mbc.cart, let saveData = data else { return }
         cart.setRAM(saveData)
     }
 
     /// Retrieves battery-backed RAM data and identifying info from the current cartridge (MBC), if supported.
-    /// Returns nil for saveData if the cartridge does not support RAM.
+    ///
+    /// - Returns: A dictionary containing `saveData`, `title`, `type`, and `hash` if available; otherwise, `nil`.
     public func getSaveDataWithInfo() -> [String: Any]? {
         guard let cart = cpu.bus.mbc.cart else { return nil }
         let saveData = cart.getRAM()
