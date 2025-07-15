@@ -138,8 +138,8 @@ public class RetroDMG: RetroPlatform {
     }
     
     func loop() {
-        var time1 = SuspendingClock().now
-        var time2 = SuspendingClock().now
+        let frameDuration = Duration.milliseconds(16.74)
+        var nextFrameTime = SuspendingClock().now + frameDuration
         runTask = Task {
             while loopRunning {
                 if Task.isCancelled {
@@ -147,25 +147,31 @@ public class RetroDMG: RetroPlatform {
                     break
                 }
                 checkInput()
-                time2 = SuspendingClock().now
-                let elapsed = time2 - time1
-                let reaminingTime = .milliseconds(16.67) - elapsed
-                if reaminingTime > .milliseconds(1) {
-                    try? await Task.sleep(for: reaminingTime, tolerance: .zero)
-                }
-                for _ in 0..<70224 / 16 {
+                // Emulation logic
+                var cyclesThisFrame = 0
+                while cyclesThisFrame < 70224 {
                     if Task.isCancelled {
                         loopRunning = false
                         break
                     }
                     let currentCycles = cpu.tick()
+                    cyclesThisFrame += Int(currentCycles)
                     for _ in 0...(currentCycles / 4) {
                         cpu.updateTimer()
                     }
                     cpu.bus.ppu.updateGraphics(cycles: currentCycles)
                     cpu.processInterrupt()
                 }
-                time1 = time2
+                // Wait until the next frame time
+                let now = SuspendingClock().now
+                if now < nextFrameTime {
+                    let sleepDuration = nextFrameTime - now
+                    try? await Task.sleep(for: sleepDuration, tolerance: .zero)
+                } else {
+                    // If we're behind, skip sleep and catch up
+                    nextFrameTime = now
+                }
+                nextFrameTime += frameDuration
             }
         }
         if cpu.debug {
@@ -175,14 +181,10 @@ public class RetroDMG: RetroPlatform {
                         loopRunning = false
                         break
                     }
-                    let elapsed = time2 - time1
-                    let reaminingTime = .milliseconds(16.67) - elapsed
-                    if reaminingTime > .milliseconds(1) {
-                        try? await Task.sleep(for: reaminingTime, tolerance: .zero)
-                    }
                     updateState()
+                    try? await Task.sleep(for: frameDuration, tolerance: .zero)
                 }
-            }    
+            }
         }
     }
 
