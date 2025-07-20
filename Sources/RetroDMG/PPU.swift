@@ -247,6 +247,13 @@ class PPU {
                                 oamCount += 1
                             }
                         }
+                        // Sort oamBuffer by X coordinate, then OAM index (hardware priority: leftmost sprite wins)
+                        oamBuffer.sort { (a, b) in
+                            if a.xPos == b.xPos {
+                                return a.oamIndex < b.oamIndex
+                            }
+                            return a.xPos < b.xPos
+                        }
                         
                         oamChecked = true
                     }

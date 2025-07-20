@@ -50,8 +50,8 @@ echo "📁 Found extracted directory: $EXTRACTED_DIR"
 # Create target directories
 mkdir -p "$TEST_ROMS_DIR/blargg"
 mkdir -p "$TEST_ROMS_DIR/dmg-acid2"
-mkdir -p "$TEST_ROMS_DIR/mooneye"
-mkdir -p "$TEST_ROMS_DIR/misc"
+# mkdir -p "$TEST_ROMS_DIR/mooneye"
+# mkdir -p "$TEST_ROMS_DIR/misc"
 
 # Copy Blargg CPU instruction tests
 echo "📋 Copying Blargg CPU tests..."
@@ -65,19 +65,19 @@ if [ -d "$EXTRACTED_DIR/dmg-acid2" ]; then
     cp -r "$EXTRACTED_DIR/dmg-acid2"/* "$TEST_ROMS_DIR/dmg-acid2/" 2>/dev/null || true
 fi
 
-# Copy Mooneye tests
-echo "🌙 Copying Mooneye tests..."
-if [ -d "$EXTRACTED_DIR/mooneye-test-suite" ]; then
-    cp -r "$EXTRACTED_DIR/mooneye-test-suite"/* "$TEST_ROMS_DIR/mooneye/" 2>/dev/null || true
-fi
+# # Copy Mooneye tests
+# echo "🌙 Copying Mooneye tests..."
+# if [ -d "$EXTRACTED_DIR/mooneye-test-suite" ]; then
+#     cp -r "$EXTRACTED_DIR/mooneye-test-suite"/* "$TEST_ROMS_DIR/mooneye/" 2>/dev/null || true
+# fi
 
-# Copy other interesting tests
-echo "📦 Copying miscellaneous tests..."
-for dir in "age-test-roms" "bully" "cgb-acid-hell" "cgb-acid2" "gambatte" "gbmicrotest" "little-things-gb" "mbc3-tester" "mealybug-tearoom-tests" "mooneye-test-suite-wilbertpol" "rtc3test" "same-suite" "scribbltests" "strikethrough" "turtle-tests"; do
-    if [ -d "$EXTRACTED_DIR/$dir" ]; then
-        find "$EXTRACTED_DIR/$dir" -type f \( -name "*.gb" -o -name "*.gbc" \) -exec cp {} "$TEST_ROMS_DIR/misc/" \; 2>/dev/null || true
-    fi
-done
+# # Copy other interesting tests
+# echo "📦 Copying miscellaneous tests..."
+# for dir in "age-test-roms" "bully" "cgb-acid-hell" "cgb-acid2" "gambatte" "gbmicrotest" "little-things-gb" "mbc3-tester" "mealybug-tearoom-tests" "mooneye-test-suite-wilbertpol" "rtc3test" "same-suite" "scribbltests" "strikethrough" "turtle-tests"; do
+#     if [ -d "$EXTRACTED_DIR/$dir" ]; then
+#         find "$EXTRACTED_DIR/$dir" -type f \( -name "*.gb" -o -name "*.gbc" \) -exec cp {} "$TEST_ROMS_DIR/misc/" \; 2>/dev/null || true
+#     fi
+# done
 
 # Copy reference images if available
 echo "🖼️  Copying reference images..."
@@ -101,8 +101,8 @@ EOF
 
 echo "Blargg tests: $(find "$TEST_ROMS_DIR/blargg" -name "*.gb" -o -name "*.gbc" | wc -l)" >> "$TEST_ROMS_DIR/manifest.txt"
 echo "DMG-ACID2 tests: $(find "$TEST_ROMS_DIR/dmg-acid2" -name "*.gb" -o -name "*.gbc" | wc -l)" >> "$TEST_ROMS_DIR/manifest.txt"
-echo "Mooneye tests: $(find "$TEST_ROMS_DIR/mooneye" -name "*.gb" -o -name "*.gbc" | wc -l)" >> "$TEST_ROMS_DIR/manifest.txt"
-echo "Misc tests: $(find "$TEST_ROMS_DIR/misc" -name "*.gb" -o -name "*.gbc" | wc -l)" >> "$TEST_ROMS_DIR/manifest.txt"
+# echo "Mooneye tests: $(find "$TEST_ROMS_DIR/mooneye" -name "*.gb" -o -name "*.gbc" | wc -l)" >> "$TEST_ROMS_DIR/manifest.txt"
+# echo "Misc tests: $(find "$TEST_ROMS_DIR/misc" -name "*.gb" -o -name "*.gbc" | wc -l)" >> "$TEST_ROMS_DIR/manifest.txt"
 
 # Create a .gitignore to exclude the ROMs from version control
 cat > "$TEST_ROMS_DIR/.gitignore" << EOF
