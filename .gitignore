@@ -38,3 +38,7 @@ xcuserdata/
 
 # SwiftPM test and doc artifacts
 *.docc-build
+
+/TestOutputs/
+
+Tests/RetroDMGTests/Resources
