@@ -341,4 +341,16 @@ public class RetroDMG: RetroPlatform {
         ]
     }
     
+    // MARK: - Test Harness Support
+    
+    /// Get current PC value for test harness (internal use)
+    func getCurrentPC() -> UInt16 {
+        return cpu.registers.read(register: .PC)
+    }
+    
+    /// Read memory at specified location for test harness (internal use)
+    func readMemory(at location: UInt16) -> UInt8 {
+        return cpu.bus.read(location: location)
+    }
+    
 }

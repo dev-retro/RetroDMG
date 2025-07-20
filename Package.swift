@@ -45,7 +45,8 @@ let package = Package(
             .product(name: "Testing", package: "swift-testing"),
           ],
           resources: [
-            .process("CPUTestFiles")
+            .process("CPUTestFiles"),
+            .copy("Resources")
           ]
         )
     ]
