@@ -345,15 +345,8 @@ private func compareImages(referenceImagePath: URL, outputImagePath: URL) throws
     }
 
     do {
-        // Load reference image
-        // Try to load reference image using Bundle.module
-        let referenceImageName = referenceImagePath.deletingPathExtension().lastPathComponent
-        let referenceImageExt = referenceImagePath.pathExtension
-        guard let bundleURL = Bundle.module.url(forResource: referenceImageName, withExtension: referenceImageExt) else {
-            print("[ERROR] Could not find reference image in Bundle.module: \(referenceImageName).\(referenceImageExt)")
-            throw TestHarnessError.referenceImageLoadFailed
-        }
-        let referenceImageData = try Data(contentsOf: bundleURL)
+        // Load reference image directly from the provided URL
+        let referenceImageData = try Data(contentsOf: referenceImagePath)
         guard let referenceProvider = CGDataProvider(data: referenceImageData as CFData),
               let referenceImage = CGImage(pngDataProviderSource: referenceProvider, decode: nil, shouldInterpolate: false, intent: .defaultIntent) else {
             print("[ERROR] Could not create CGImage from reference image data at: \(referenceImagePath.path)")
