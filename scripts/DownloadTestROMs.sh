@@ -3,7 +3,11 @@
 # Script to download the latest GameBoy test ROMs for RetroDMG testing
 # Based on: https://github.com/c-sp/game-boy-test-roms
 
+
 set -e
+
+# Print commands on error for debugging
+trap 'echo "\n[ERROR] Script failed at line $LINENO. Last command: $BASH_COMMAND"; set -x' ERR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -27,20 +31,37 @@ cd "$TEMP_DIR"
 
 # Download the latest release of game-boy-test-roms
 echo "📦 Downloading latest test ROM collection..."
-LATEST_RELEASE_URL="https://api.github.com/repos/c-sp/game-boy-test-roms/releases/latest"
-DOWNLOAD_URL=$(curl -s "$LATEST_RELEASE_URL" | grep "browser_download_url.*\.zip" | cut -d '"' -f 4)
 
+LATEST_RELEASE_URL="https://api.github.com/repos/c-sp/game-boy-test-roms/releases/latest"
+RELEASE_JSON=$(curl -s -w "\n%{http_code}" "$LATEST_RELEASE_URL")
+RELEASE_BODY=$(echo "$RELEASE_JSON" | sed '$d')
+RELEASE_CODE=$(echo "$RELEASE_JSON" | tail -n1)
+if [ "$RELEASE_CODE" != "200" ]; then
+    echo "❌ GitHub API request failed with status $RELEASE_CODE. Response:"
+    echo "$RELEASE_BODY"
+    exit 2
+fi
+DOWNLOAD_URL=$(echo "$RELEASE_BODY" | grep "browser_download_url.*\.zip" | cut -d '"' -f 4)
 if [ -z "$DOWNLOAD_URL" ]; then
-    echo "❌ Could not find download URL for latest release"
-    exit 1
+    echo "❌ Could not find download URL for latest release. Full JSON:"
+    echo "$RELEASE_BODY"
+    exit 3
 fi
 
 echo "📥 Downloading from: $DOWNLOAD_URL"
-curl -L -o game-boy-test-roms.zip "$DOWNLOAD_URL"
+if ! curl -L -o game-boy-test-roms.zip "$DOWNLOAD_URL"; then
+    echo "❌ Download failed for $DOWNLOAD_URL"
+    exit 4
+fi
+
 
 # Extract the archive
 echo "📂 Extracting test ROMs..."
-unzip -q game-boy-test-roms.zip
+if ! unzip -q game-boy-test-roms.zip; then
+    echo "❌ Failed to unzip game-boy-test-roms.zip. File listing:"
+    ls -l
+    exit 5
+fi
 
 # The archive extracts directly to current directory
 EXTRACTED_DIR="."
@@ -56,13 +77,23 @@ mkdir -p "$TEST_ROMS_DIR/dmg-acid2"
 # Copy Blargg CPU instruction tests
 echo "📋 Copying Blargg CPU tests..."
 if [ -d "$EXTRACTED_DIR/blargg" ]; then
-    cp -r "$EXTRACTED_DIR/blargg"/* "$TEST_ROMS_DIR/blargg/" 2>/dev/null || true
+    if ! cp -rv "$EXTRACTED_DIR/blargg"/* "$TEST_ROMS_DIR/blargg/"; then
+        echo "❌ Failed to copy Blargg CPU tests from $EXTRACTED_DIR/blargg to $TEST_ROMS_DIR/blargg"
+        exit 6
+    fi
+else
+    echo "⚠️  Blargg directory not found in extracted archive."
 fi
 
 # Copy dmg-acid2
 echo "🧪 Copying dmg-acid2 test..."
 if [ -d "$EXTRACTED_DIR/dmg-acid2" ]; then
-    cp -r "$EXTRACTED_DIR/dmg-acid2"/* "$TEST_ROMS_DIR/dmg-acid2/" 2>/dev/null || true
+    if ! cp -rv "$EXTRACTED_DIR/dmg-acid2"/* "$TEST_ROMS_DIR/dmg-acid2/"; then
+        echo "❌ Failed to copy dmg-acid2 tests from $EXTRACTED_DIR/dmg-acid2 to $TEST_ROMS_DIR/dmg-acid2"
+        exit 7
+    fi
+else
+    echo "⚠️  dmg-acid2 directory not found in extracted archive."
 fi
 
 # # Copy Mooneye tests
@@ -81,7 +112,9 @@ fi
 
 # Copy reference images if available
 echo "🖼️  Copying reference images..."
-find "$EXTRACTED_DIR" -type f \( -name "*.png" -o -name "*.bmp" \) -exec cp {} "$TEST_ROMS_DIR/misc/" \; 2>/dev/null || true
+if ! find "$EXTRACTED_DIR" -type f \( -name "*.png" -o -name "*.bmp" \) -exec cp {} "$TEST_ROMS_DIR/misc/" \;; then
+    echo "⚠️  No reference images found or failed to copy images."
+fi
 
 # Create a manifest file
 echo "📝 Creating test ROM manifest..."
@@ -118,8 +151,8 @@ echo "✅ Test ROM download complete!"
 echo "📊 Summary:"
 echo "   Blargg tests: $(find "$TEST_ROMS_DIR/blargg" -name "*.gb" -o -name "*.gbc" | wc -l)"
 echo "   DMG-ACID2 tests: $(find "$TEST_ROMS_DIR/dmg-acid2" -name "*.gb" -o -name "*.gbc" | wc -l)"
-echo "   Mooneye tests: $(find "$TEST_ROMS_DIR/mooneye" -name "*.gb" -o -name "*.gbc" | wc -l)"
-echo "   Misc tests: $(find "$TEST_ROMS_DIR/misc" -name "*.gb" -o -name "*.gbc" | wc -l)"
+# echo "   Mooneye tests: $(find "$TEST_ROMS_DIR/mooneye" -name "*.gb" -o -name "*.gbc" | wc -l)"
+# echo "   Misc tests: $(find "$TEST_ROMS_DIR/misc" -name "*.gb" -o -name "*.gbc" | wc -l)"
 echo ""
 echo "🎯 Test ROMs are ready for use in RetroDMG tests!"
 echo "   See: $TEST_ROMS_DIR/manifest.txt for details"
