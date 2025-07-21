@@ -19,7 +19,7 @@ on:
 jobs:
   build-and-test:
 
-    runs-on: macos-latest-xlarge
+    runs-on: ubuntu-latest-m
     # If you see a permissions error, request access to larger runners for open source at:
     # https://github.com/contact?form[subject]=Larger%20GitHub%20Actions%20Runners%20for%20Open%20Source
 
