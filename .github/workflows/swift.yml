@@ -8,6 +8,12 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      run_full_cpu_tests:
+        description: 'Run full CPU tests (set to true to run all CPU tests)'
+        required: false
+        default: 'false'
 
 jobs:
   build:
@@ -24,5 +30,13 @@ jobs:
       run: bash scripts/DownloadTestROMs.sh
     - name: Build
       run: swift build
-    - name: Run tests
+
+    # Run full test suite if run_full_cpu_tests is true (set by workflow_dispatch or by default for main branch events)
+    - name: Run full test suite
+      if: ${{ github.event.inputs.run_full_cpu_tests == 'true' || github.ref == 'refs/heads/main' }}
       run: swift test
+
+    # Otherwise, run only integration tests
+    - name: Run test ROM integration tests only
+      if: ${{ github.event.inputs.run_full_cpu_tests != 'true' && github.ref != 'refs/heads/main' }}
+      run: swift test --filter TestROMIntegrationTests
