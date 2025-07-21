@@ -2,7 +2,13 @@ import Testing
 import Foundation
 @testable import RetroDMG
 
+@Suite("ROM Integration Tests")
 struct TestROMIntegrationTests {
+    init() {
+        #if DEBUG
+        print("[WARNING] ROM integration tests are not running in release mode. For accurate results, use 'swift test -c release'.")
+        #endif
+    }
     
     func getTestROMPath(romPath: String) -> URL? {
         let bundle = Bundle.module

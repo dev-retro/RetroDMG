@@ -28,15 +28,47 @@ jobs:
         swift-version: '6.1.0'
     - name: Download GameBoy Test ROMs
       run: bash scripts/DownloadTestROMs.sh
+
     - name: Build
-      run: swift build
+      run: swift build -c release
 
     # Run full test suite if run_full_cpu_tests is true (set by workflow_dispatch or by default for main branch events)
+
     - name: Run full test suite
       if: ${{ github.event.inputs.run_full_cpu_tests == 'true' || github.ref == 'refs/heads/main' }}
-      run: swift test
+      run: swift test -c release
 
     # Otherwise, run only integration tests
+
     - name: Run test ROM integration tests only
       if: ${{ github.event.inputs.run_full_cpu_tests != 'true' && github.ref != 'refs/heads/main' }}
-      run: swift test --filter TestROMIntegrationTests
+      run: swift test -c release --filter TestROMIntegrationTests
+
+    - name: List TestOutputs contents
+      if: ${{ github.event.inputs.run_full_cpu_tests != 'true' && github.ref != 'refs/heads/main' }}
+      run: |
+        if [ -d TestOutputs ]; then
+          echo "TestOutputs directory found. Listing contents:"
+          ls -lR TestOutputs
+        else
+          echo "TestOutputs directory does not exist."
+        fi
+
+    - name: Upload TestOutputs artifact
+      if: ${{ github.event.inputs.run_full_cpu_tests != 'true' && github.ref != 'refs/heads/main' }}
+      run: |
+        if [ -d TestOutputs ]; then
+          echo "Uploading TestOutputs artifact..."
+          tar -czf TestOutputs.tar.gz TestOutputs
+        else
+          echo "TestOutputs directory does not exist. Skipping artifact upload."
+          exit 0
+        fi
+      shell: bash
+    - name: Upload TestOutputs tarball
+      if: ${{ github.event.inputs.run_full_cpu_tests != 'true' && github.ref != 'refs/heads/main' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: TestOutputs
+        path: TestOutputs.tar.gz
+      continue-on-error: true
