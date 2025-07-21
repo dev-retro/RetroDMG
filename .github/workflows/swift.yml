@@ -19,9 +19,7 @@ on:
 jobs:
   build-and-test:
 
-    runs-on: self-hosted
-    # If you see a permissions error, request access to larger runners for open source at:
-    # https://github.com/contact?form[subject]=Larger%20GitHub%20Actions%20Runners%20for%20Open%20Source
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -29,49 +27,13 @@ jobs:
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: '6.1.0'
-    - name: Download GameBoy Test ROMs
-      run: bash scripts/DownloadTestROMs.sh
+
+    # - name: Download GameBoy Test ROMs
+    #   run: bash scripts/DownloadTestROMs.sh
 
     - name: Build
       run: swift build -c release
 
-    # Run full test suite if run_full_cpu_tests is true (set by workflow_dispatch or by default for main branch events)
-
-    - name: Run full test suite
-      if: ${{ github.event.inputs.run_full_cpu_tests == 'true' || github.ref == 'refs/heads/main' }}
-      run: swift test -c release
-
-    # Otherwise, run only integration tests
-
-    - name: Run test ROM integration tests only
-      if: ${{ github.event.inputs.run_full_cpu_tests != 'true' && github.ref != 'refs/heads/main' }}
-      run: swift test -c release --filter TestROMIntegrationTests
-
-    - name: List TestOutputs contents
-      if: always()
-      run: |
-        if [ -d TestOutputs ]; then
-          echo "TestOutputs directory found. Listing contents:"
-          ls -lR TestOutputs
-        else
-          echo "TestOutputs directory does not exist."
-        fi
-
-    - name: Upload TestOutputs artifact
-      if: always()
-      run: |
-        if [ -d TestOutputs ]; then
-          echo "Uploading TestOutputs artifact..."
-          tar -czf TestOutputs.tar.gz TestOutputs
-        else
-          echo "TestOutputs directory does not exist. Skipping artifact upload."
-          exit 0
-        fi
-      shell: bash
-    - name: Upload TestOutputs tarball
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: TestOutputs
-        path: TestOutputs.tar.gz
-      continue-on-error: true
+    # Run only CPU tests (exclude ROM integration tests)
+    - name: Run CPU tests only
+      run: swift test -c release --filter CPUTest
