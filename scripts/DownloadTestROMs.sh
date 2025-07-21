@@ -111,10 +111,10 @@ fi
 # done
 
 # Copy reference images if available
-echo "🖼️  Copying reference images..."
-if ! find "$EXTRACTED_DIR" -type f \( -name "*.png" -o -name "*.bmp" \) -exec cp {} "$TEST_ROMS_DIR/misc/" \;; then
-    echo "⚠️  No reference images found or failed to copy images."
-fi
+# echo "🖼️  Copying reference images..."
+# if ! find "$EXTRACTED_DIR" -type f \( -name "*.png" -o -name "*.bmp" \) -exec cp {} "$TEST_ROMS_DIR/misc/" \;; then
+#     echo "⚠️  No reference images found or failed to copy images."
+# fi
 
 # Create a manifest file
 echo "📝 Creating test ROM manifest..."
