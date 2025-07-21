@@ -418,18 +418,26 @@ class PPU {
                 // Accept sprites with X between -7 and 159 (partially or fully visible)
                 if screenX >= sprite.xPos && screenX < sprite.xPos + 8 {
                     let spriteHeight = read(flag: .OBJSize) ? 16 : 8
-                    var spriteIndex = sprite.index
+                    let vFlip = sprite.attributes.get(bit: 6)
                     let spriteY = Int(ly) - sprite.yPos
-
+                    var tileIdx: UInt8
+                    var lineInTile: Int
                     if spriteHeight == 16 {
                         let baseTileIndex = sprite.index & 0xFE
-                        spriteIndex = baseTileIndex + UInt8(spriteY >= 8 ? 1 : 0)
+                        if vFlip {
+                            // For vFlip, lines 0-7 come from bottom tile, lines 8-15 from top tile
+                            let flippedY = 15 - spriteY
+                            tileIdx = baseTileIndex + UInt8(flippedY >= 8 ? 1 : 0)
+                            lineInTile = flippedY % 8
+                        } else {
+                            tileIdx = baseTileIndex + UInt8(spriteY >= 8 ? 1 : 0)
+                            lineInTile = spriteY % 8
+                        }
+                    } else {
+                        tileIdx = sprite.index
+                        lineInTile = vFlip ? (7 - (spriteY % 8)) : (spriteY % 8)
                     }
-
-                    var tileLocation = Int(spriteIndex) * 16
-                    let lineInTile = spriteY % 8
-                    let actualLineInTile = sprite.attributes.get(bit: 6) ? (7 - lineInTile) : lineInTile
-                    tileLocation += 2 * actualLineInTile
+                    let tileLocation = Int(tileIdx) * 16 + 2 * lineInTile
                     let byte1 = tileData[tileLocation]
                     let byte2 = tileData[tileLocation + 1]
                     
