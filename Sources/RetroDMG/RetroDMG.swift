@@ -155,6 +155,8 @@ public class RetroDMG: RetroPlatform {
                         break
                     }
                     let currentCycles = cpu.tick()
+                    // Update APU for cycle-accurate audio timing via Bus abstraction
+                    cpu.bus.stepAPU(cycles: currentCycles)
                     cyclesThisFrame += Int(currentCycles)
                     for _ in 0...(currentCycles / 4) {
                         cpu.updateTimer()

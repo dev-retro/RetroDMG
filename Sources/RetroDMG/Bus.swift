@@ -22,6 +22,8 @@ import Foundation
 /// Handles all memory-mapped IO, RAM, VRAM, OAM, boot ROM, and cartridge access.
 /// Implements hardware-accurate memory access rules for the PPU, MBC, DMA, timers, and input.
 class Bus {
+    /// Main APU instance (handles all audio)
+    public var apu: APU
     /// Main system RAM (including echo RAM)
     var memory: [UInt8]
     /// Boot ROM (0x0000-0x00FF)
@@ -30,6 +32,7 @@ class Bus {
     var bootromLoaded: Bool
     /// Main PPU instance (handles all graphics)
     public var ppu: PPU
+    // (Revert) Remove APU property for now
     /// Enable debug mode (bypasses normal memory rules)
     public var debug = false
     /// Main cartridge MBC (handles ROM/RAM banking)
@@ -71,6 +74,7 @@ class Bus {
 
     /// Initialize all memory, IO, and PPU state
     init() {
+        apu = APU()
         memory = [UInt8](repeating: 0, count: 65537)
         bootrom = [UInt8](repeating: 0, count: 0x100)
         bootromLoaded = false
@@ -163,9 +167,9 @@ class Bus {
             // TODO: Boot ROM mapping control (FF50) - implement full logic if needed
             // Writing any value disables boot ROM mapping (DMG correct)
             bootromLoaded = false
-        } else if (location >= 0xFF10 && location <= 0xFF26) || (location >= 0xFF30 && location <= 0xFF3F) {
-            // TODO: Audio registers (FF10–FF26, FF30–FF3F) - implement audio if needed
-            // For DMG, ignoring writes is correct
+        } else if (location >= 0xFF10 && location <= 0xFF3F) {
+            // Audio registers: forward to APU
+            apu.writeRegister(location, value: value)
             return
         } else if location == 0xFF4D {
             // TODO: Speed switch (FF4D) - implement if CGB support is added
@@ -387,10 +391,9 @@ class Bus {
                 // For DMG, always returns 0xFF
                 return 0xFF
             }
-            if (location >= 0xFF10 && location <= 0xFF26) || (location >= 0xFF30 && location <= 0xFF3F) {
-                // TODO: Audio registers (FF10–FF26, FF30–FF3F) - implement audio if needed
-                // For DMG, always returns 0xFF
-                return 0xFF
+            if (location >= 0xFF10 && location <= 0xFF3F) {
+                // Audio registers: forward to APU
+                return apu.readRegister(UInt16(location))
             }
             if location == 0xFF4D {
                 // TODO: Speed switch (FF4D) - implement if CGB support is added
@@ -450,22 +453,37 @@ class Bus {
         }
 
             /// Step DMA transfer by the given number of cycles. Call this from your main emulation loop.
-    func stepDMA(cycles: Int) {
-        guard dmaActive else { return }
-        dmaCycles += cycles
-        while dmaCycles >= 4 && dmaIndex < 0xA0 {
-            // Copy one byte every 4 cycles
-            let srcAddr = Int(dmaSource) + dmaIndex
-            let value = memory[srcAddr]
-            ppu.oam[dmaIndex] = value
-            dmaIndex += 1
-            dmaCycles -= 4
+        func stepDMA(cycles: Int) {
+            guard dmaActive else { return }
+            dmaCycles += cycles
+            while dmaCycles >= 4 && dmaIndex < 0xA0 {
+                // Copy one byte every 4 cycles
+                let srcAddr = Int(dmaSource) + dmaIndex
+                let value = memory[srcAddr]
+                ppu.oam[dmaIndex] = value
+                dmaIndex += 1
+                dmaCycles -= 4
+            }
+            if dmaIndex >= 0xA0 {
+                // DMA complete
+                dmaActive = false
+            }
         }
-        if dmaIndex >= 0xA0 {
-            // DMA complete
-            dmaActive = false
+
+            /// Advance APU by T cycles (call from main emulation loop)
+        func stepAPU(cycles: Int) {
+            apu.tick(cycles: cycles)
         }
-    }
+
+        /// Expose APU buffer API for frontend/audio output
+        func getAudioBuffer() -> [Int16] {
+            return apu.getAudioBuffer()
+        }
+        func requestAudioBuffer(size: Int) -> [Int16] {
+            return apu.requestAudioBuffer(size: size)
+        }
+
+
         
         /// Read a specific interrupt enable bit from the IE register.
         func read(interruptEnableType: InterruptType) -> Bool {
