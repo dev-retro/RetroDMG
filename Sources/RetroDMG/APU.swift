@@ -13,23 +13,23 @@ import Foundation
 /// Main Game Boy APU class. Handles all audio channels, mixing, and timing.
 class APU {
     // --- Register Definitions (NR10–NR52) ---
-    // All register quirks (masking, read-only, write-only, trigger, DAC enable) handled in readRegister/writeRegister
+    // Power-on values per Pan Docs and hardware tests
     // Channel 1 (Pulse + Sweep)
     var nr10: UInt8 = 0x80 // Sweep
     var nr11: UInt8 = 0xBF // Duty/Length
     var nr12: UInt8 = 0xF3 // Envelope
-    var nr13: UInt8 = 0xFF // Frequency low
+    var nr13: UInt8 = 0xFF // Frequency low (write-only)
     var nr14: UInt8 = 0xBF // Frequency high/trigger
     // Channel 2 (Pulse)
     var nr21: UInt8 = 0x3F // Duty/Length
     var nr22: UInt8 = 0x00 // Envelope
-    var nr23: UInt8 = 0xFF // Frequency low
+    var nr23: UInt8 = 0xFF // Frequency low (write-only)
     var nr24: UInt8 = 0xBF // Frequency high/trigger
     // Channel 3 (Wave)
     var nr30: UInt8 = 0x7F // DAC enable
-    var nr31: UInt8 = 0xFF // Length
+    var nr31: UInt8 = 0xFF // Length (write-only)
     var nr32: UInt8 = 0x9F // Output level
-    var nr33: UInt8 = 0xFF // Frequency low
+    var nr33: UInt8 = 0xFF // Frequency low (write-only)
     var nr34: UInt8 = 0xBF // Frequency high/trigger
     var waveRAM: [UInt8] = [UInt8](repeating: 0, count: 16) // FF30–FF3F
     // Channel 4 (Noise)
@@ -164,7 +164,16 @@ class APU {
             ch4FreqTimer -= cycles
             while ch4FreqTimer <= 0 {
                 ch4FreqTimer += (freq > 0 ? freq : 1)
-                // Advance LFSR (already handled in updateChannels)
+                // Advance LFSR only if clockShift < 14
+                if clockShift < 14 {
+                    let bit = ((ch4.lfsr & 0x01) ^ ((ch4.lfsr >> 1) & 0x01)) & 1
+                    ch4.lfsr = (ch4.lfsr >> 1) | (UInt16(bit) << 14)
+                    let widthMode = nr43.get(bit: 3)
+                    if widthMode {
+                        // 7-bit mode: copy bit 14 to bit 6
+                        ch4.lfsr = (ch4.lfsr & ~0x40) | ((UInt16(bit) << 6) & 0x40)
+                    }
+                }
             }
         }
         // Update channels (waveform, envelope, length, DAC)
@@ -179,20 +188,20 @@ class APU {
         // Steps: 0=length, 2=sweep, 4=length, 6=envelope
         switch frameSequencerStep {
         case 0, 4:
-            // Length counter clock for all channels
-            if ch1.enabled && ch1.lengthTimer > 0 {
+            // Length counter clock for all channels (only if length enabled)
+            if ch1.enabled && (nr14.get(bit: 6)) && ch1.lengthTimer > 0 {
                 ch1.lengthTimer -= 1
                 if ch1.lengthTimer == 0 { ch1.enabled = false }
             }
-            if ch2.enabled && ch2.lengthTimer > 0 {
+            if ch2.enabled && (nr24.get(bit: 6)) && ch2.lengthTimer > 0 {
                 ch2.lengthTimer -= 1
                 if ch2.lengthTimer == 0 { ch2.enabled = false }
             }
-            if ch3.enabled && ch3.lengthTimer > 0 {
+            if ch3.enabled && (nr34.get(bit: 6)) && ch3.lengthTimer > 0 {
                 ch3.lengthTimer -= 1
                 if ch3.lengthTimer == 0 { ch3.enabled = false }
             }
-            if ch4.enabled && ch4.lengthTimer > 0 {
+            if ch4.enabled && (nr44.get(bit: 6)) && ch4.lengthTimer > 0 {
                 ch4.lengthTimer -= 1
                 if ch4.lengthTimer == 0 { ch4.enabled = false }
             }
@@ -208,6 +217,7 @@ class APU {
                         ch1.enabled = false // Overflow disables channel
                     } else if ch1.sweepShift > 0 {
                         ch1.sweepShadow = newFreq
+                        ch1.frequency = newFreq
                         // Write new frequency to NR13/NR14
                         nr13 = UInt8(newFreq & 0xFF)
                         nr14 = (nr14 & 0xF8) | UInt8((newFreq >> 8) & 0x07)
@@ -224,7 +234,8 @@ class APU {
             if ch1.envelopeTimer > 0 {
                 ch1.envelopeTimer -= 1
                 if ch1.envelopeTimer == 0 {
-                    ch1.envelopeTimer = Int(nr12 & 0x07)
+                    let period = Int(nr12 & 0x07)
+                    ch1.envelopeTimer = period == 0 ? 8 : period
                     let direction = nr12.get(bit: 3)
                     if direction && ch1.envelopeVolume < 15 {
                         ch1.envelopeVolume += 1
@@ -236,7 +247,8 @@ class APU {
             if ch2.envelopeTimer > 0 {
                 ch2.envelopeTimer -= 1
                 if ch2.envelopeTimer == 0 {
-                    ch2.envelopeTimer = Int(nr22 & 0x07)
+                    let period = Int(nr22 & 0x07)
+                    ch2.envelopeTimer = period == 0 ? 8 : period
                     let direction = nr22.get(bit: 3)
                     if direction && ch2.envelopeVolume < 15 {
                         ch2.envelopeVolume += 1
@@ -248,7 +260,8 @@ class APU {
             if ch4.envelopeTimer > 0 {
                 ch4.envelopeTimer -= 1
                 if ch4.envelopeTimer == 0 {
-                    ch4.envelopeTimer = Int(nr42 & 0x07)
+                    let period = Int(nr42 & 0x07)
+                    ch4.envelopeTimer = period == 0 ? 8 : period
                     let direction = nr42.get(bit: 3)
                     if direction && ch4.envelopeVolume < 15 {
                         ch4.envelopeVolume += 1
@@ -262,23 +275,27 @@ class APU {
         }
     }
 
-    /// Update all channels (partial: Channel 1 & 2 waveform, envelope, length, DAC; stubs for 3/4)
+    /// Update all channels (full implementation with proper trigger handling)
     private func updateChannels(cycles: Int) {
         // --- Channel 1 ---
         ch1.dacEnabled = ((nr12 & 0xF8) != 0)
         if nr14.get(bit: 7) {
+            // Clear trigger bit immediately
+            nr14.set(bit: 7, value: false)
             // Trigger event
             ch1.enabled = ch1.dacEnabled
             ch1.lengthTimer = 64 - Int(nr11 & 0x3F)
             ch1.envelopeVolume = Int((nr12 & 0xF0) >> 4)
             ch1.envelopeTimer = Int(nr12 & 0x07)
+            if ch1.envelopeTimer == 0 { ch1.envelopeTimer = 8 } // Period 0 treated as 8
             ch1.sweepPeriod = Int((nr10 & 0x70) >> 4)
             ch1.sweepShift = Int(nr10 & 0x07)
             ch1.sweepDirection = nr10.get(bit: 3)
             ch1.sweepTimer = ch1.sweepPeriod == 0 ? 8 : ch1.sweepPeriod
-            // Do NOT reset low two bits of frequency timer on retrigger (quirk)
+            // Frequency timer: do NOT reset low two bits on retrigger (quirk)
             let freqHigh = Int(nr14 & 0x07)
             ch1.frequency = (freqHigh << 8) | Int(nr13)
+            ch1FreqTimer = (ch1FreqTimer & 3) | ((2048 - ch1.frequency) & ~3)
             // Do NOT reset dutyStep on retrigger (only on APU power-off)
             // Sweep shadow register and enable flag
             ch1.sweepShadow = ch1.frequency
@@ -293,65 +310,93 @@ class APU {
             // Store last sweep direction for direction bit clearing quirk
             ch1.lastSweepDirection = ch1.sweepDirection
         }
-        // Channel 2 retrigger quirks
-        ch2.dacEnabled = ((nr22 & 0xF8) != 0)
-        if nr24.get(bit: 7) {
-            ch2.enabled = ch2.dacEnabled
-            ch2.lengthTimer = 64 - Int(nr21 & 0x3F)
-            ch2.envelopeVolume = Int((nr22 & 0xF0) >> 4)
-            ch2.envelopeTimer = Int(nr22 & 0x07)
-            // Do NOT reset low two bits of frequency timer on retrigger
-            let freqHigh2 = Int(nr24 & 0x07)
-            ch2.frequency = (freqHigh2 << 8) | Int(nr23)
-            // Do NOT reset dutyStep on retrigger (only on APU power-off)
-        }
-        let duty1 = (nr11 & 0xC0) >> 6
-        let dutyTable: [[Int]] = [
-            [0,0,0,0,0,0,0,1],
-            [0,0,0,0,0,1,1,1],
-            [0,0,0,0,1,1,1,1],
-            [1,1,1,1,1,0,0,0]
-        ]
-        var ch1Output = 0
-        if ch1.enabled && ch1.dacEnabled {
-            let waveform = dutyTable[Int(duty1)]
-            ch1.dutyStep = (ch1.dutyStep + 1) % 8
-            ch1Output = waveform[ch1.dutyStep] * ch1.envelopeVolume
-        }
 
         // --- Channel 2 ---
         ch2.dacEnabled = ((nr22 & 0xF8) != 0)
         if nr24.get(bit: 7) {
+            // Clear trigger bit immediately
+            nr24.set(bit: 7, value: false)
             ch2.enabled = ch2.dacEnabled
             ch2.lengthTimer = 64 - Int(nr21 & 0x3F)
             ch2.envelopeVolume = Int((nr22 & 0xF0) >> 4)
             ch2.envelopeTimer = Int(nr22 & 0x07)
-            ch2.frequency = (Int(nr24 & 0x07) << 8) | Int(nr23)
-            ch2.dutyStep = 0
-        }
-        let duty2 = (nr21 & 0xC0) >> 6
-        var ch2Output = 0
-        if ch2.enabled && ch2.dacEnabled {
-            let waveform2 = dutyTable[Int(duty2)]
-            ch2.dutyStep = (ch2.dutyStep + 1) % 8
-            ch2Output = waveform2[ch2.dutyStep] * ch2.envelopeVolume
+            if ch2.envelopeTimer == 0 { ch2.envelopeTimer = 8 } // Period 0 treated as 8
+            // Frequency timer: do NOT reset low two bits on retrigger
+            let freqHigh2 = Int(nr24 & 0x07)
+            ch2.frequency = (freqHigh2 << 8) | Int(nr23)
+            ch2FreqTimer = (ch2FreqTimer & 3) | ((2048 - ch2.frequency) & ~3)
+            // Do NOT reset dutyStep on retrigger (only on APU power-off)
         }
 
         // --- Channel 3 (Wave) ---
         ch3.dacEnabled = nr30.get(bit: 7)
         if nr34.get(bit: 7) {
+            // Clear trigger bit immediately
+            nr34.set(bit: 7, value: false)
             ch3.enabled = ch3.dacEnabled
             ch3.lengthTimer = 256 - Int(nr31)
             ch3.volume = Int((nr32 & 0x60) >> 5)
             ch3.frequency = (Int(nr34 & 0x07) << 8) | Int(nr33)
             // Do NOT clear sampleBuffer or reset waveIndex on retrigger (quirk)
+            // Wave index starts at 0, first sample read is sample 1 (quirk)
+            ch3.waveIndex = 0
         }
+
+        // --- Channel 4 (Noise) ---
+        ch4.dacEnabled = ((nr42 & 0xF8) != 0)
+        if nr44.get(bit: 7) {
+            // Clear trigger bit immediately
+            nr44.set(bit: 7, value: false)
+            // Retrigger: set LFSR to 0x7FFF, reset envelope/length
+            ch4.enabled = ch4.dacEnabled
+            ch4.lengthTimer = 64 - Int(nr41 & 0x3F)
+            ch4.envelopeVolume = Int((nr42 & 0xF0) >> 4)
+            ch4.envelopeTimer = Int(nr42 & 0x07)
+            if ch4.envelopeTimer == 0 { ch4.envelopeTimer = 8 } // Period 0 treated as 8
+            ch4.lfsr = 0x7FFF
+        }
+
+        // Generate outputs for this tick
+        generateChannelOutputs()
+    }
+
+    // Store last outputs for mixing
+    private var channelOutputs: [Int] = [0,0,0,0]
+
+    /// Generate channel outputs for current sample
+    private func generateChannelOutputs() {
+        let dutyTable: [[Int]] = [
+            [0,0,0,0,0,0,0,1], // 12.5%
+            [1,0,0,0,0,0,0,1], // 25%
+            [1,0,0,0,0,1,1,1], // 50%
+            [0,1,1,1,1,1,1,0]  // 75%
+        ]
+        
+        // --- Channel 1 Output ---
+        var ch1Output = 0
+        if ch1.enabled && ch1.dacEnabled {
+            let duty1 = Int((nr11 & 0xC0) >> 6)
+            let waveform = dutyTable[duty1]
+            ch1Output = waveform[ch1.dutyStep] * ch1.envelopeVolume
+        }
+
+        // --- Channel 2 Output ---
+        var ch2Output = 0
+        if ch2.enabled && ch2.dacEnabled {
+            let duty2 = Int((nr21 & 0xC0) >> 6)
+            let waveform = dutyTable[duty2]
+            ch2Output = waveform[ch2.dutyStep] * ch2.envelopeVolume
+        }
+
+        // --- Channel 3 Output ---
         var ch3Output = 0
         if ch3.enabled && ch3.dacEnabled {
             // Output level: 0=mute, 1=100%, 2=50%, 3=25%
             let outputLevel = ch3.volume
-            let waveByte = waveRAM[ch3.waveIndex / 2]
-            let sample = (ch3.waveIndex % 2 == 0) ? (waveByte >> 4) : (waveByte & 0x0F)
+            // Wave index starts at 1, not 0 (hardware quirk)
+            let actualIndex = (ch3.waveIndex + 1) % 32
+            let waveByte = waveRAM[actualIndex / 2]
+            let sample = (actualIndex % 2 == 0) ? (waveByte >> 4) : (waveByte & 0x0F)
             var sampleOut = Int(sample)
             switch outputLevel {
                 case 0: sampleOut = 0
@@ -363,61 +408,38 @@ class APU {
             // Store sample in buffer, emit continuously
             ch3.sampleBuffer = [sampleOut]
             ch3Output = ch3.sampleBuffer[0]
-            ch3.waveIndex = (ch3.waveIndex + 1) % 32
-            // TODO: DMG wave RAM corruption quirk stub
         }
 
-        // --- Channel 4 (Noise) ---
-        ch4.dacEnabled = ((nr42 & 0xF8) != 0)
-        if nr44.get(bit: 7) {
-            // Retrigger: set LFSR to 0x7FFF, reset envelope/length
-            ch4.enabled = ch4.dacEnabled
-            ch4.lengthTimer = 64 - Int(nr41 & 0x3F)
-            ch4.envelopeVolume = Int((nr42 & 0xF0) >> 4)
-            ch4.envelopeTimer = Int(nr42 & 0x07)
-            ch4.lfsr = 0x7FFF
-        }
+        // --- Channel 4 Output ---
         var ch4Output = 0
         if ch4.enabled && ch4.dacEnabled {
-            // LFSR noise generation
-            let clockShift = Int((nr43 & 0xF0) >> 4)
-            let widthMode = nr43.get(bit: 3)
-            let divisorCode = Int(nr43 & 0x07)
-            let divisor = divisorCode == 0 ? 8 : divisorCode * 16
-            // If clockShift is 14 or 15, LFSR receives no clocks (silence)
-            if clockShift < 14 {
-                // Advance LFSR (not cycle-accurate)
-                let bit = ((ch4.lfsr & 0x01) ^ ((ch4.lfsr >> 1) & 0x01))
-                ch4.lfsr = (ch4.lfsr >> 1) | (bit << 14)
-                if widthMode {
-                    // 7-bit mode: copy bit 15 to bit 6
-                    ch4.lfsr = (ch4.lfsr & ~0x40) | ((bit << 6) & 0x40)
-                }
-                // Lock-up: if LFSR is all 1s, output is always 1 (silence)
-                if ch4.lfsr == 0x7FFF {
-                    ch4Output = 0
-                } else {
-                    ch4Output = ((ch4.lfsr & 0x01) == 0) ? ch4.envelopeVolume : 0
-                }
-            } else {
-                ch4Output = 0 // Silenced
-            }
+            // Output based on LFSR bit 0 (inverted)
+            ch4Output = ((ch4.lfsr & 0x01) == 0) ? ch4.envelopeVolume : 0
         }
 
         // Store outputs for mixer
         channelOutputs = [ch1Output, ch2Output, ch3Output, ch4Output]
     }
 
-    // Store last outputs for mixing
-    private var channelOutputs: [Int] = [0,0,0,0]
+    /// Sweep calculation helper
+    private func sweepCalculate(freq: Int, direction: Bool, shift: Int) -> Int {
+        let delta = freq >> shift
+        if direction {
+            // Addition
+            return freq + delta
+        } else {
+            // Subtraction
+            return freq - delta
+        }
+    }
 
     /// Mix all channel outputs and buffer sample
     private func mixAndBufferSample() {
         // Simple mixer: sum all channel outputs
         let leftEnable = [nr51.get(bit: 0), nr51.get(bit: 1), nr51.get(bit: 2), nr51.get(bit: 3)]
         let rightEnable = [nr51.get(bit: 4), nr51.get(bit: 5), nr51.get(bit: 6), nr51.get(bit: 7)]
-        let leftVol = Int((nr50 & 0x07) + 1)
-        let rightVol = Int(((nr50 >> 4) & 0x07) + 1)
+        let leftVol = Int((nr50 & 0x07)) + 1    // 0-7 maps to 1-8
+        let rightVol = Int(((nr50 >> 4) & 0x07)) + 1 // 0-7 maps to 1-8
         var leftMix = 0
         var rightMix = 0
         for i in 0..<4 {
@@ -468,52 +490,52 @@ class APU {
         switch address {
         case 0xFF10: // NR10: Sweep (read/write, mask upper 3 bits)
             return nr10 & 0x7F
-        case 0xFF11: // NR11: Duty/Length (read/write, mask lower 6 bits)
-            return nr11 & 0x3F
+        case 0xFF11: // NR11: Duty/Length (read/write, mask UPPER 6 bits readable)
+            return nr11 | 0x3F
         case 0xFF12: // NR12: Envelope (read/write)
             return nr12
         case 0xFF13: // NR13: Frequency low (write-only, returns 0xFF)
             return 0xFF
-        case 0xFF14: // NR14: Frequency high/trigger (mask lower 7 bits)
-            return nr14 & 0xC7
-        case 0xFF16: // NR21: Duty/Length (mask lower 6 bits)
-            return nr21 & 0x3F
+        case 0xFF14: // NR14: Frequency high/trigger (mask UPPER 5 bits readable)
+            return nr14 | 0x3F
+        case 0xFF16: // NR21: Duty/Length (mask UPPER 6 bits readable)
+            return nr21 | 0x3F
         case 0xFF17: // NR22: Envelope
             return nr22
         case 0xFF18: // NR23: Frequency low (write-only, returns 0xFF)
             return 0xFF
-        case 0xFF19: // NR24: Frequency high/trigger (mask lower 7 bits)
-            return nr24 & 0xC7
-        case 0xFF1A: // NR30: DAC enable (mask bit 7)
-            return nr30 & 0x80
+        case 0xFF19: // NR24: Frequency high/trigger (mask UPPER 5 bits readable)
+            return nr24 | 0x3F
+        case 0xFF1A: // NR30: DAC enable (mask UPPER 7 bits readable)
+            return nr30 | 0x7F
         case 0xFF1B: // NR31: Length (write-only, returns 0xFF)
             return 0xFF
-        case 0xFF1C: // NR32: Output level (mask bits 6-7)
-            return nr32 & 0x60
+        case 0xFF1C: // NR32: Output level (mask UPPER 2 bits readable)
+            return nr32 | 0x9F
         case 0xFF1D: // NR33: Frequency low (write-only, returns 0xFF)
             return 0xFF
-        case 0xFF1E: // NR34: Frequency high/trigger (mask lower 7 bits)
-            return nr34 & 0x87
+        case 0xFF1E: // NR34: Frequency high/trigger (mask UPPER 5 bits readable)
+            return nr34 | 0x3F
         case 0xFF20: // NR41: Length (write-only, returns 0xFF)
             return 0xFF
         case 0xFF21: // NR42: Envelope
             return nr42
         case 0xFF22: // NR43: Frequency/LFSR
             return nr43
-        case 0xFF23: // NR44: Trigger/length enable (mask lower 7 bits)
-            return nr44 & 0xBF
+        case 0xFF23: // NR44: Trigger/length enable (mask UPPER 2 bits readable)
+            return nr44 | 0x3F
         case 0xFF24: // NR50: Master volume/VIN
             return nr50
         case 0xFF25: // NR51: Sound panning
             return nr51
         case 0xFF26: // NR52: Master control/status (upper 4 bits are channel status, bit 7 is power, lower 3 bits always 0)
-            var status: UInt8 = 0
+            var status: UInt8 = 0x70 // Unused bits are always 1
             status.set(bit: 7, value: nr52.get(bit: 7)) // Power
-            // Channel status bits (3-6): should reflect actual channel enable state (stub: use register bits for now)
-            status.set(bit: 3, value: nr52.get(bit: 3)) // CH1
-            status.set(bit: 4, value: nr52.get(bit: 4)) // CH2
-            status.set(bit: 5, value: nr52.get(bit: 5)) // CH3
-            status.set(bit: 6, value: nr52.get(bit: 6)) // CH4
+            // Channel status bits (0-3): should reflect actual channel enable state
+            status.set(bit: 0, value: ch1.enabled) // CH1
+            status.set(bit: 1, value: ch2.enabled) // CH2
+            status.set(bit: 2, value: ch3.enabled) // CH3
+            status.set(bit: 3, value: ch4.enabled) // CH4
             return status
         case 0xFF30...0xFF3F:
             let idx = Int(address - 0xFF30)
@@ -526,6 +548,11 @@ class APU {
 
     /// Write to an APU register (handles quirks, masking, write-only bits)
     func writeRegister(_ address: UInt16, value: UInt8) {
+        // If APU is powered off, only NR52 is writable
+        if !nr52.get(bit: 7) && address != 0xFF26 {
+            return
+        }
+        
         switch address {
         case 0xFF10:
             // NR10: mask upper bit
@@ -536,34 +563,23 @@ class APU {
             if prevDirection && !ch1.sweepDirection && ch1.lastSweepDirection {
                 ch1.enabled = false
             }
-    /// Sweep calculation helper
-    private func sweepCalculate(freq: Int, direction: Bool, shift: Int) -> Int {
-        let delta = freq >> shift
-        if direction {
-            // Addition
-            return freq + delta
-        } else {
-            // Subtraction
-            return freq - delta
-        }
-    }
-        case 0xFF11: nr11 = value & 0x3F // NR11: mask lower 6 bits
+        case 0xFF11: nr11 = value // NR11: duty/length (upper 6 bits readable, all writable)
         case 0xFF12: nr12 = value // NR12: envelope
         case 0xFF13: nr13 = value // NR13: frequency low
-        case 0xFF14: nr14 = value & 0xC7 // NR14: mask lower 7 bits
-        case 0xFF16: nr21 = value & 0x3F // NR21: mask lower 6 bits
+        case 0xFF14: nr14 = value // NR14: frequency high/trigger (upper 5 bits readable, all writable)
+        case 0xFF16: nr21 = value // NR21: duty/length (upper 6 bits readable, all writable)
         case 0xFF17: nr22 = value // NR22: envelope
         case 0xFF18: nr23 = value // NR23: frequency low
-        case 0xFF19: nr24 = value & 0xC7 // NR24: mask lower 7 bits
-        case 0xFF1A: nr30 = value & 0x80 // NR30: mask bit 7
+        case 0xFF19: nr24 = value // NR24: frequency high/trigger (upper 5 bits readable, all writable)
+        case 0xFF1A: nr30 = value // NR30: DAC enable (upper 7 bits readable, all writable)
         case 0xFF1B: nr31 = value // NR31: length
-        case 0xFF1C: nr32 = value & 0x60 // NR32: mask bits 6-7
+        case 0xFF1C: nr32 = value // NR32: output level (upper 2 bits readable, all writable)
         case 0xFF1D: nr33 = value // NR33: frequency low
-        case 0xFF1E: nr34 = value & 0x87 // NR34: mask lower 7 bits
+        case 0xFF1E: nr34 = value // NR34: frequency high/trigger (upper 5 bits readable, all writable)
         case 0xFF20: nr41 = value // NR41: length
         case 0xFF21: nr42 = value // NR42: envelope
         case 0xFF22: nr43 = value // NR43: frequency/LFSR
-        case 0xFF23: nr44 = value & 0xBF // NR44: mask lower 7 bits
+        case 0xFF23: nr44 = value // NR44: trigger/length (upper 2 bits readable, all writable)
         case 0xFF24: nr50 = value // NR50: master volume/VIN
         case 0xFF25: nr51 = value // NR51: sound panning
         case 0xFF26:
