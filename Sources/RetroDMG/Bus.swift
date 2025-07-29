@@ -147,7 +147,11 @@ class Bus {
         } else if location == 0xFF00 {
             joyp = value
         } else if location == 0xFF04 {
+            // When DIV is written to, it resets to 0 and may trigger DIV-APU edge
+            let previousDIV = div
             div = 0x0000
+            // Notify APU of DIV reset for proper DIV-APU timing
+            apu.onDIVReset(previousDIV: previousDIV)
         } else if location == 0xFF05 {
             tima = value
         } else if location == 0xFF06 {
@@ -470,9 +474,9 @@ class Bus {
             }
         }
 
-            /// Advance APU by T cycles (call from main emulation loop)
+        /// Advance APU by T cycles (call from main emulation loop)
         func stepAPU(cycles: Int) {
-            apu.tick(cycles: cycles)
+            apu.tick(cycles: cycles, divValue: div)
         }
 
         /// Expose APU buffer API for frontend/audio output
