@@ -147,11 +147,7 @@ class Bus {
         } else if location == 0xFF00 {
             joyp = value
         } else if location == 0xFF04 {
-            // When DIV is written to, it resets to 0 and may trigger DIV-APU edge
-            let previousDIV = div
             div = 0x0000
-            // Notify APU of DIV reset for proper DIV-APU timing
-            apu.onDIVReset(previousDIV: previousDIV)
         } else if location == 0xFF05 {
             tima = value
         } else if location == 0xFF06 {
@@ -173,7 +169,7 @@ class Bus {
             bootromLoaded = false
         } else if (location >= 0xFF10 && location <= 0xFF3F) {
             // Audio registers: forward to APU
-            apu.writeRegister(location, value: value)
+            apu.writeRegister(location, value)
             return
         } else if location == 0xFF4D {
             // TODO: Speed switch (FF4D) - implement if CGB support is added
@@ -456,7 +452,7 @@ class Bus {
             return memory[location]
         }
 
-            /// Step DMA transfer by the given number of cycles. Call this from your main emulation loop.
+        /// Step DMA transfer by the given number of cycles. Call this from your main emulation loop.
         func stepDMA(cycles: Int) {
             guard dmaActive else { return }
             dmaCycles += cycles
@@ -473,21 +469,6 @@ class Bus {
                 dmaActive = false
             }
         }
-
-        /// Advance APU by T cycles (call from main emulation loop)
-        func stepAPU(cycles: Int) {
-            apu.tick(cycles: cycles, divValue: div)
-        }
-
-        /// Expose APU buffer API for frontend/audio output
-        func getAudioBuffer() -> [Int16] {
-            return apu.getAudioBuffer()
-        }
-        func requestAudioBuffer(size: Int) -> [Int16] {
-            return apu.requestAudioBuffer(size: size)
-        }
-
-
         
         /// Read a specific interrupt enable bit from the IE register.
         func read(interruptEnableType: InterruptType) -> Bool {

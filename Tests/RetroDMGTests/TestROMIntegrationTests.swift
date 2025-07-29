@@ -61,7 +61,7 @@ struct TestROMIntegrationTests {
             try await Task.sleep(nanoseconds: 16_666_667) // ~60 FPS
         }
         
-        emulator.pause()
+        _ = emulator.pause()
         
         print("Test finished after \(Date().timeIntervalSince(startTime)) seconds")
         print("Result found: \(resultFound)")
