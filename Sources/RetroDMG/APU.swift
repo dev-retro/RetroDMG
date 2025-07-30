@@ -55,17 +55,6 @@ class APU {
     var frameSequencerCounter: Int = 0
 
     public func readRegister(_ address: UInt16) -> UInt8 {
-        if !enabled {
-            switch address {
-                case 0xFF24, 0xFF25, 0xFF26: // NR50, NR51, NR52
-                    break // allow normal handling below
-                case 0xFF30 ... 0xFF3F: // Wave RAM
-                    let index = Int(address - 0xFF30)
-                    return waveRAM[index]
-                default:
-                    return 0x00
-            }
-        }
         switch address {
             case 0xFF10: // NR10: Channel 1 Sweep
                 return NR10 | 0b10000000
@@ -127,7 +116,7 @@ class APU {
     public func writeRegister(_ address: UInt16, _ value: UInt8) {
         if !enabled {
             switch address {
-                case 0xFF24, 0xFF25, 0xFF26: // NR50, NR51, NR52
+                case 0xFF26: // NR52
                     break
                 case 0xFF30 ... 0xFF3F: // Wave RAM
                     let index = Int(address - 0xFF30)
@@ -137,7 +126,6 @@ class APU {
                     return
             }
         }
-
         switch address {
             case 0xFF10: // NR10: Channel 1 Sweep
                 NR10 = value & 0b01111111
