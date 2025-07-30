@@ -132,11 +132,12 @@ class APU {
             case 0xFF11: // NR11: Channel 1 Duty/Length
                 NR11 = value
                 channel1.lengthCounter = 64 - (value & 0b00111111)
-                channel1.updateEnabled()
             case 0xFF12: // NR12: Channel 1 Volume/Envelope
                 NR12 = value
                 channel1.dacEnabled = NR12 & 0b11111000 != 0
-                channel1.updateEnabled()
+                if channel1.enabled {
+                    channel1.updateEnabled()
+                }
             case 0xFF13: // NR13: Channel 1 Frequency Low
                 NR13 = value
             case 0xFF14: // NR14: Channel 1 Frequency High/Control
@@ -149,11 +150,12 @@ class APU {
             case 0xFF16: // NR21: Channel 2 Duty/Length
                 NR21 = value
                 channel2.lengthCounter = 64 - (value & 0b00111111)
-                channel2.updateEnabled()
             case 0xFF17: // NR22: Channel 2 Volume/Envelope
                 NR22 = value
                 channel2.dacEnabled = NR22 & 0b11111000 != 0
-                channel2.updateEnabled()
+                if channel2.enabled {
+                    channel2.updateEnabled()
+                }
             case 0xFF18: // NR23: Channel 2 Frequency Low
                 NR23 = value
             case 0xFF19: // NR24: Channel 2 Frequency High/Control
@@ -166,11 +168,12 @@ class APU {
             case 0xFF1A: // NR30: Channel 3 Enable
                 NR30 = value & 0b10000000
                 channel3.dacEnabled = NR30.get(bit: 7)
-                channel3.updateEnabled()
+                if channel3.enabled {
+                    channel3.updateEnabled()
+                }
             case 0xFF1B: // NR31: Channel 3 Length
                 NR31 = value
                 channel3.lengthCounter = 256 - UInt16(value)
-                channel3.updateEnabled()
             case 0xFF1C: //NR32: Channel 3 Volume
                 NR32 = value & 0b01100000
             case 0xFF1D: // NR33: Channel 3 Frequency Low
@@ -185,11 +188,12 @@ class APU {
             case 0xFF20: // NR41: Channel 4 Length
                 NR41 = value & 0b00111111
                 channel4.lengthCounter = 64 - (value & 0b00111111)
-                channel4.updateEnabled()
             case 0xFF21: // NR42: Channel 4 Volume/Envelope
                 NR42 = value
                 channel4.dacEnabled = NR42 & 0b11111000 != 0
-                channel4.updateEnabled()
+                if channel4.enabled {
+                    channel4.updateEnabled()
+                }
             case 0xFF22: // NR43: Channel 4 Polynomial Counter
                 NR43 = value
             case 0xFF23: // NR44: Channel 4 Control
