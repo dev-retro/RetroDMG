@@ -161,6 +161,7 @@ public class RetroDMG: RetroPlatform {
                         cpu.updateTimer()
                     }
                     cpu.bus.ppu.updateGraphics(cycles: currentCycles)
+                    cpu.bus.apu.tick(cycles: currentCycles)
                     cpu.processInterrupt()
                 }
                 // Wait until the next frame time
