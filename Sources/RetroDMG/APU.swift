@@ -144,14 +144,21 @@ class APU {
                 let wasLengthEnabled = NR14.get(bit: 6)
                 let lengthEnabled = value.get(bit: 6)
                 let trigger = value.get(bit: 7)
+                let originalLengthCounter = channel1.lengthCounter
 
                 // Store the register value first
                 NR14 = value & 0b11000111
 
+                // 1. Length-enable quirk (runs first)
+                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
+                    let shouldApplyQuirk = !trigger || (trigger && originalLengthCounter > 0)
+                    if shouldApplyQuirk && channel1.lengthCounter > 0 {
+                        channel1.lengthCounter -= 1
+                    }
+                }
+                // 2. Trigger event (runs after quirk, so it can reload length)
                 if trigger {
                     if channel1.lengthCounter == 0 {
-                        // If triggering on a non-length-clocking step (odd steps 1,3,5,7)
-                        // AND length is being enabled, set to 63 instead of 64
                         if frameSequencerStep % 2 == 1 && lengthEnabled {
                             channel1.lengthCounter = 63
                         } else {
@@ -159,23 +166,9 @@ class APU {
                         }
                     }
                     // TODO: Reset envelope, sweep
+                    channel1.enabled = channel1.dacEnabled && channel1.lengthCounter > 0 && !channel1.sweepOverflowed
+                } else {
                     channel1.updateEnabled()
-                }
-                
-                // Length-enable quirk: if length was previously disabled and now enabled
-                // on a frame sequencer step that DOESN'T clock length (odd steps 1,3,5,7),
-                // then immediately clock the length counter
-                // This quirk applies even when triggering, UNLESS we just reloaded the length counter above
-                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
-                    // Only apply if we either didn't trigger, OR if we triggered but didn't reload (length wasn't 0)
-                    if (!trigger || (trigger && channel1.lengthCounter != 64 && channel1.lengthCounter != 63)) {
-                        if channel1.lengthCounter > 0 {
-                            channel1.lengthCounter -= 1
-                            if channel1.lengthCounter == 0 {
-                                channel1.updateEnabled()
-                            }
-                        }
-                    }
                 }
             case 0xFF16: // NR21: Channel 2 Duty/Length
                 NR21 = value
@@ -192,14 +185,19 @@ class APU {
                 let wasLengthEnabled = NR24.get(bit: 6)
                 let lengthEnabled = value.get(bit: 6)
                 let trigger = value.get(bit: 7)
+                let originalLengthCounter = channel2.lengthCounter
 
                 // Store the register value first
                 NR24 = value & 0b11000111
 
+                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
+                    let shouldApplyQuirk = !trigger || (trigger && originalLengthCounter > 0)
+                    if shouldApplyQuirk && channel2.lengthCounter > 0 {
+                        channel2.lengthCounter -= 1
+                    }
+                }
                 if trigger {
                     if channel2.lengthCounter == 0 {
-                        // If triggering on a non-length-clocking step (odd steps 1,3,5,7)
-                        // AND length is being enabled, set to 63 instead of 64
                         if frameSequencerStep % 2 == 1 && lengthEnabled {
                             channel2.lengthCounter = 63
                         } else {
@@ -207,23 +205,9 @@ class APU {
                         }
                     }
                     // TODO: Reset envelope
+                    channel2.enabled = channel2.dacEnabled && channel2.lengthCounter > 0
+                } else {
                     channel2.updateEnabled()
-                }
-                
-                // Length-enable quirk: if length was previously disabled and now enabled
-                // on a frame sequencer step that DOESN'T clock length (odd steps 1,3,5,7),
-                // then immediately clock the length counter
-                // This quirk applies even when triggering, UNLESS we just reloaded the length counter above
-                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
-                    // Only apply if we either didn't trigger, OR if we triggered but didn't reload (length wasn't 0)
-                    if (!trigger || (trigger && channel2.lengthCounter != 64 && channel2.lengthCounter != 63)) {
-                        if channel2.lengthCounter > 0 {
-                            channel2.lengthCounter -= 1
-                            if channel2.lengthCounter == 0 {
-                                channel2.updateEnabled()
-                            }
-                        }
-                    }
                 }
             case 0xFF1A: // NR30: Channel 3 Enable
                 NR30 = value & 0b10000000
@@ -242,37 +226,29 @@ class APU {
                 let wasLengthEnabled = NR34.get(bit: 6)
                 let lengthEnabled = value.get(bit: 6)
                 let trigger = value.get(bit: 7)
+                let originalLengthCounter = channel3.lengthCounter
 
                 // Store the register value first
                 NR34 = value & 0b11000111
 
+                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
+                    let shouldApplyQuirk = !trigger || (trigger && originalLengthCounter > 0)
+                    if shouldApplyQuirk && channel3.lengthCounter > 0 {
+                        channel3.lengthCounter -= 1
+                    }
+                }
                 if trigger {
                     if channel3.lengthCounter == 0 {
-                        // If triggering on a non-length-clocking step (odd steps 1,3,5,7)
-                        // AND length is being enabled, set to 255 instead of 256 for wave channel
                         if frameSequencerStep % 2 == 1 && lengthEnabled {
                             channel3.lengthCounter = 255
                         } else {
                             channel3.lengthCounter = 256
                         }
                     }
+                    // TODO: Reset wave position
+                    channel3.enabled = channel3.dacEnabled && channel3.lengthCounter > 0
+                } else {
                     channel3.updateEnabled()
-                }
-                
-                // Length-enable quirk: if length was previously disabled and now enabled
-                // on a frame sequencer step that DOESN'T clock length (odd steps 1,3,5,7),
-                // then immediately clock the length counter
-                // This quirk applies even when triggering, UNLESS we just reloaded the length counter above
-                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
-                    // Only apply if we either didn't trigger, OR if we triggered but didn't reload (length wasn't 0)
-                    if (!trigger || (trigger && channel3.lengthCounter != 256 && channel3.lengthCounter != 255)) {
-                        if channel3.lengthCounter > 0 {
-                            channel3.lengthCounter -= 1
-                            if channel3.lengthCounter == 0 {
-                                channel3.updateEnabled()
-                            }
-                        }
-                    }
                 }
             case 0xFF20: // NR41: Channel 4 Length
                 NR41 = value & 0b00111111
@@ -289,38 +265,29 @@ class APU {
                 let wasLengthEnabled = NR44.get(bit: 6)
                 let lengthEnabled = value.get(bit: 6)
                 let trigger = value.get(bit: 7)
+                let originalLengthCounter = channel4.lengthCounter
 
                 // Store the register value first
                 NR44 = value & 0b11000000
 
+                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
+                    let shouldApplyQuirk = !trigger || (trigger && originalLengthCounter > 0)
+                    if shouldApplyQuirk && channel4.lengthCounter > 0 {
+                        channel4.lengthCounter -= 1
+                    }
+                }
                 if trigger {
                     if channel4.lengthCounter == 0 {
-                        // If triggering on a non-length-clocking step (odd steps 1,3,5,7)
-                        // AND length is being enabled, set to 63 instead of 64
                         if frameSequencerStep % 2 == 1 && lengthEnabled {
                             channel4.lengthCounter = 63
                         } else {
                             channel4.lengthCounter = 64
                         }
                     }
-                    // TODO: Reset envelope
+                    // TODO: Reset envelope, LFSR
+                    channel4.enabled = channel4.dacEnabled && channel4.lengthCounter > 0
+                } else {
                     channel4.updateEnabled()
-                }
-                
-                // Length-enable quirk: if length was previously disabled and now enabled
-                // on a frame sequencer step that DOESN'T clock length (odd steps 1,3,5,7),
-                // then immediately clock the length counter
-                // This quirk applies even when triggering, UNLESS we just reloaded the length counter above
-                if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
-                    // Only apply if we either didn't trigger, OR if we triggered but didn't reload (length wasn't 0)
-                    if (!trigger || (trigger && channel4.lengthCounter != 64 && channel4.lengthCounter != 63)) {
-                        if channel4.lengthCounter > 0 {
-                            channel4.lengthCounter -= 1
-                            if channel4.lengthCounter == 0 {
-                                channel4.updateEnabled()
-                            }
-                        }
-                    }
                 }
             case 0xFF24: // NR50: Channel Volume Control
                 NR50 = value
