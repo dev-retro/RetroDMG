@@ -141,7 +141,19 @@ class APU {
         }
         switch address {
             case 0xFF10: // NR10: Channel 1 Sweep
+                let oldNR10 = NR10
                 NR10 = value & 0b01111111
+                let sweepPeriod = (NR10 >> 4) & 0b111
+                let sweepShift = NR10 & 0b00000111
+                channel1.sweepEnabled = (sweepShift != 0)
+                print("[TEST3] NR10 write: period=\(sweepPeriod), shift=\(sweepShift), sweepEnabled=\(channel1.sweepEnabled)")
+                let oldDirection = (oldNR10 & 0b1000) != 0
+                let newDirection = (NR10 & 0b1000) != 0
+                if oldDirection && !newDirection && channel1.sweepNegateUsed && channel1.enabled {
+                    print("[TEST3] Channel 1 disabled by NR10 negate quirk")
+                    channel1.sweepOverflowed = true
+                    channel1.enabled = false
+                }
             case 0xFF11: // NR11: Channel 1 Duty/Length
                 NR11 = value
                 channel1.lengthCounter = 64 - (value & 0b00111111)
@@ -159,10 +171,8 @@ class APU {
                 let trigger = value.get(bit: 7)
                 let originalLengthCounter = channel1.lengthCounter
 
-                // Store the register value first
                 NR14 = value & 0b11000111
 
-                // 1. Length-enable quirk (runs first)
                 var decrementedToZero = false
                 if !wasLengthEnabled && lengthEnabled && (frameSequencerStep % 2 == 1) {
                     let shouldApplyQuirk = !trigger || (trigger && originalLengthCounter > 0)
@@ -173,11 +183,9 @@ class APU {
                         }
                     }
                 }
-                // If the quirk decremented to zero and trigger is clear, disable the channel immediately
                 if decrementedToZero {
                     channel1.enabled = false
                 }
-                // 2. Trigger event (runs after quirk, so it can reload length)
                 if trigger {
                     if channel1.lengthCounter == 0 {
                         if frameSequencerStep % 2 == 1 && lengthEnabled {
@@ -186,31 +194,22 @@ class APU {
                             channel1.lengthCounter = 64
                         }
                     }
-                    // Reset envelope
                     channel1.envelopeVolume = (NR12 >> 4) & 0xF
                     let envelopePeriod = NR12 & 0b111
                     channel1.envelopeTimer = envelopePeriod == 0 ? 8 : envelopePeriod
-                    // Copy current frequency to shadow register FIRST
                     channel1.shadowFrequency = UInt16((UInt16(NR14 & 0b111) << 8) | UInt16(NR13))
-                    let sweepPeriod = channel1.sweepPeriod(NR10)
-                    let sweepShift = channel1.sweepShift(NR10)
-                    let rawPeriod = (NR10 >> 4) & 0b111
-                    // Set sweepEnabled only if period > 0 or shift > 0
-                    channel1.sweepEnabled = (rawPeriod != 0 || sweepShift != 0)
-                    // Always reload sweep timer on trigger (period==0 means 8)
-                    channel1.sweepTimer = sweepPeriod
                     channel1.sweepOverflowed = false
                     channel1.sweepNegateUsed = false
-                    // Only perform overflow check on trigger if sweep shift is not zero
-                    if sweepShift != 0 {
-                        print("[SWEEP][TRIGGER] Calling performSweepCalculation on trigger (shift=", sweepShift, ")")
+                    let sweepPeriod = channel1.sweepPeriod(NR10)
+                    let sweepShift = channel1.sweepShift(NR10)
+                    channel1.sweepEnabled = (sweepShift != 0)
+                    if channel1.sweepEnabled {
+                        channel1.sweepTimer = sweepPeriod
                         let _ = performSweepCalculation(updateRegisters: false, forceCheck: true)
                     } else {
-                        print("[SWEEP][TRIGGER] NOT calling performSweepCalculation on trigger (shift=0) -- CORRECT: no calculation performed")
-                        // Do not call performSweepCalculation at all if shift==0 (matches hardware)
+                        channel1.sweepTimer = 0
                     }
                     channel1.enabled = channel1.dacEnabled && channel1.lengthCounter > 0 && !channel1.sweepOverflowed
-                    print("[SWEEP][TRIGGER] After trigger: enabled=\(channel1.enabled), dacEnabled=\(channel1.dacEnabled), lengthCounter=\(channel1.lengthCounter), sweepOverflowed=\(channel1.sweepOverflowed), sweepEnabled=\(channel1.sweepEnabled), sweepTimer=\(channel1.sweepTimer), shift=\(sweepShift), period=\(rawPeriod)")
                 } else if !decrementedToZero {
                     channel1.updateEnabled()
                 }
@@ -255,7 +254,9 @@ class APU {
                             channel2.lengthCounter = 64
                         }
                     }
-                    // TODO: Reset envelope
+                    // Initialize envelope
+                    channel2.envelopeVolume = (NR22 >> 4) & 0b1111
+                    channel2.envelopeTimer = (NR22 & 0b111) == 0 ? 8 : (NR22 & 0b111)
                     channel2.enabled = channel2.dacEnabled && channel2.lengthCounter > 0
                 } else if !decrementedToZero {
                     channel2.updateEnabled()
@@ -303,7 +304,8 @@ class APU {
                             channel3.lengthCounter = 256
                         }
                     }
-                    // TODO: Reset wave position
+                    // Reset wave position to 0
+                    channel3.wavePosition = 0
                     channel3.enabled = channel3.dacEnabled && channel3.lengthCounter > 0
                 } else if !decrementedToZero {
                     channel3.updateEnabled()
@@ -349,7 +351,11 @@ class APU {
                             channel4.lengthCounter = 64
                         }
                     }
-                    // TODO: Reset envelope, LFSR
+                    // Initialize envelope and LFSR
+                    channel4.envelopeVolume = (NR42 >> 4) & 0b1111
+                    channel4.envelopeTimer = (NR42 & 0b111) == 0 ? 8 : (NR42 & 0b111)
+                    // Reset LFSR to all bits set
+                    channel4.lfsrState = 0x7FFF
                     channel4.enabled = channel4.dacEnabled && channel4.lengthCounter > 0
                 } else if !decrementedToZero {
                     channel4.updateEnabled()
@@ -402,11 +408,14 @@ class APU {
         channel2.enabled = false
         channel3.enabled = false
         channel4.enabled = false
+
+        // Resets all registers and disables all channels
     }
 
     func tick(cycles: UInt16) {
         guard enabled else { return }
         frameSequencerCounter += Int(cycles)
+        let prevCounter = frameSequencerCounter
         while frameSequencerCounter >= 8192 {
             frameSequencerCounter -= 8192
             stepFrameSequencer()
@@ -424,25 +433,70 @@ class APU {
         }
         // Step 7: clock envelope (proper timer logic)
         if frameSequencerStep == 7 {
-            let envelopePeriod = NR12 & 0b111
-            let envelopeDirection = (NR12 & 0b1000) != 0 // true = increase
-            if envelopePeriod != 0 && channel1.enabled {
+            // Channel 1 envelope
+            let envelopePeriod1 = NR12 & 0b111
+            let envelopeDirection1 = (NR12 & 0b1000) != 0 // true = increase
+            if envelopePeriod1 != 0 && channel1.enabled {
                 if channel1.envelopeTimer > 0 {
                     channel1.envelopeTimer -= 1
                 }
                 if channel1.envelopeTimer == 0 {
-                    if !envelopeDirection {
+                    if !envelopeDirection1 {
                         // Decrease
                         if channel1.envelopeVolume > 0 {
                             channel1.envelopeVolume -= 1
                         }
                     } else {
-                        // Increase (not needed for this test)
+                        // Increase
                         if channel1.envelopeVolume < 15 {
                             channel1.envelopeVolume += 1
                         }
                     }
-                    channel1.envelopeTimer = envelopePeriod == 0 ? 8 : envelopePeriod
+                    channel1.envelopeTimer = envelopePeriod1 == 0 ? 8 : envelopePeriod1
+                }
+            }
+            // Channel 2 envelope  
+            let envelopePeriod2 = NR22 & 0b111
+            let envelopeDirection2 = (NR22 & 0b1000) != 0 // true = increase
+            if envelopePeriod2 != 0 && channel2.enabled {
+                if channel2.envelopeTimer > 0 {
+                    channel2.envelopeTimer -= 1
+                }
+                if channel2.envelopeTimer == 0 {
+                    if !envelopeDirection2 {
+                        // Decrease
+                        if channel2.envelopeVolume > 0 {
+                            channel2.envelopeVolume -= 1
+                        }
+                    } else {
+                        // Increase
+                        if channel2.envelopeVolume < 15 {
+                            channel2.envelopeVolume += 1
+                        }
+                    }
+                    channel2.envelopeTimer = envelopePeriod2 == 0 ? 8 : envelopePeriod2
+                }
+            }
+            // Channel 4 envelope
+            let envelopePeriod4 = NR42 & 0b111
+            let envelopeDirection4 = (NR42 & 0b1000) != 0 // true = increase
+            if envelopePeriod4 != 0 && channel4.enabled {
+                if channel4.envelopeTimer > 0 {
+                    channel4.envelopeTimer -= 1
+                }
+                if channel4.envelopeTimer == 0 {
+                    if !envelopeDirection4 {
+                        // Decrease
+                        if channel4.envelopeVolume > 0 {
+                            channel4.envelopeVolume -= 1
+                        }
+                    } else {
+                        // Increase
+                        if channel4.envelopeVolume < 15 {
+                            channel4.envelopeVolume += 1
+                        }
+                    }
+                    channel4.envelopeTimer = envelopePeriod4 == 0 ? 8 : envelopePeriod4
                 }
             }
             // Never enable or disable the channel here; only length counter, sweep, or DAC-off can disable. Length counter always has final say.
@@ -457,18 +511,18 @@ class APU {
             }
             if channel1.sweepTimer == 0 {
                 let sweepShift = channel1.sweepShift(NR10)
-                print("[SWEEP] clockSweepUnit: sweepEnabled=\(channel1.sweepEnabled), sweepShift=\(sweepShift), timer=\(channel1.sweepTimer)")
-                // Only perform sweep calculation if sweep shift is not zero
+                let sweepPeriod = channel1.sweepPeriod(NR10)
                 if sweepShift != 0 {
-                    print("[SWEEP] Performing sweep calculation on sweep tick (shift=\(sweepShift))")
-                    if performSweepCalculation(updateRegisters: true) {
-                        // If overflow, channel1.sweepOverflowed will be set
-                    }
+                    let overflowed = performSweepCalculation(updateRegisters: true)
                 } else {
-                    print("[SWEEP] Skipping sweep calculation on sweep tick (shift=0)")
                 }
-                channel1.sweepTimer = channel1.sweepPeriod(NR10)
+                channel1.sweepTimer = sweepPeriod
             }
+        }
+        // Handle delayed sweep overflow disables
+        if channel1.pendingDisable {
+            channel1.enabled = false
+            channel1.pendingDisable = false
         }
     }
 
@@ -478,48 +532,51 @@ class APU {
         let direction = channel1.sweepDirection(NR10)
         let freq = channel1.shadowFrequency
         var newFreq: UInt16
-        print("[SWEEP] performSweepCalculation: shift=\(shift), direction=\(direction), freq=\(freq), forceCheck=\(forceCheck)")
-        if shift == 0 && !forceCheck {
-            print("[SWEEP] performSweepCalculation: shift=0 and not forceCheck, returning false")
+        if shift == 0 {
+            return false
+        }
+        if freq == 0 {
             return false
         }
         if direction {
-            // Subtract
-            newFreq = freq &- (freq >> shift)
+            let delta = freq >> shift
+            newFreq = freq &- delta
             channel1.sweepNegateUsed = true
         } else {
-            // Add
-            newFreq = freq &+ (freq >> shift)
+            let delta = freq >> shift
+            newFreq = freq &+ delta
         }
         if newFreq > 2047 {
-            print("[SWEEP] performSweepCalculation: overflow, disabling channel")
             channel1.sweepOverflowed = true
             channel1.enabled = false
+            channel1.pendingDisable = false
             return true
         }
-        if updateRegisters && shift != 0 {
+        if updateRegisters {
             channel1.shadowFrequency = newFreq
             NR13 = UInt8(newFreq & 0xFF)
             NR14 = (NR14 & 0b11111000) | UInt8((newFreq >> 8) & 0b111)
-            // Second calculation for overflow check (do not write back)
+            if newFreq == 0 {
+                return false
+            }
+            let secondDelta = newFreq >> shift
             let secondFreq: UInt16
             if direction {
-                secondFreq = newFreq &- (newFreq >> shift)
+                secondFreq = newFreq &- secondDelta
             } else {
-                secondFreq = newFreq &+ (newFreq >> shift)
+                secondFreq = newFreq &+ secondDelta
             }
             if secondFreq > 2047 {
-                print("[SWEEP] performSweepCalculation: second overflow, disabling channel")
                 channel1.sweepOverflowed = true
                 channel1.enabled = false
+                channel1.pendingDisable = false
                 return true
             }
         }
-        // Direction bit quirk: if direction changes from subtract to add after a subtract, disable
         if !direction && channel1.sweepNegateUsed {
-            print("[SWEEP] performSweepCalculation: direction quirk, disabling channel")
             channel1.sweepOverflowed = true
             channel1.enabled = false
+            channel1.pendingDisable = false
             return true
         }
         return false
@@ -529,10 +586,8 @@ class APU {
         // Channel 1
         if NR14.get(bit: 6) && channel1.lengthCounter > 0 {
             channel1.lengthCounter -= 1
-            print("[LENGTH] Channel 1 decremented: lengthCounter=\(channel1.lengthCounter)")
             if channel1.lengthCounter == 0 {
-                channel1.enabled = false // Only length counter disables
-                print("[LENGTH] Channel 1 disabled by length counter: enabled=\(channel1.enabled)")
+                channel1.enabled = false
             }
         }
         // Channel 2
@@ -570,6 +625,7 @@ class APU {
         // Envelope
         var envelopeTimer: UInt8 = 0
         var envelopeVolume: UInt8 = 0
+        var pendingDisable: Bool = false // For delayed sweep overflow disable
 
         func sweepPeriod(_ NR10: UInt8) -> UInt8 {
             let period = (NR10 >> 4) & 0b111
@@ -593,6 +649,9 @@ class APU {
         var enabled: Bool = false
         var lengthCounter: UInt8 = 0
         var dacEnabled: Bool = false
+        // Envelope
+        var envelopeTimer: UInt8 = 0
+        var envelopeVolume: UInt8 = 0
 
         func updateEnabled() {
             enabled = lengthCounter > 0 && dacEnabled
@@ -603,6 +662,7 @@ class APU {
         var enabled: Bool = false
         var lengthCounter: UInt16 = 0
         var dacEnabled: Bool = false
+        var wavePosition: UInt8 = 0
 
         func updateEnabled() {
             enabled = lengthCounter > 0 && dacEnabled
@@ -613,6 +673,11 @@ class APU {
         var enabled: Bool = false
         var lengthCounter: UInt8 = 0
         var dacEnabled: Bool = false
+        // Envelope
+        var envelopeTimer: UInt8 = 0
+        var envelopeVolume: UInt8 = 0
+        // LFSR
+        var lfsrState: UInt16 = 0x7FFF
 
         func updateEnabled() {
             enabled = lengthCounter > 0 && dacEnabled
