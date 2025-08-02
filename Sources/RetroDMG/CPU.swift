@@ -630,7 +630,7 @@ class CPU {
             }
         } else if state == .Halted {
             cycles = cycles.addingReportingOverflow(4).partialValue
-        }
+        } 
         return cycles
     }
     
