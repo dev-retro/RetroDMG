@@ -42,3 +42,4 @@ xcuserdata/
 /TestOutputs/
 
 Tests/RetroDMGTests/Resources
+.vscode/settings.json
