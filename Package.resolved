@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/dev-retro/RetroKit.git",
       "state" : {
-        "revision" : "c04c2fdd7eca92068aeeea692f624ba328f18a34",
-        "version" : "0.1.2"
+        "revision" : "4fa11dc4371283e24b1212053d1cf6ed947112c3",
+        "version" : "0.1.3"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-docc-plugin",
       "state" : {
-        "revision" : "85e4bb4e1cd62cec64a4b8e769dcefdf0c5b9d64",
-        "version" : "1.4.3"
+        "revision" : "3e4f133a77e644a5812911a0513aeb7288b07d06",
+        "version" : "1.4.5"
       }
     },
     {
@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-syntax.git",
       "state" : {
-        "revision" : "0687f71944021d616d34d922343dcef086855920",
-        "version" : "600.0.1"
+        "revision" : "21b3b45635decd1a0b89968f81b6d9a93128f773",
+        "version" : "602.0.0-prerelease-2025-08-11"
       }
     },
     {
@@ -42,7 +42,7 @@
       "location" : "https://github.com/swiftlang/swift-testing.git",
       "state" : {
         "branch" : "main",
-        "revision" : "3a537b8f4b590ae868e563276b7d45d0503034e3"
+        "revision" : "adcec53754a46178e56937ecacd1a8b0c608e034"
       }
     }
   ],
