@@ -24,3 +24,46 @@ load the swift package and run either the `RetroDMGApp` or `RetroDMGApp (Release
 
 To run use either the `Debug RetroDMGApp (Full Build)` or `Release RetroDMGApp (Full Build)` launch configurations
 
+
+
+## C FFI
+
+RetroDMG exposes a small, stable C ABI for non-Swift consumers.
+
+- Header: `FFI/RetroDMGFFI.h`
+- Symbols are exported from the dynamic library product `RetroDMG`.
+
+Quick example (C):
+
+```c
+#include "RetroDMGFFI.h"
+
+int main(void) {
+	uint64_t h = retrodmg_create();
+	char *name = retrodmg_name(h);
+	// ... use name
+	retrodmg_string_free(name);
+
+	// load ROM bytes, e.g. from file
+	// retrodmg_load_rom(h, romData, romLen);
+
+	retrodmg_start(h);
+
+	int pixels = 160*144;
+	int32_t *fb = (int32_t*)malloc(sizeof(int32_t)*pixels);
+	retrodmg_viewport_copy(h, fb, pixels);
+	free(fb);
+
+	retrodmg_destroy(h);
+	return 0;
+}
+```
+
+Build steps (macOS, fish shell):
+
+```fish
+swift build -c release
+```
+
+Link your app against the produced `libRetroDMG.dylib` and include `FFI/RetroDMGFFI.h`.
+

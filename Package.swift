@@ -30,13 +30,22 @@ let package = Package(
         .target(
             name: "RetroDMG", dependencies: [
                 .product(name: "RetroKit", package: "RetroKit")
-            ]),
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug)),
+                .unsafeFlags(["-Onone", "-g"], .when(configuration: .debug))
+            ]
+        ),
         .executableTarget(
             name: "RetroDMGApp",
             dependencies: ["RetroDMG"],
             resources: [
                 .copy("default.metallib"),
                 .process("platforms/macOS/Shaders/Shaders.metal")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug)),
+                .unsafeFlags(["-Onone", "-g"], .when(configuration: .debug))
             ]
         ),
         .testTarget(
