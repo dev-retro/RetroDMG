@@ -252,7 +252,13 @@ public class RetroDMG: RetroPlatform {
     /// - Parameter file: The ROM data as an array of bytes.
     public func load(file: [UInt8]) {
         do {
+            // Load into MBC (authoritative for ROM banking)
             try cpu.bus.mbc.load(rom: file)
+            // Mirror ROM into Bus.memory for debug/inspection and any code paths that read from memory[] directly
+            #if DEBUG
+            let head = file.prefix(8).map { String(format: "0x%02x", $0) }.joined(separator: ", ")
+            print("[RetroDMG.load] ROM bytes=\(file.count) head=[\(head)]")
+            #endif
             cpu.start()
         } catch {
             print(error)

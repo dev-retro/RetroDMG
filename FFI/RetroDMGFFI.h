@@ -25,12 +25,12 @@ int32_t retrodmg_pause(uint64_t handle);
 int32_t retrodmg_stop(uint64_t handle);
 
 // ROM / Settings
-void retrodmg_load_rom(uint64_t handle, const uint8_t* data, int length);
-void retrodmg_set_bios(uint64_t handle, const uint8_t* data, int length);
+void retrodmg_load_rom(uint64_t handle, const uint8_t* data, size_t length);
+void retrodmg_set_bios(uint64_t handle, const uint8_t* data, size_t length);
 
 // Save Data
-void   retrodmg_load_save_data(uint64_t handle, const uint8_t* data, int length);
-int32_t retrodmg_get_save_data(uint64_t handle, uint8_t** outData, int* outLength);
+void   retrodmg_load_save_data(uint64_t handle, const uint8_t* data, size_t length);
+int32_t retrodmg_get_save_data(uint64_t handle, uint8_t** outData, size_t* outLength);
 
 // Inputs
 int32_t retrodmg_input_count(uint64_t handle);

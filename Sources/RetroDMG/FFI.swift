@@ -250,30 +250,10 @@ public func retrodmg_viewport_copy(_ handle: UInt64, _ outPixels: UnsafeMutableP
     let viewport = inst.viewPort()
     let count = viewport.count
     guard outPixelCount >= Int32(count) else { return 0 }
-    // Debug: print summary + full viewport hex dump to stdout for in-process inspection
-    do {
-        let total = viewport.count
-        var summary = "count:\(total)"
-        if total > 0 {
-            let headCount = min(8, total)
-            let tailCount = min(8, total - headCount)
-            var head: [String] = []
-            for i in 0..<headCount { head.append(String(format: "0x%08x", UInt32(truncatingIfNeeded: viewport[i]))) }
-            var tail: [String] = []
-            if tailCount > 0 {
-                for i in (total - tailCount)..<total { tail.append(String(format: "0x%08x", UInt32(truncatingIfNeeded: viewport[i]))) }
-            }
-            summary += " head:[\(head.joined(separator: ", "))]"
-            if tail.count > 0 { summary += " tail:[\(tail.joined(separator: ", "))]" }
-        }
-        print("[retrodmg_viewport_copy] \(summary)")
-
-        // Full dump (may be large) — print as comma-separated hex values on a single line
-        var all: [String] = []
-        all.reserveCapacity(viewport.count)
-        for v in viewport { all.append(String(format: "0x%08x", UInt32(truncatingIfNeeded: v))) }
-        print("[retrodmg_viewport_copy] full:\(all.joined(separator: ", "))")
-    }
+    // Lightweight diagnostic: report if any pixel is non-zero (avoid huge dumps)
+    var anyNonZero = false
+    for v in viewport { if v != 0 { anyNonZero = true; break } }
+    print("[retrodmg_viewport_copy] anyNonZero=\(anyNonZero) count=\(count)")
     for i in 0..<count {
         outPixels[i] = Int32(truncatingIfNeeded: viewport[i])
     }
