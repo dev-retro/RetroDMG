@@ -34,6 +34,8 @@ class Bus {
     public var debug = false
     /// Main cartridge MBC (handles ROM/RAM banking)
     public var mbc: MBC
+    /// Main APU instance (handles audio)
+    public var apu: APU
 
     // --- Interrupt registers ---
     /// Interrupt enable register (IE, 0xFFFF)
@@ -78,6 +80,7 @@ class Bus {
         interruptFlag = 0x00
         ppu = PPU()
         mbc = MBC()
+        apu = APU()
         div = 0x0000
         tac = 0x00
         tima = 0x00
@@ -152,6 +155,8 @@ class Bus {
             tac = value
         } else if location == 0xFF0F {
             interruptFlag = value & 0b00011111
+        } else if location >= 0xFF10 && location <= 0xFF3F {
+            apu.write(register: location, value: value)
         } else if location == 0xFF40 {
             // PPU control register 
             ppu.control = value
@@ -373,6 +378,10 @@ class Bus {
             
             if location == 0xFF0F {
                 return interruptFlag
+            }
+            
+            if location >= 0xFF10 && location <= 0xFF3F {
+                return apu.read(register: UInt16(location))
             }
             
             if location == 0xFF40 {
