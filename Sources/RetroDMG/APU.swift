@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  APU.swift
 //  RetroDMG
 //
 //  Created by Glenn Hevey on 30/8/2025.
@@ -8,6 +8,8 @@
 import Foundation
 
 class APU {
+    private var sampleBuffer: [Int] = []
+    
     /// Channel 1 (Sweep + Square)
     var NR10: UInt8
     var NR11: UInt8
@@ -41,6 +43,8 @@ class APU {
     
     /// Wave RAM
     var waveRAM: [UInt8]
+
+    private var frameSequencer: FrameSequencer = FrameSequencer()
     
     init() {
         /// Channel 1
@@ -244,6 +248,55 @@ class APU {
     }
     
     func tick(cycles: UInt16) {
-        
+        guard NR52.get(bit: 7) else { return }
+        frameSequencer.tick(cycles: Int(cycles),
+                        length: { self.clockLength() },
+                        sweep:  { self.clockSweep() },
+                        envelope: { self.clockEnvelope() })
+    }
+    
+    func getSample() -> [Int] {
+        return sampleBuffer
+    }
+
+    private func clockLength() {
+        print("length")
+    }
+
+    private func clockSweep() {
+        print("sweep")
+    }
+
+    private func clockEnvelope() {
+        print("envelope")
+    }
+
+    struct FrameSequencer {
+        let period: Int = 8192
+        private(set) var step: Int = 0
+        private var accumulator: Int = 0
+
+        mutating func tick(cycles: Int, length: () -> Void, sweep: () -> Void, envelope: () -> Void) {
+            accumulator += cycles
+            while accumulator >= period {
+                accumulator -= period
+                // Dispatch actions
+                switch step {
+                case 0,2,4,6:
+                    length()
+                    if step == 2 || step == 6 { sweep() }
+                case 7:
+                    envelope()
+                default: break
+                }
+            
+            step = (step + 1) & 7
+            }
+        }
+
+        mutating func reset() {
+            step = 0
+            accumulator = 0
+        }
     }
 }
