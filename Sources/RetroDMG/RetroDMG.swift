@@ -21,6 +21,7 @@ import Foundation
 /// emulator.update(inputs: myInputs)
 /// emulator.pause()
 /// ```
+@Observable
 public class RetroDMG: RetroPlatform {
     /// The display name of the platform.
     public var name = "Nintendo Game Boy"
