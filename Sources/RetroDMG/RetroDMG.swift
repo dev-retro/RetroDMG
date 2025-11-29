@@ -36,6 +36,8 @@ public class RetroDMG: RetroPlatform {
     public var platformDescription = "Retro platform library for the Nintendo Game Boy"
     /// The current debug state, including registers and input.
     public var debugState: any RetroState
+    /// Settings
+    public var settings: any RetroSettings
     
     var cpu: CPU
     var inputs: [RetroInput]
@@ -56,6 +58,8 @@ public class RetroDMG: RetroPlatform {
             RetroInput("Start"),
             RetroInput("Select")
         ]
+        
+        self.settings = RetroDMGSettings()
         
         self.debugState = DMGState()
         
@@ -95,15 +99,10 @@ public class RetroDMG: RetroPlatform {
         self.inputs = inputs
     }
     
-    /// Updates emulator settings, such as BIOS configuration.
-    ///
-    /// - Parameter settings: A type conforming to `RetroSettings`.
-    public func update(settings: some RetroSettings) {
-        if let settings = settings as? DMGSettings {
-            if let bios = settings.bioSetting.value {
-                cpu.bus.write(bootrom: bios)
-            }
-        }
+    /// Update settings
+    public func update(settings: any RetroSettings) {
+        var settings = settings as! RetroDMGSettings
+        self.settings = settings
     }
     
     /// Starts the emulation loop.
@@ -187,6 +186,15 @@ public class RetroDMG: RetroPlatform {
             }
         }
     }
+    
+    func updateSettings() {
+        let settings = self.settings as! RetroDMGSettings
+        if let bios = settings.biosSetting.value {
+            cpu.bus.write(bootrom: bios)
+        } else {
+            cpu.bus.bootromLoaded = false
+        }
+    }
 
     func updateState() {
         let state = debugState as! DMGState
@@ -223,13 +231,6 @@ public class RetroDMG: RetroPlatform {
         debugState = state
     }
     
-    /// Lists available emulator settings as a string (reserved for future use).
-    ///
-    /// - Throws: May throw in future implementations.
-    /// - Returns: An empty string (reserved).
-    public func listSettings() throws -> String {
-        return ""
-    }
     
     func checkInput() {
         for (index, input) in inputs.enumerated() {
@@ -259,6 +260,7 @@ public class RetroDMG: RetroPlatform {
             let head = file.prefix(8).map { String(format: "0x%02x", $0) }.joined(separator: ", ")
             print("[RetroDMG.load] ROM bytes=\(file.count) head=[\(head)]")
             #endif
+            updateSettings()
             cpu.start()
         } catch {
             print(error)

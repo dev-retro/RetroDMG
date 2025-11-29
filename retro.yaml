@@ -1,0 +1,6 @@
+name: RetroDMG
+description: Retro platform library for the Nintendo Game Boy
+author:
+  - name: Glenn Hevey
+    email: glenn.hevey@gmail.com
+version: 0.0.1
