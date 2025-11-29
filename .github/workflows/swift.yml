@@ -26,7 +26,7 @@ jobs:
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2.3.0
       with:
-        swift-version: '6.1.0'
+        swift-version: '6.2.0'
 
     # - name: Download GameBoy Test ROMs
     #   run: bash scripts/DownloadTestROMs.sh
