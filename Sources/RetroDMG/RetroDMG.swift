@@ -22,7 +22,7 @@ import Foundation
 /// emulator.pause()
 /// ```
 @Observable
-public class RetroDMG: RetroPlatform {
+public class RetroDMG {
     /// The display name of the platform.
     public var name = "Nintendo Game Boy"
     /// A description of the platform.
@@ -38,7 +38,7 @@ public class RetroDMG: RetroPlatform {
     /// The current debug state, including registers and input.
     public var debugState: any RetroState
     /// Settings
-    public var settings: any RetroSettings
+    public var settings: RetroDMGSettings
     
     var cpu: CPU
     var inputs: [RetroInput]
