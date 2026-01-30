@@ -17,7 +17,7 @@ let package = Package(
             targets: ["RetroDMG"]),
     ],
     dependencies: [
-        .package(path: "../RetroKit"),
+        .package(url: "https://github.com/dev-retro/RetroKit", from: "0.1.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
         .package(url: "https://github.com/swiftlang/swift-testing.git", branch: "main")
     ],
