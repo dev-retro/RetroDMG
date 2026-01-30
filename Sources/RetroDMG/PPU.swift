@@ -23,8 +23,6 @@ class PPU {
     var tileData: [UInt8] = [UInt8](repeating: 0, count: 0x1800) // 0x8000-0x97FF
     var tilemap9800: [UInt8] = [UInt8](repeating: 0, count: 0x400) // 0x9800-0x9BFF
     var tilemap9C00: [UInt8] = [UInt8](repeating: 0, count: 0x400) // 0x9C00-0x9FFF
-    /// Debug flag (should be set from CPU debug option)
-    var debugEnabled: Bool = false
     /// Reference to system bus for VRAM access
     weak var bus: Bus?
     /// OAM (Object Attribute Memory, 40 sprites)

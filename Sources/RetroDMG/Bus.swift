@@ -30,8 +30,6 @@ class Bus {
     var bootromLoaded: Bool
     /// Main PPU instance (handles all graphics)
     public var ppu: PPU
-    /// Enable debug mode (bypasses normal memory rules)
-    public var debug = false
     /// Main cartridge MBC (handles ROM/RAM banking)
     public var mbc: MBC
 
@@ -92,10 +90,6 @@ class Bus {
     ///   - location: The 16-bit address to write to
     ///   - value: The byte value to write
     func write(location: UInt16, value: UInt8) {
-        if debug {
-            return memory[Int(location)] = value
-        }
-        
         // Debug: Track all writes that come through the bus
         // Removed verbose VRAM logging - too much spam
         
@@ -258,11 +252,7 @@ class Bus {
         /// Read a byte from the given memory location, handling all memory-mapped IO and hardware rules.
         /// - Parameter location: The 16-bit address to read from
         /// - Returns: The byte value at the given address
-        func read(location: UInt16) -> UInt8 {
-            if debug {
-                return memory[Int(location)]
-            }
-            
+    func read(location: UInt16) -> UInt8 {
             let location = Int(location)
             if location > memory.count {
                 return 0

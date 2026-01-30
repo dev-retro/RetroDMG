@@ -1,0 +1,36 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "retrokit",
+			"path": "../RetroKit"
+		}
+	],
+	"settings": {},
+	"launch": {
+		"configurations": [
+			{
+				"type": "swift",
+				"request": "launch",
+				"args": [],
+				"cwd": "${workspaceFolder:RetroDMG}",
+				"name": "Debug RetroDMGApp (RetroDMG)",
+				"target": "RetroDMGApp",
+				"configuration": "debug",
+				"preLaunchTask": "swift: Build Debug RetroDMGApp (RetroDMG)"
+			},
+			{
+				"type": "swift",
+				"request": "launch",
+				"args": [],
+				"cwd": "${workspaceFolder:RetroDMG}",
+				"name": "Release RetroDMGApp (RetroDMG)",
+				"target": "RetroDMGApp",
+				"configuration": "release",
+				"preLaunchTask": "swift: Build Release RetroDMGApp (RetroDMG)"
+			}
+		]
+	}
+}

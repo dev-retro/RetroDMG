@@ -9,10 +9,30 @@ import Foundation
 import RetroKit
 
 public struct RetroDMGSettings: RetroSettings {
+    public var items: [RetroSettingItem]
     public var biosSetting: DMGBiosSetting
     
-    init() {
+    public init() {
         self.biosSetting = DMGBiosSetting()
+        self.items = [
+            RetroSettingItem(
+                name: DMGBiosSetting.name,
+                displayName: biosSetting.displayName,
+                type: biosSetting.type,
+                displayValue: biosSetting.displayValue,
+                value: biosSetting.value.map { RetroSettingValue.bytes(Data($0)) }
+            )
+        ]
+    }
+    
+    mutating func applyItems() {
+        guard let item = items.first(where: { $0.name == DMGBiosSetting.name }) else { return }
+        biosSetting.displayValue = item.displayValue
+        if case .bytes(let data)? = item.value {
+            biosSetting.value = Array(data)
+        } else {
+            biosSetting.value = nil
+        }
     }
 }
 

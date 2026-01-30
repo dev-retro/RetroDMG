@@ -22,7 +22,7 @@ import Foundation
 /// emulator.pause()
 /// ```
 @Observable
-public class RetroDMG {
+public class RetroDMG: RetroPlatform {
     /// The display name of the platform.
     public var name = "Nintendo Game Boy"
     /// A description of the platform.
@@ -35,18 +35,14 @@ public class RetroDMG {
     public var platformName = "RetroDMG"
     /// A description of the emulator library.
     public var platformDescription = "Retro platform library for the Nintendo Game Boy"
-    /// The current debug state, including registers and input.
-    public var debugState: any RetroState
     /// Settings
-    public var settings: RetroDMGSettings
+    public var settings: any RetroSettings
     
     var cpu: CPU
     var inputs: [RetroInput]
     var loopRunning: Bool
     
     var runTask: Task<(), Never>?
-    var debugTask: Task<(), Never>?
-    
     public init() {
         self.cpu = CPU()
         self.inputs = [
@@ -61,8 +57,6 @@ public class RetroDMG {
         ]
         
         self.settings = RetroDMGSettings()
-        
-        self.debugState = DMGState()
         
         self.loopRunning = false
     }
@@ -79,8 +73,6 @@ public class RetroDMG {
             RetroInput("Start"),
             RetroInput("Select")
         ]
-        
-        self.debugState = DMGState()
         
         self.loopRunning = false
     }
@@ -102,15 +94,18 @@ public class RetroDMG {
     
     /// Update settings
     public func update(settings: any RetroSettings) {
-        var settings = settings as! RetroDMGSettings
+        guard var settings = settings as? RetroDMGSettings else {
+            return
+        }
+        settings.applyItems()
         self.settings = settings
+        updateSettings()
     }
     
     /// Starts the emulation loop.
     ///
     /// - Returns: `true` if the emulator was already running, `false` if it was started.
     public func start() -> Bool {
-        debug(enabled: false)
         if !loopRunning {
             loopRunning = true
             loop()
@@ -132,7 +127,6 @@ public class RetroDMG {
     /// - Returns: Always returns `false` (reserved for future use).
     public func stop() -> Bool {
         runTask?.cancel()
-        debugTask?.cancel()
         reset()
         return false
     }
@@ -174,18 +168,6 @@ public class RetroDMG {
                 nextFrameTime += frameDuration
             }
         }
-        if cpu.debug {
-            debugTask = Task {
-                while loopRunning {
-                    if Task.isCancelled {
-                        loopRunning = false
-                        break
-                    }
-                    updateState()
-                    try? await Task.sleep(for: frameDuration, tolerance: .zero)
-                }
-            }
-        }
     }
     
     func updateSettings() {
@@ -197,42 +179,6 @@ public class RetroDMG {
         }
     }
 
-    func updateState() {
-        let state = debugState as! DMGState
-        
-        state.a.value = cpu.registers.a
-        state.b.value = cpu.registers.b
-        state.c.value = cpu.registers.c
-        state.d.value = cpu.registers.d
-        state.e.value = cpu.registers.e
-        state.f.value = cpu.registers.f
-        state.h.value = cpu.registers.h
-        state.l.value = cpu.registers.l
-        state.pc.value = cpu.registers.pc
-        state.sp.value = cpu.registers.sp
-        state.ime.value = cpu.registers.ime
-        
-        state.JoyP.value = cpu.bus.read(location: 0xFF00)
-        state.InputA.value = !cpu.bus.buttonsStore.get(bit: 0)
-        state.InputB.value = !cpu.bus.buttonsStore.get(bit: 1)
-        state.InputSelect.value = !cpu.bus.buttonsStore.get(bit: 2)
-        state.InputStart.value = !cpu.bus.buttonsStore.get(bit: 3)
-        state.InputRight.value = !cpu.bus.dpadStore.get(bit: 0)
-        state.InputLeft.value = !cpu.bus.dpadStore.get(bit: 1)
-        state.InputUp.value = !cpu.bus.dpadStore.get(bit: 2)
-        state.InputDown.value = !cpu.bus.dpadStore.get(bit: 3)
-        state.InputDPad.value = !cpu.bus.read(inputBit: 4)
-        state.InputButtons.value = !cpu.bus.read(inputBit: 5)
-        
-        state.PcLoc.value = cpu.bus.read(location: cpu.registers.read(register: .PC)).hex
-        state.PcLoc1.value = cpu.bus.read(location: cpu.registers.read(register: .PC)+1).hex
-        state.PcLoc2.value = cpu.bus.read(location: cpu.registers.read(register: .PC)+2).hex
-        state.PcLoc3.value = cpu.bus.read(location: cpu.registers.read(register: .PC)+3).hex
-        
-        debugState = state
-    }
-    
-    
     func checkInput() {
         for (index, input) in inputs.enumerated() {
             if input.updated {
@@ -243,12 +189,6 @@ public class RetroDMG {
         }
     }
     
-    func debug(enabled: Bool) {
-        cpu.debug = enabled
-        cpu.bus.ppu.debugEnabled = enabled
-    }
-    
-    
     /// Loads a Game Boy ROM into the emulator.
     ///
     /// - Parameter file: The ROM data as an array of bytes.
@@ -256,7 +196,7 @@ public class RetroDMG {
         do {
             // Load into MBC (authoritative for ROM banking)
             try cpu.bus.mbc.load(rom: file)
-            // Mirror ROM into Bus.memory for debug/inspection and any code paths that read from memory[] directly
+            // Mirror ROM into Bus.memory for inspection and any code paths that read from memory[] directly
             #if DEBUG
             let head = file.prefix(8).map { String(format: "0x%02x", $0) }.joined(separator: ", ")
             print("[RetroDMG.load] ROM bytes=\(file.count) head=[\(head)]")
@@ -325,6 +265,7 @@ public class RetroDMG {
         }
         return viewPort
     }
+
 
     // MARK: - Persistence API
 

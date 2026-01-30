@@ -15,12 +15,9 @@ let package = Package(
             name: "RetroDMG",
             type: .dynamic,
             targets: ["RetroDMG"]),
-        .executable(
-            name: "RetroDMGApp",
-            targets: ["RetroDMGApp"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/dev-retro/RetroKit", branch: "main"),
+        .package(path: "../RetroKit"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
         .package(url: "https://github.com/swiftlang/swift-testing.git", branch: "main")
     ],
@@ -30,18 +27,6 @@ let package = Package(
         .target(
             name: "RetroDMG", dependencies: [
                 .product(name: "RetroKit", package: "RetroKit")
-            ],
-            swiftSettings: [
-                .define("DEBUG", .when(configuration: .debug)),
-                .unsafeFlags(["-Onone", "-g"], .when(configuration: .debug))
-            ]
-        ),
-        .executableTarget(
-            name: "RetroDMGApp",
-            dependencies: ["RetroDMG"],
-            resources: [
-                .copy("default.metallib"),
-                .process("platforms/macOS/Shaders/Shaders.metal")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug)),

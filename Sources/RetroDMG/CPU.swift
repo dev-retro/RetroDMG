@@ -17,9 +17,6 @@ class CPU {
     var cycles: UInt16
     var state: CPUState
     var bus: Bus
-    var currentState: String
-    var debug: Bool
-    var printDebug: Bool
     var previousAndResult: Bool
     var delayedImeWrite: Bool
     var setTimerInterrupt: Bool
@@ -38,15 +35,10 @@ class CPU {
         cycles = 0x0000
         state = .Running
         bus = Bus()
-        currentState = ""
-        debug = false
-        printDebug = false
         previousAndResult = false
         delayedImeWrite = false
         setTimerInterrupt = false
         setInputInterrupt = false
-        
-        bus.debug = debug
         
         lastTimerBit = 0
         TIMAReloadCycle = false
@@ -78,13 +70,6 @@ class CPU {
             registers.write(ime: true)
             delayedImeWrite = false
             state = .Running
-        }
-
-        if debug {
-            currentState = "A: \(registers.read(register: .A).hex) F: \(registers.read(register: .F).hex) B: \(registers.read(register: .B).hex) C: \(registers.read(register: .C).hex) D: \(registers.read(register: .D).hex) E: \(registers.read(register: .E).hex) H: \(registers.read(register: .H).hex) L: \(registers.read(register: .L).hex) SP: \(registers.read(register: .SP).hex) PC: 00:\(registers.read(register: .PC).hex) (\(bus.read(location: registers.read(register: .PC)).hex) \(bus.read(location: registers.read(register: .PC)+1).hex) \(bus.read(location: registers.read(register: .PC)+2).hex) \(bus.read(location: registers.read(register: .PC)+3).hex))"
-            if printDebug {
-                print(currentState)
-            }
         }
 
         cycles = 0x0000
@@ -2608,187 +2593,6 @@ class CPU {
         previousAndResult = andResult
     }
 
-    // MARK: - Debugging 
-
-    // Debugging: Generic output callback
-    var debugOutputCallback: ((String) -> Void)? = nil
-    // Example usage: replace print() in debugStateOutput, logOpcode, etc. with sendDebugOutput()
-    // Debugging: Conditional watchpoints
-    var registerWatchpoints: [(RegisterType8, UInt8)] = []
-    var memoryWatchpoints: [(address: UInt16, value: UInt8)] = []
-    // Debugging: Opcode execution history
-    var opcodeTrace: [(pc: UInt16, opcode: UInt8, description: String)] = []
-    var opcodeTraceLimit: Int = 100
-    // Debugging: Breakpoint support
-    var addressBreakpoints: Set<UInt16> = []
-    var opcodeBreakpoints: Set<UInt8> = []
-    // Debugging: Verbose opcode logging
-    var verboseLogging: Bool = false
-    // Debugging: Step-by-step execution mode
-    var stepMode: Bool = false
-    var waitingForStep: Bool = false
-    
-    /// Use this to send debug output to the callback or print to console
-    func sendDebugOutput(_ message: String) {
-        if let callback = debugOutputCallback {
-            callback(message)
-        } else {
-            print(message)
-        }
-    }
-
-    /// Checks for watchpoints and pauses execution if a condition is met
-    func checkWatchpoints() {
-        for (reg, val) in registerWatchpoints {
-            if registers.read(register: reg) == val {
-                sendDebugOutput("[WATCHPOINT] Register \(reg) == 0x\(String(format: "%02X", val))")
-                waitingForStep = true
-                debugStateOutput()
-            }
-        }
-        for (addr, val) in memoryWatchpoints {
-            if bus.read(location: addr) == val {
-                sendDebugOutput("[WATCHPOINT] Memory[0x\(String(format: "%04X", addr))] == 0x\(String(format: "%02X", val))")
-                waitingForStep = true
-                debugStateOutput()
-            }
-        }
-    }
-
-    /// Reports an error with detailed CPU state and context
-    func reportError(message: String, pc: UInt16? = nil, opcode: UInt8? = nil) {
-        sendDebugOutput("[ERROR] \(message)")
-        if let pc = pc {
-            sendDebugOutput("    PC: 0x\(String(format: "%04X", pc))")
-        }
-        if let opcode = opcode {
-            sendDebugOutput("    Opcode: 0x\(String(format: "%02X", opcode))")
-        }
-        debugStateOutput()
-        sendDebugOutput("-----------------")
-    }
-
-    /// Adds an entry to the opcode trace/history
-    func traceOpcode(pc: UInt16, opcode: UInt8, description: String) {
-        opcodeTrace.append((pc, opcode, description))
-        if opcodeTrace.count > opcodeTraceLimit {
-            opcodeTrace.removeFirst()
-        }
-    }
-
-    /// Prints the opcode execution history
-    func printOpcodeTrace() {
-        sendDebugOutput("--- Opcode Trace (last \(opcodeTrace.count) instructions) ---")
-        for entry in opcodeTrace {
-            sendDebugOutput(String(format: "PC: 0x%04X Opcode: 0x%02X - %@", entry.pc, entry.opcode, entry.description))
-        }
-        sendDebugOutput("-----------------")
-    }
-
-    /// Dumps the full CPU state and a configurable memory region
-    func dumpState(memoryStart: UInt16 = 0x0000, memoryEnd: UInt16 = 0x00FF) {
-        debugStateOutput()
-        sendDebugOutput("--- Memory Dump 0x\(String(format: "%04X", memoryStart)) to 0x\(String(format: "%04X", memoryEnd)) ---")
-        var line = ""
-        for addr in memoryStart...memoryEnd {
-            let value = bus.read(location: addr)
-            line += String(format: "%02X ", value)
-            if (addr - memoryStart + 1) % 16 == 0 {
-                sendDebugOutput(String(format: "0x%04X: ", addr - 15) + line)
-                line = ""
-            }
-        }
-        if !line.isEmpty {
-            let startAddr = memoryEnd - UInt16(line.split(separator: " ").count) + 1
-            sendDebugOutput(String(format: "0x%04X: ", startAddr) + line)
-        }
-        sendDebugOutput("-----------------")
-    }
-
-    /// Checks for breakpoints and pauses execution if hit
-    func checkBreakpoints(currentPC: UInt16, currentOpcode: UInt8) {
-        if addressBreakpoints.contains(currentPC) {
-            sendDebugOutput("[BREAKPOINT] Hit address breakpoint at 0x\(String(format: "%04X", currentPC))")
-            waitingForStep = true
-            debugStateOutput()
-        }
-        if opcodeBreakpoints.contains(currentOpcode) {
-            sendDebugOutput("[BREAKPOINT] Hit opcode breakpoint 0x\(String(format: "%02X", currentOpcode)) at PC 0x\(String(format: "%04X", currentPC))")
-            waitingForStep = true
-            debugStateOutput()
-        }
-    }
-
-    /// Logs details about the executed opcode
-    func logOpcode(opcode: UInt8, description: String) {
-        if verboseLogging {
-            sendDebugOutput("[LOG] PC: 0x\(String(format: "%04X", registers.read(register: .PC))) Opcode: 0x\(String(format: "%02X", opcode)) - \(description)")
-            sendDebugOutput("    AF: 0x\(String(format: "%04X", registers.read(register: .AF))) BC: 0x\(String(format: "%04X", registers.read(register: .BC))) DE: 0x\(String(format: "%04X", registers.read(register: .DE))) HL: 0x\(String(format: "%04X", registers.read(register: .HL))) SP: 0x\(String(format: "%04X", registers.read(register: .SP)))")
-            sendDebugOutput("    Flags: Z=\(registers.read(flag: .Zero)) N=\(registers.read(flag: .Subtraction)) H=\(registers.read(flag: .HalfCarry)) C=\(registers.read(flag: .Carry)) IME=\(registers.readIme()) Cycles=\(cycles)")
-        }
-    }
-
-    /// Outputs the current CPU state for debugging
-    func debugStateOutput() {
-        sendDebugOutput("--- CPU State ---")
-        sendDebugOutput("PC: 0x\(String(format: "%04X", registers.read(register: .PC)))  SP: 0x\(String(format: "%04X", registers.read(register: .SP)))  Cycles: \(cycles)")
-        sendDebugOutput("AF: 0x\(String(format: "%04X", registers.read(register: .AF)))  BC: 0x\(String(format: "%04X", registers.read(register: .BC)))  DE: 0x\(String(format: "%04X", registers.read(register: .DE)))  HL: 0x\(String(format: "%04X", registers.read(register: .HL)))")
-        sendDebugOutput("Flags: Z=\(registers.read(flag: .Zero)) N=\(registers.read(flag: .Subtraction)) H=\(registers.read(flag: .HalfCarry)) C=\(registers.read(flag: .Carry)) IME=\(registers.readIme())")
-        sendDebugOutput("State: \(state)")
-        sendDebugOutput("-----------------")
-    }
-
-    /// Executes a single instruction and outputs state if in step mode
-    func step() {
-        waitingForStep = false
-
-        // DMA halt logic: If DMA is active, halt CPU instruction execution and only advance hardware
-        if bus.dmaActive {
-            // Advance DMA by 4 cycles (1 byte per 4 cycles)
-            // bus.stepDMA(4)
-            // Advance PPU and timer by 4 cycles
-            // bus.ppu.step(4)
-            updateTimer()
-            // Advance CPU cycle count
-            cycles = cycles.addingReportingOverflow(4).partialValue
-            // Output state after hardware advancement
-            debugStateOutput()
-            return
-        }
-
-        // Fetch opcode from memory
-        let pc = registers.read(register: .PC)
-        let opcode = bus.read(location: pc)
-
-        // Log and trace opcode
-        logOpcode(opcode: opcode, description: "Fetched opcode")
-        traceOpcode(pc: pc, opcode: opcode, description: "Fetched opcode")
-
-        // Check breakpoints and watchpoints
-        checkBreakpoints(currentPC: pc, currentOpcode: opcode)
-        checkWatchpoints()
-
-        // Execute the instruction using the real implementation
-        _ = tick()
-
-        // Output state after execution
-        debugStateOutput()
-
-    /// Stub for opcode execution logic
-    func executeOpcode(_ opcode: UInt8) {
-        // TODO: Implement opcode decoding and execution
-        // Example:
-        // switch opcode {
-        // case 0x00: // NOP
-        //     // ...
-        // case 0x01: // LD BC,d16
-        //     // ...
-        // ...
-        // default:
-        //     reportError(message: "Unknown opcode", pc: registers.read(register: .PC), opcode: opcode)
-        // }
-    }
-    }
 }
 
 enum JumpType {

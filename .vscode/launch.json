@@ -11,7 +11,7 @@
             "cwd": "${workspaceFolder:RetroDMG}",
             "name": "Debug RetroDMGApp (Full Build)",
             "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGApp",
-            "preLaunchTask": "Full Build (Debug)",
+            "preLaunchTask": "Full Build (Debug)"
         },
         {
             "type": "swift",
@@ -20,7 +20,7 @@
             "cwd": "${workspaceFolder:RetroDMG}",
             "name": "Release RetroDMGApp (Full Build)",
             "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGApp",
-            "preLaunchTask": "Full Build (Release)",
+            "preLaunchTask": "Full Build (Release)"
         },
         {
             "type": "swift",
@@ -28,8 +28,9 @@
             "args": [],
             "cwd": "${workspaceFolder:RetroDMG}",
             "name": "Debug RetroDMGApp",
-            "program": "${workspaceFolder:RetroDMG}/.build/debug/RetroDMGApp",
-            "preLaunchTask": "swift: Build Debug RetroDMGApp"
+            "preLaunchTask": "swift: Build Debug RetroDMGApp",
+            "target": "RetroDMGApp",
+            "configuration": "debug"
         },
         {
             "type": "swift",
@@ -37,8 +38,9 @@
             "args": [],
             "cwd": "${workspaceFolder:RetroDMG}",
             "name": "Release RetroDMGApp",
-            "program": "${workspaceFolder:RetroDMG}/.build/release/RetroDMGApp",
-            "preLaunchTask": "swift: Build Release RetroDMGApp"
+            "preLaunchTask": "swift: Build Release RetroDMGApp",
+            "target": "RetroDMGApp",
+            "configuration": "release"
         }
     ]
 }
