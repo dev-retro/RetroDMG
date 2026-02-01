@@ -23,6 +23,34 @@ Legend: [x] implemented, [~] partial, [ ] missing
 - [ ] Additional MBCs/peripherals: MMM01, MBC6, MBC7, HuC1/HuC3, M161, IR, etc.
 - [ ] Accuracy edge cases: timer obscure behavior, OAM corruption, STAT timing quirks, HALT bug
 
+## APU Detailed Checklist (DMG)
+- [ ] APU: Add new APU module and hook it into the main loop timing (step per CPU cycles).
+- [ ] APU: Wire FF10-FF26 and FF30-FF3F reads/writes in Sources/RetroDMG/Bus.swift.
+- [ ] APU: Implement NR52 power on/off behavior (reset registers, disable channels, read-only rules).
+- [ ] APU: Implement register read masks (unused bits read as 1/0 per Pan Docs).
+- [ ] APU: Implement frame sequencer (512 Hz) and derive ticks for:
+- [ ] APU: Length counters (256 Hz) for all channels (CH1/2/4 length 64, CH3 length 256).
+- [ ] APU: Sweep unit (128 Hz) for CH1 (NR10).
+- [ ] APU: Volume envelopes (64 Hz) for CH1/2/4 (NR12/NR22/NR42).
+- [ ] APU: Channel 1 (square + sweep): duty, length, envelope, frequency, trigger, sweep overflow.
+- [ ] APU: Channel 2 (square): duty, length, envelope, frequency, trigger.
+- [ ] APU: Channel 3 (wave): NR30 DAC enable, wave RAM (32 samples), length, volume, frequency, trigger.
+- [ ] APU: Channel 4 (noise): LFSR, width mode, divisor/clock, length, envelope, trigger.
+- [ ] APU: Channel DAC enable rules (channel off when DAC disabled).
+- [ ] APU: Mixer (NR50/NR51) to left/right outputs and per-channel routing.
+- [ ] APU: NR52 channel status bits reflect active channels.
+
+## APU API Layer Checklist (RetroDMG)
+- [ ] API: Decide on audio output mode (pull, push, or both).
+- [ ] API: Define stable sample format (recommended: interleaved stereo s16le).
+- [ ] API: Expose `dequeueAudio(maxFrames:)` for pull-based consumers.
+- [ ] API: Optionally expose `setAudioSink(_:)` for push-based consumers.
+- [ ] API: Add ring buffer in APU (or RetroDMG) for audio frames.
+- [ ] API: Define sample rate configuration (44_100 or 48_000).
+- [ ] API: Implement resampling from APU clock to output rate.
+- [ ] API: Silence output when NR52 disables APU (do not stall).
+- [ ] API: Add settings hooks in Sources/RetroDMG/Models/DMGSettings.swift (sampleRate, bufferFrames, format, enabled).
+
 ## Touchpoints (where work would land)
 | Area | gbdev reference | Touchpoints in this repo |
 | --- | --- | --- |
