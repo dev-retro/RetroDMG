@@ -1,3 +1,6 @@
+# ARCHIVED 
+RetroDMG has moved to Codeberg for hosting, this repository has been archived. If you would like to fiund the up to date repository you can find it [here](https://codeberg.org/RetroPlatforms/RetroDMG)
+
 # RetroDMG
 RetroDMG allows for developers to implement Nintendo Gameyboy gaming into their own application. RetroDMG is part of the Retro project.
 
